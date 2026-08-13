@@ -73,7 +73,7 @@ API institucional a través del BFF.
 ```
 roles(id, nombre)
 decanatos(id, nombre)
-usuarios(id, rol_id → roles, decanato_id → decanatos, preferencias jsonb, created_at)
+usuarios(id, cedula UNIQUE, nombre, email, rol_id → roles, decanato_id → decanatos, preferencias jsonb, created_at)
 dispositivos(id, usuario_id → usuarios, push_token UNIQUE, plataforma,
              registrado_at, ultimo_uso_at)
 

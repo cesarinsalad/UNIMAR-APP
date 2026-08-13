@@ -19,14 +19,14 @@ CREATE TABLE decanatos (
 );
 
 CREATE TABLE usuarios (
-  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  institutional_id text NOT NULL UNIQUE,          -- llave de mapeo con API UNIMAR
-  nombre           text NOT NULL,
-  email            text,
-  rol_id           int  NOT NULL REFERENCES roles(id),
-  decanato_id      int  REFERENCES decanatos(id), -- NULL permitido (ADMIN)
-  preferencias     jsonb NOT NULL DEFAULT '{}',
-  created_at       timestamptz NOT NULL DEFAULT now()
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  cedula      text NOT NULL UNIQUE,     -- cédula: llave de mapeo con la API de UNIMAR
+  nombre      text NOT NULL,
+  email       text,
+  rol_id      int  NOT NULL REFERENCES roles(id),
+  decanato_id int  REFERENCES decanatos(id), -- NULL permitido (ADMIN)
+  preferencias jsonb NOT NULL DEFAULT '{}',
+  created_at  timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE dispositivos (
