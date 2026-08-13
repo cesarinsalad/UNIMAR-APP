@@ -16,9 +16,15 @@ function claimsFor(userId: string, decanatoId: number | null, nombre: string) {
  *
  * Estos tests son la evidencia ejecutable del modelo ABAC:
  * - Sin claims, app_bff no puede tocar filas de dispositivos (fail-closed).
- * - Con claims de un usuario, solo ve/suas propias filas.
+ * - Con claims de un usuario, solo ve/sus propias filas.
  *
  * Se saltan salvo que se pase RUN_DB_TESTS=1, para que `npm test` no dependa de Docker.
+ *
+ * Nota de diseño: el segundo test usa una transacción manual con ROLLBACK en vez
+ * de anidar UnitOfWork. Cada llamada a uow.run/uow.runAs toma una NUEVA conexión
+ * del pool, así que no vería los usuarios insertados en una transacción externa;
+ * y el ROLLBACK final garantiza que no queden datos de prueba (cedulas TEST-*)
+ * en la base.
  */
 describe.skipIf(!RUN_DB_TESTS)('RLS integration (ABAC)', () => {
   let pool: Pool;

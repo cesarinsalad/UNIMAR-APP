@@ -1,3 +1,9 @@
+// Tests unitarios de AuthService (sin base de datos ni red).
+// Los cuatro colaboradores se sustituyen por mocks estructurales que cumplen
+// sus interfaces: esto aísla la lógica pura del caso de uso — "qué recibe, qué
+// delega a quién y qué devuelve" — y no depende de que haya un Supabase arriba.
+// fakeTx es un objeto vacío porque el repositorio mock nunca lo toca realmente.
+
 import { describe, expect, it } from 'vitest';
 import type { DbTx } from '../../../shared/kernel/db';
 import type { UnitOfWork } from '../../../shared/kernel/unitOfWork';

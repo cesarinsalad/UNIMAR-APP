@@ -10,6 +10,15 @@ interface UsuarioRow {
   preferencias: Record<string, unknown>;
 }
 
+/**
+ * Implementación de IUsuarioRepository sobre PostgreSQL.
+ *
+ * Detalle clave del upsert: `ON CONFLICT (cedula) DO UPDATE` actualiza nombre,
+ * decanato y email, pero **nunca toca `rol_id`**. Los roles COMUNICADOR/ADMIN
+ * solo los asigna el sistema (seed o administración); la API de la universidad
+ * no tiene por qué conocer los roles internos de la app, así que un login no
+ * puede "bajar" ni "subir" de rol a nadie.
+ */
 export class PostgresUsuarioRepository implements IUsuarioRepository {
   async upsertDesdePerfil(tx: DbTx, perfil: PerfilUniversitario): Promise<Usuario> {
     const result = await tx.query<UsuarioRow>(

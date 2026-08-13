@@ -3,6 +3,11 @@ import { z } from 'zod';
 import { asyncHandler, parseBody } from '../../../shared/http/middlewares';
 import type { AuthService } from '../application/authService';
 
+// Capa HTTP del módulo de identidad. Las rutas solo "traducen" requests a
+// llamadas del caso de uso: validan el body con Zod en el borde (fail-fast),
+// delegan la lógica al AuthService y devuelven la respuesta en el envoltorio
+// estándar { data }. Sin lógica de negocio aquí.
+
 const loginSchema = z.object({
   email: z.email('Correo institucional inválido'),
   password: z.string().min(1, 'La contraseña es requerida'),
