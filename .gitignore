@@ -39,7 +39,7 @@ supabase/.branches/
 supabase/.temp/
 supabase/.env
 
-# ─── React Native / Expo (futuro cliente móvil) ───
+# ─── React Native / Expo ───
 .expo/
 .expo-shared/
 web-build/
