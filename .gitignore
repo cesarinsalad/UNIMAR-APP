@@ -1,0 +1,74 @@
+# ─── Dependencias ───
+node_modules/
+.pnp/
+.pnp.js
+
+# ─── Build / TypeScript ───
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# ─── Entorno y secretos ───
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ─── Logs ───
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ─── Testing / Cobertura ───
+coverage/
+.nyc_output/
+
+# ─── Cachés ───
+.cache/
+.eslintcache
+.parcel-cache/
+.turbo/
+
+# ─── Supabase (stack local) ───
+supabase/.branches/
+supabase/.temp/
+supabase/.env
+
+# ─── React Native / Expo (futuro cliente móvil) ───
+.expo/
+.expo-shared/
+web-build/
+*.jks
+*.p8
+*.p12
+*.mobileprovision
+*.orig.*
+ios/build/
+android/build/
+android/.gradle/
+*.keystore
+!debug.keystore
+.metro-health-check*
+
+# ─── Sistema operativo ───
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ─── Editores ───
+.idea/
+*.swp
+*.swo
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# ─── Temporales ───
+tmp/
+temp/
+*.bak
