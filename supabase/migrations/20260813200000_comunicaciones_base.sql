@@ -4,9 +4,7 @@
 -- ═══════════════════════════════════════════════════════════════════
 
 -- Tabla principal de comunicados.
--- cuerpo se almacena como Markdown (renderizado por el cliente móvil con
--- react-native-markdown-display). El ciclo de vida incluye revisión:
--- BORRADOR → PENDIENTE → PUBLICADO → ARCHIVADO.
+-- El ciclo de vida incluye revisión: BORRADOR → PENDIENTE → PUBLICADO → ARCHIVADO.
 CREATE TABLE comunicados (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   titulo          text NOT NULL,
@@ -24,7 +22,8 @@ CREATE TABLE comunicados (
 );
 
 -- Audiencias normalizadas.
--- Convención: 0 filas para un comunicado = GLOBAL (toda la universidad).
+-- Cuando se seleccionan 0 filas para un comunicado, este es GLOBAL (dirigido a toda la universidad).
+-- Cuando se seleccionan 1 o más filas, el comunicado es local (dirigido a los decanatos listados).
 CREATE TABLE comunicado_audiencias (
   comunicado_id uuid NOT NULL REFERENCES comunicados(id) ON DELETE CASCADE,
   decanato_id   int  NOT NULL REFERENCES decanatos(id),
@@ -42,7 +41,7 @@ CREATE TABLE comunicado_adjuntos (
   created_at    timestamptz NOT NULL DEFAULT now()
 );
 
--- Acuse de lectura por estudiante.
+-- Confirmación de lectura por estudiante.
 -- PK compuesta: un usuario solo registra una lectura por comunicado.
 CREATE TABLE comunicado_lecturas (
   comunicado_id uuid NOT NULL REFERENCES comunicados(id) ON DELETE CASCADE,
