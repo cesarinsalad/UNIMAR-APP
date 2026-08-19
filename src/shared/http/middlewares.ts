@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import type { ZodType } from 'zod';
-import { BadRequestError, ForbiddenError, UnauthorizedError } from '../errors';
+import { AppError, BadRequestError, ForbiddenError, UnauthorizedError } from '../errors';
 import type { Claims, IJwtService } from '../security/jwt';
 import { hasRole, type Role } from '../security/rbac';
 
@@ -69,7 +69,7 @@ export function errorHandler(
   res: Response,
   _next: NextFunction,
 ): void {
-  if (err instanceof UnauthorizedError || err instanceof ForbiddenError || err instanceof BadRequestError) {
+  if (err instanceof AppError) {
     res.status(err.status).json({
       error: { code: err.code, message: err.message },
     });
