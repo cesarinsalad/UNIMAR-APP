@@ -5,7 +5,7 @@ import { UnauthorizedError } from '../errors';
  * Claims que viajan en el JWT propio del BFF y que las políticas RLS leen
  * desde auth.jwt() (request.jwt.claims). sub es el UUID de usuarios.id.
  */
-export interface Claims {
+export interface Claims extends Record<string, unknown> {
   sub: string;
   role: string;
   decanato_id: number | null;
