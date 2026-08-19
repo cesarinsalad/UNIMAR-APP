@@ -1,4 +1,5 @@
 import type { DbTx } from '../../../shared/kernel/db';
+import type { Adjunto, CrearAdjuntoInput } from './adjunto';
 import type { Comunicado, Estado } from './comunicado';
 
 /**
@@ -57,4 +58,26 @@ export interface IComunicadoRepository {
   registrarLectura(tx: DbTx, comunicadoId: string, usuarioId: string): Promise<void>;
 
   contarLecturas(tx: DbTx, comunicadoId: string): Promise<number>;
+}
+
+/**
+ * Puerto de almacenamiento (Storage). Es un adapter externo: el dominio no sabe
+ * si detrás está Supabase, S3 u otro proveedor; solo pide URLs firmadas y
+ * verificación de existencia.
+ */
+export interface IStorageService {
+  crearUrlCargaFirmada(path: string): Promise<{ urlFirmada: string; token: string; path: string }>;
+  crearUrlDescargaFirmada(path: string, expiraSegundos: number): Promise<string>;
+  existeObjeto(path: string): Promise<boolean>;
+  eliminarObjeto(path: string): Promise<void>;
+}
+
+/**
+ * Puerto de repositorio para metadatos de adjuntos.
+ */
+export interface IAdjuntoRepository {
+  crear(tx: DbTx, input: CrearAdjuntoInput): Promise<Adjunto>;
+  listarPorComunicado(tx: DbTx, comunicadoId: string): Promise<Adjunto[]>;
+  buscarPorId(tx: DbTx, id: string): Promise<Adjunto | null>;
+  eliminar(tx: DbTx, id: string): Promise<boolean>;
 }

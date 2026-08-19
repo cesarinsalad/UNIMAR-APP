@@ -8,7 +8,11 @@ import {
   MockUniversityAuthService,
   PostgresUsuarioRepository,
 } from './modules/identidad';
-import { createComunicacionesModule } from './modules/comunicaciones';
+import {
+  BUCKET_ADJUNTOS,
+  createComunicacionesModule,
+  SupabaseStorageService,
+} from './modules/comunicaciones';
 
 // ─── Composition root (único lugar con new de implementaciones concretas) ───
 const pool = new Pool({ connectionString: env.DATABASE_URL });
@@ -20,7 +24,12 @@ const authService = new AuthService(
   jwtService,
   uow,
 );
-const comunicacionesModule = createComunicacionesModule({ uow, jwtService });
+const storageService = new SupabaseStorageService({
+  url: env.SUPABASE_URL,
+  serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
+  bucket: BUCKET_ADJUNTOS,
+});
+const comunicacionesModule = createComunicacionesModule({ uow, jwtService, storageService });
 
 const app = createApp({
   authService,

@@ -9,6 +9,9 @@
 export const ESTADOS = ['BORRADOR', 'PENDIENTE', 'PUBLICADO', 'ARCHIVADO'] as const;
 export type Estado = (typeof ESTADOS)[number];
 
+/** Estados en los que se pueden agregar, editar o eliminar adjuntos. */
+export const ESTADOS_EDITABLES: Estado[] = ['BORRADOR', 'PUBLICADO'];
+
 export interface Comunicado {
   id: string;
   titulo: string;

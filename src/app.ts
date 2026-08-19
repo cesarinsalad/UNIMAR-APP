@@ -34,7 +34,7 @@ export function createApp(deps: AppDeps): Express {
   app.use((req, res, next) => unitOfWorkMiddleware(deps.uow)(req, res, next));
 
   app.use('/api/v1/auth', authRouter(deps.authService));
-  app.use('/api/v1/comunicados', deps.comunicacionesRouter);
+  app.use('/api/v1', deps.comunicacionesRouter);
 
   // 404 para rutas desconocidas
   app.use((_req, _res, next: NextFunction) => {
