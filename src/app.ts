@@ -1,4 +1,4 @@
-import express, { type Express, type NextFunction } from 'express';
+import express, { type Express, type NextFunction, type Router } from 'express';
 import { NotFoundError } from './shared/errors';
 import { errorHandler } from './shared/http/middlewares';
 import { unitOfWorkMiddleware } from './shared/http/unitOfWorkMiddleware';
@@ -11,6 +11,7 @@ export interface AppDeps {
   authService: AuthService;
   jwtService: IJwtService;
   uow: UnitOfWork;
+  comunicacionesRouter: Router;
 }
 
 /**
@@ -33,6 +34,7 @@ export function createApp(deps: AppDeps): Express {
   app.use((req, res, next) => unitOfWorkMiddleware(deps.uow)(req, res, next));
 
   app.use('/api/v1/auth', authRouter(deps.authService));
+  app.use('/api/v1/comunicados', deps.comunicacionesRouter);
 
   // 404 para rutas desconocidas
   app.use((_req, _res, next: NextFunction) => {
