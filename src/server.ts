@@ -8,6 +8,7 @@ import {
   MockUniversityAuthService,
   PostgresUsuarioRepository,
 } from './modules/identidad';
+import { createComunicacionesModule } from './modules/comunicaciones';
 
 // ─── Composition root (único lugar con new de implementaciones concretas) ───
 const pool = new Pool({ connectionString: env.DATABASE_URL });
@@ -19,8 +20,14 @@ const authService = new AuthService(
   jwtService,
   uow,
 );
+const comunicacionesModule = createComunicacionesModule({ uow, jwtService });
 
-const app = createApp({ authService, jwtService, uow });
+const app = createApp({
+  authService,
+  jwtService,
+  uow,
+  comunicacionesRouter: comunicacionesModule.router,
+});
 
 const server = app.listen(env.PORT, () => {
   console.log(`[server] UNIMARapp BFF corriendo en http://localhost:${env.PORT} (${env.NODE_ENV})`);
