@@ -45,3 +45,10 @@ export class NotFoundError extends AppError {
     super(404, message, 'NOT_FOUND');
   }
 }
+
+/** 409: conflicto con el estado actual del recurso (p. ej. token duplicado). */
+export class ConflictError extends AppError {
+  constructor(message: string) {
+    super(409, message, 'CONFLICT');
+  }
+}
