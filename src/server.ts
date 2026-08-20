@@ -13,6 +13,7 @@ import {
   createComunicacionesModule,
   SupabaseStorageService,
 } from './modules/comunicaciones';
+import { createNotificacionesModule } from './modules/notificaciones';
 
 // ─── Composition root (único lugar con new de implementaciones concretas) ───
 const pool = new Pool({ connectionString: env.DATABASE_URL });
@@ -30,12 +31,14 @@ const storageService = new SupabaseStorageService({
   bucket: BUCKET_ADJUNTOS,
 });
 const comunicacionesModule = createComunicacionesModule({ uow, jwtService, storageService });
+const notificacionesModule = createNotificacionesModule({ uow, jwtService });
 
 const app = createApp({
   authService,
   jwtService,
   uow,
   comunicacionesRouter: comunicacionesModule.router,
+  notificacionesRouter: notificacionesModule.router,
 });
 
 const server = app.listen(env.PORT, () => {
