@@ -44,6 +44,15 @@ const BASE_SELECT = `
   LEFT JOIN comunicado_audiencias ca ON ca.comunicado_id = c.id
 `;
 
+/**
+ * Implementación de IComunicadoRepository sobre PostgreSQL.
+ *
+ * Disciplina de transacción: cada método recibe una `DbTx` explícita porque la
+ * política RLS del componente evalúa los claims del usuario autenticado dentro
+ * del UnitOfWork del BFF (nunca fuera de él). Los datos se mapean de
+ * snake_case (DB) a camelCase (dominio), y las audiencias se agregan con
+ * `array_agg` en la misma consulta para devolver el comunicado completo.
+ */
 export class PostgresComunicadoRepository implements IComunicadoRepository {
   async crear(
     tx: DbTx,

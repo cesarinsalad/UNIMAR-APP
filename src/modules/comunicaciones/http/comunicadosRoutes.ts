@@ -23,6 +23,13 @@ import {
   uuidParamSchema,
 } from './schemas';
 
+// Capa HTTP del componente Comunicaciones (endpoints de comunicados).
+// Las rutas solo "traducen" requests a llamadas de los casos de uso: validan el
+// body/query con Zod en el borde (fail-fast), aplican RBAC (authenticate +
+// authorize) y devuelven la respuesta en el envoltorio estándar { data }.
+// Sin lógica de negocio aquí; la visibilidad de datos la decide RLS en la DB.
+
+
 export interface ComunicadosRoutesDeps {
   jwtService: IJwtService;
   crear: CrearComunicado;

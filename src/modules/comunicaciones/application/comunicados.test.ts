@@ -1,3 +1,10 @@
+// Tests unitarios de los casos de uso de Comunicados (sin base de datos ni red).
+// Los colaboradores se sustituyen por mocks estructurales que cumplen las
+// interfaces de puertos (IComunicadoRepository + UnitOfWork): esto aísla la
+// lógica pura del caso de uso — "qué recibe, qué delega a quién y qué reglas
+// aplica" — sin depender de que haya Supabase arriba.
+// fakeTx es un objeto vacío porque los repositorios mock nunca lo tocan.
+
 import { describe, expect, it } from 'vitest';
 import type { DbTx } from '../../../shared/kernel/db';
 import type { UnitOfWork } from '../../../shared/kernel/unitOfWork';

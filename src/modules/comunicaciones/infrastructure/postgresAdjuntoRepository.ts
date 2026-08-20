@@ -22,6 +22,13 @@ function mapRow(row: AdjuntoRow): Adjunto {
   };
 }
 
+/**
+ * Implementación de IAdjuntoRepository sobre PostgreSQL.
+ *
+ * Solo persiste los METADATOS del adjunto (path, nombre, mime_type); el binario
+ * vive en Supabase Storage y lo gestiona SupabaseStorageService. Como el resto
+ * del módulo, recibe una `DbTx` para ejecutarse dentro del UnitOfWork con RLS.
+ */
 export class PostgresAdjuntoRepository implements IAdjuntoRepository {
   async crear(tx: DbTx, input: CrearAdjuntoInput): Promise<Adjunto> {
     const result = await tx.query<AdjuntoRow>(

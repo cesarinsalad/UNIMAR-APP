@@ -1,3 +1,10 @@
+// Tests unitarios de los casos de uso de Adjuntos (sin base de datos ni red).
+// A diferencia de Comunicados, aquí además de los repositorios se mockea el
+// puerto externo IStorageService (Supabase Storage): se controlan las URL
+// firmadas, la existencia de objetos y la eliminación sin tocar infraestructura
+// real. Mismo patrón de mocks estructurales + fakeTx.
+// fakeTx es un objeto vacío porque los repositorios mock nunca lo tocan.
+
 import { describe, expect, it } from 'vitest';
 import type { DbTx } from '../../../shared/kernel/db';
 import type { UnitOfWork } from '../../../shared/kernel/unitOfWork';

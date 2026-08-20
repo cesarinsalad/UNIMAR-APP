@@ -1,3 +1,18 @@
+/**
+ * API pública del componente Comunicaciones.
+ *
+ * En el monolito modular, ningún módulo importa las internas de otro: solo lo
+ * que se expone aquí es consumible desde fuera. Este componente agrupa:
+ * - Comunicados (CRUD + ciclo de vida con revisión)
+ * - Audiencias normalizadas (pivot `comunicado_audiencias`)
+ * - Adjuntos (Supabase Storage + URLs firmadas)
+ * - Lecturas (bandeja de confirmación de lectura)
+ *
+ * `createComunicacionesModule` compone los casos de uso y devuelve un único
+ * `Router` para `/api/v1`, que a su vez monta los subrouters de comunicados
+ * (`/comunicados`) y adjuntos (`/adjuntos`). Es la raíz de composición del
+ * módulo (regla de dependencia de Clean Architecture).
+ */
 import { Router } from 'express';
 import type { UnitOfWork } from '../../shared/kernel/unitOfWork';
 import type { IJwtService } from '../../shared/security/jwt';

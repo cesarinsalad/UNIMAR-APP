@@ -10,6 +10,14 @@ import type { UrlDescargaAdjunto } from '../application/urlDescargaAdjunto';
 import type { EliminarAdjunto } from '../application/eliminarAdjunto';
 import { registrarAdjuntoSchema, solicitarUrlCargaSchema, uuidParamSchema } from './adjuntosSchemas';
 
+// Capa HTTP del componente Comunicaciones (endpoints de adjuntos).
+// Implementa el flujo de subida en DOS FASES:
+//  1) POST /comunicados/:id/adjuntos/url-carga  → devuelve una URL firmada
+//  2) POST /comunicados/:id/adjuntos            → registra metadatos tras subir
+// La lectura/descarga y el borrado se exponen bajo /adjuntos. Validación con
+// Zod en el borde (fail-fast) y sin lógica de negocio aquí.
+
+
 export interface AdjuntosRoutesDeps {
   jwtService: IJwtService;
   solicitarUrlCarga: SolicitarUrlCarga;
