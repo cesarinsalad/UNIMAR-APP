@@ -12,6 +12,7 @@ export interface AppDeps {
   jwtService: IJwtService;
   uow: UnitOfWork;
   comunicacionesRouter: Router;
+  notificacionesRouter: Router;
 }
 
 /**
@@ -35,6 +36,7 @@ export function createApp(deps: AppDeps): Express {
 
   app.use('/api/v1/auth', authRouter(deps.authService));
   app.use('/api/v1', deps.comunicacionesRouter);
+  app.use('/api/v1', deps.notificacionesRouter);
 
   // 404 para rutas desconocidas
   app.use((_req, _res, next: NextFunction) => {
