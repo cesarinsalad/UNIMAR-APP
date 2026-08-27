@@ -1,5 +1,6 @@
 import type { Claims } from '../../../shared/security/jwt';
 import type { UnitOfWork } from '../../../shared/kernel/unitOfWork';
+import type { EventBus } from '../../../shared/kernel/eventos';
 import { BadRequestError, ForbiddenError, NotFoundError } from '../../../shared/errors';
 import type { IComunicadoRepository } from '../domain/ports';
 import type { Comunicado } from '../domain/comunicado';
@@ -9,11 +10,15 @@ import type { Comunicado } from '../domain/comunicado';
  *
  * Salta el paso de revisión porque el ADMIN no tiene un aprobador superior.
  * Es útil para comunicados globales o urgentes de la oficina central.
+ *
+ * Si se inyecta un `EventBus`, emite `COMUNICADO_PUBLICADO` igual que
+ * `AprobarComunicado`; el push se ejecuta post-COMMIT (best-effort).
  */
 export class PublicarComunicado {
   constructor(
     private readonly repo: IComunicadoRepository,
     private readonly uow: UnitOfWork,
+    private readonly eventos?: EventBus,
   ) {}
 
   async ejecutar(
@@ -25,7 +30,7 @@ export class PublicarComunicado {
       throw new ForbiddenError('Solo el administrador puede publicar directamente');
     }
 
-    return this.uow.runAs(claims, async (tx) => {
+    const { comunicado, jobs } = await this.uow.runAs(claims, async (tx) => {
       const existente = await this.repo.buscarPorId(tx, id);
       if (!existente) {
         throw new NotFoundError('Comunicado no encontrado');
@@ -47,7 +52,29 @@ export class PublicarComunicado {
       if (!actualizado) {
         throw new NotFoundError('Comunicado no encontrado tras publicar');
       }
-      return actualizado;
+
+      const jobs = this.eventos
+        ? await this.eventos.publicar({
+            tipo: 'COMUNICADO_PUBLICADO',
+            tx,
+            comunicadoId: actualizado.id,
+            titulo: actualizado.titulo,
+            autorId: actualizado.autorId,
+            decanatoIds: actualizado.decanatoIds,
+          })
+        : [];
+
+      return { comunicado: actualizado, jobs };
     });
+
+    for (const job of jobs) {
+      try {
+        await job();
+      } catch (err) {
+        console.error('[comunicaciones:publicar] job post-commit falló:', err);
+      }
+    }
+
+    return comunicado;
   }
 }

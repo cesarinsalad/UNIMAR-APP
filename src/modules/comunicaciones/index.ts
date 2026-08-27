@@ -16,6 +16,7 @@
 import { Router } from 'express';
 import type { UnitOfWork } from '../../shared/kernel/unitOfWork';
 import type { IJwtService } from '../../shared/security/jwt';
+import type { EventBus } from '../../shared/kernel/eventos';
 import { CrearComunicado } from './application/crearComunicado';
 import { EditarComunicado } from './application/editarComunicado';
 import { ListarComunicados } from './application/listarComunicados';
@@ -43,6 +44,13 @@ export interface ComunicacionesModuleDeps {
   uow: UnitOfWork;
   jwtService: IJwtService;
   storageService: IStorageService;
+  /**
+   * Bus opcional. Si se inyecta, los casos de uso `AprobarComunicado`,
+   * `PublicarComunicado` y `RechazarComunicado` emiten eventos durante el tx
+   * y ejecutan los jobs de push post-COMMIT. Sin bus: comportamiento idéntico
+   * al del Paso 2 (los tests existentes siguen pasando).
+   */
+  eventos?: EventBus;
 }
 
 export interface ComunicacionesModule {
@@ -58,9 +66,9 @@ export function createComunicacionesModule(deps: ComunicacionesModuleDeps): Comu
   const listar = new ListarComunicados(comunicadoRepo, deps.uow);
   const obtener = new ObtenerComunicado(comunicadoRepo, deps.uow);
   const solicitarRevision = new SolicitarRevision(comunicadoRepo, deps.uow);
-  const aprobar = new AprobarComunicado(comunicadoRepo, deps.uow);
-  const rechazar = new RechazarComunicado(comunicadoRepo, deps.uow);
-  const publicar = new PublicarComunicado(comunicadoRepo, deps.uow);
+  const aprobar = new AprobarComunicado(comunicadoRepo, deps.uow, deps.eventos);
+  const rechazar = new RechazarComunicado(comunicadoRepo, deps.uow, deps.eventos);
+  const publicar = new PublicarComunicado(comunicadoRepo, deps.uow, deps.eventos);
   const archivar = new ArchivarComunicado(comunicadoRepo, deps.uow);
   const estadisticas = new EstadisticasComunicado(comunicadoRepo, deps.uow);
 
