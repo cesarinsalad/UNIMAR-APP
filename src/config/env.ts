@@ -17,6 +17,8 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().default('8h'),
   SUPABASE_URL: z.string().min(1, 'SUPABASE_URL es requerida'),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, 'SUPABASE_SERVICE_ROLE_KEY es requerida'),
+  /** Proveedor de notificaciones push: `mock` no hace red, `expo` usa Expo Push API. */
+  PUSH_PROVIDER: z.enum(['mock', 'expo']).default('mock'),
 });
 
 export type Env = z.infer<typeof envSchema>;
