@@ -5,14 +5,14 @@
  * que se expone aquí es consumible desde fuera. Este componente agrupa:
  * - Bandeja in-app (`notificaciones`) consumida por cada usuario.
  * - Registro de dispositivos (push tokens) para el fan-out de mensajes.
+ * - Suscriptores del `EventBus` que materializan los fan-outs de eventos del
+ *   dominio (Paso 3 — C3: `COMUNICADO_PUBLICADO` y `COMUNICADO_RECHAZADO`).
  *
- * `createNotificacionesModule` compone los casos de uso y devuelve un único
- * `Router` para `/api/v1`, que a su vez monta los subrouters de dispositivos
- * (`/dispositivos`) y notificaciones (`/notificaciones`). Es la raíz de
- * composición del módulo (regla de dependencia de Clean Architecture).
- *
- * En el Paso 3 — C3 este módulo se extenderá con la suscripción al EventBus
- * para los fan-outs de `COMUNICADO_PUBLICADO` y `COMUNICADO_RECHAZADO`.
+ * `createNotificacionesModule` compone casos de uso, repos y fans y devuelve
+ * `{ router, fanOutPublicado, fanOutRechazado }`. Es la raíz de composición
+ * del módulo (regla de dependencia de Clean Architecture). Las suscripciones
+ * al bus se hacen en el composition root del servidor, no aquí, para no
+ * acoplar el módulo a un bus concreto.
  */
 import { Router } from 'express';
 import type { UnitOfWork } from '../../shared/kernel/unitOfWork';
@@ -24,18 +24,36 @@ import { ListarNotificaciones } from './application/listarNotificaciones';
 import { ContarNotificacionesNoLeidas } from './application/contarNotificacionesNoLeidas';
 import { MarcarNotificacionLeida } from './application/marcarNotificacionLeida';
 import { MarcarTodasLeidas } from './application/marcarTodasLeidas';
+import { FanOutComunicadoPublicado } from './application/fanOutComunicadoPublicado';
+import { FanOutComunicadoRechazado } from './application/fanOutComunicadoRechazado';
 import { PostgresNotificacionRepository } from './infrastructure/postgresNotificacionRepository';
 import { PostgresDispositivoRepository } from './infrastructure/postgresDispositivoRepository';
+import { ExpoPushService, MockPushService } from './infrastructure/pushServices';
 import { dispositivosRoutes } from './http/dispositivosRoutes';
 import { notificacionesRoutes } from './http/notificacionesRoutes';
+import type { IPushService } from './domain/ports';
 
 export interface NotificacionesModuleDeps {
   uow: UnitOfWork;
   jwtService: IJwtService;
+  pushService: IPushService;
 }
 
 export interface NotificacionesModule {
   router: Router;
+  fanOutPublicado: FanOutComunicadoPublicado;
+  fanOutRechazado: FanOutComunicadoRechazado;
+}
+
+/**
+ * Fábrica del proveedor de push.
+ *
+ * Selecciona entre `MockPushService` (default, sin red) y `ExpoPushService` a
+ * partir de la flag `PUSH_PROVIDER`. Expuesto para que el composition root
+ * haga el switch sin importar las clases concretas desde el resto del código.
+ */
+export function seleccionarPushService(provider: 'mock' | 'expo'): IPushService {
+  return provider === 'expo' ? new ExpoPushService() : new MockPushService();
 }
 
 export function createNotificacionesModule(
@@ -52,6 +70,19 @@ export function createNotificacionesModule(
   const contarNoLeidas = new ContarNotificacionesNoLeidas(notificacionRepo, deps.uow);
   const marcarLeida = new MarcarNotificacionLeida(notificacionRepo, deps.uow);
   const marcarTodasLeidas = new MarcarTodasLeidas(notificacionRepo, deps.uow);
+
+  const fanOutPublicado = new FanOutComunicadoPublicado(
+    notificacionRepo,
+    dispositivoRepo,
+    deps.pushService,
+    deps.uow,
+  );
+  const fanOutRechazado = new FanOutComunicadoRechazado(
+    notificacionRepo,
+    dispositivoRepo,
+    deps.pushService,
+    deps.uow,
+  );
 
   const router = Router();
   router.use(
@@ -74,5 +105,5 @@ export function createNotificacionesModule(
     }),
   );
 
-  return { router };
+  return { router, fanOutPublicado, fanOutRechazado };
 }
