@@ -32,7 +32,7 @@ function mapRow(row: NotificacionRow): Notificacion {
  * Disciplina de transacción: cada método recibe un `DbTx` explícito porque la
  * política RLS evalúa los claims del usuario autenticado dentro del UnitOfWork
  * del BFF (nunca fuera de él). Los datos se mapean de snake_case (DB) a
- * camelCase (dominio). El fan-out de insert masivo se añade en el Paso 3 — C3.
+ * camelCase (dominio).
  */
 export class PostgresNotificacionRepository implements INotificacionRepository {
   async listar(
@@ -74,5 +74,33 @@ export class PostgresNotificacionRepository implements INotificacionRepository {
       'UPDATE notificaciones SET leida = true WHERE leida = false',
     );
     return result.rowCount ?? 0;
+  }
+
+  async crearMasivo(
+    tx: DbTx,
+    input: {
+      usuarioIds: string[];
+      tipo: TipoNotificacion;
+      titulo: string;
+      cuerpo: string;
+      referenciaId: string | null;
+    },
+  ): Promise<void> {
+    if (input.usuarioIds.length === 0) return;
+    // Un solo INSERT con `unnest` por cada columna variable; es eficiente y se
+    // ejecuta bajo la misma transacción con los claims del publicador.
+    // La política de INSERT es `WITH CHECK(true)` a propósito, así el fan-out
+    // puede crear filas para usuarios que no son el publicador.
+    await tx.query(
+      `INSERT INTO notificaciones (usuario_id, tipo, titulo, cuerpo, referencia_id)
+       SELECT unnest($1::uuid[]), $2, $3, $4, $5`,
+      [
+        input.usuarioIds,
+        input.tipo,
+        input.titulo,
+        input.cuerpo,
+        input.referenciaId,
+      ],
+    );
   }
 }

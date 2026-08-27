@@ -66,6 +66,21 @@ export class PostgresDispositivoRepository implements IDispositivoRepository {
     return result.rows.map(mapRow);
   }
 
+  async tokensDeUsuarios(tx: DbTx, usuarioIds: string[]): Promise<string[]> {
+    if (usuarioIds.length === 0) return [];
+    // Lectura en modo sistema (`uow.run`, sin claims): la política
+    // `dispositivos_select_sistema` (C3.1) activa la visibilidad de todos los
+    // dispositivos SOLO cuando `request.jwt.claims` es NULL. Bajo claims del
+    // usuario autenticado sigue aplicando `dispositivos_propios_select` y el
+    // usuario solo ve sus propios dispositivos. INSERT/UPDATE/DELETE se
+    // mantienen user-scoped.
+    const result = await tx.query<{ push_token: string }>(
+      `SELECT push_token FROM dispositivos WHERE usuario_id = ANY($1::uuid[])`,
+      [usuarioIds],
+    );
+    return result.rows.map((r) => r.push_token);
+  }
+
   async eliminar(tx: DbTx, id: string): Promise<boolean> {
     const result = await tx.query<{ id: string }>(
       'DELETE FROM dispositivos WHERE id = $1 RETURNING id',
