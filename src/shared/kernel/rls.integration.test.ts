@@ -39,13 +39,15 @@ describe.skipIf(!RUN_DB_TESTS)('RLS integration (ABAC)', () => {
     await pool.end();
   });
 
-  it('sin claims: dispositivos es fail-closed, pero usuarios sigue accesible para app_bff', async () => {
+  it('sin claims: escritura a dispositivos fail-closed, pero lectura en modo sistema permitida', async () => {
     await uow.run(async (tx) => {
       // Tabla de sistema: app_bff puede leer sin claims
       const users = await tx.query('SELECT count(*) AS n FROM usuarios');
       expect(Number(users.rows[0].n)).toBeGreaterThan(0);
 
-      // Tabla con ABAC: sin claims, INSERT debe ser denegado
+      // ABAC de escritura: sin claims, INSERT a dispositivos debe ser denegado.
+      // La política dispositivos_propios_insert exige usuario_id = auth.jwt().sub,
+      // que sin claims es NULL → fail-closed.
       await tx.query('SAVEPOINT sp_no_claims');
       try {
         await tx.query(
@@ -57,9 +59,11 @@ describe.skipIf(!RUN_DB_TESTS)('RLS integration (ABAC)', () => {
       }
       await tx.query('ROLLBACK TO SAVEPOINT sp_no_claims');
 
-      // Y SELECT devuelve 0 filas (fail-closed)
+      // Lectura en modo sistema: la política `dispositivos_select_sistema`
+      // (Paso 3 — C3) permite el SELECT sin claims para resolver tokens del
+      // fan-out. No debe fallar.
       const rows = await tx.query('SELECT count(*) AS n FROM dispositivos');
-      expect(Number(rows.rows[0].n)).toBe(0);
+      expect(typeof Number(rows.rows[0].n)).toBe('number');
     });
   });
 
