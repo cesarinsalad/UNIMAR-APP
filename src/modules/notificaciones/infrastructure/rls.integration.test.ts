@@ -99,11 +99,13 @@ describe.skipIf(!RUN_DB_TESTS)('RLS Notificaciones (ABAC)', () => {
     it('sin claims: INSERT permitido (fan-out del sistema)', async () => {
       await withTx(async (c) => {
         const u = await seedUsuarios(c);
-        const result = await c.query<{ id: string }>(
-          "INSERT INTO notificaciones (usuario_id, tipo, titulo, cuerpo, referencia_id) VALUES ($1, 'COMUNICADO_PUBLICADO', 't', 'c', NULL) RETURNING id",
+        // Sin RETURNING: la política INSERT es `WITH CHECK(true)` y el fan-out
+        // no relee la fila (la releería bajo SELECT, que sí es por dueño).
+        const result = await c.query(
+          "INSERT INTO notificaciones (usuario_id, tipo, titulo, cuerpo, referencia_id) VALUES ($1, 'COMUNICADO_PUBLICADO', 't', 'c', NULL)",
           [u.est5],
         );
-        expect(result.rows[0]!.id).toBeDefined();
+        expect(result.rowCount).toBe(1);
       });
     });
 
@@ -112,11 +114,11 @@ describe.skipIf(!RUN_DB_TESTS)('RLS Notificaciones (ABAC)', () => {
         const u = await seedUsuarios(c);
         await setClaims(c, claimsFor(u.com5, 'COMUNICADOR', 5, 'COM5'));
 
-        const result = await c.query<{ id: string }>(
-          "INSERT INTO notificaciones (usuario_id, tipo, titulo, cuerpo, referencia_id) VALUES ($1, 'COMUNICADO_PUBLICADO', 't', 'c', NULL) RETURNING id",
+        const result = await c.query(
+          "INSERT INTO notificaciones (usuario_id, tipo, titulo, cuerpo, referencia_id) VALUES ($1, 'COMUNICADO_PUBLICADO', 't', 'c', NULL)",
           [u.est5],
         );
-        expect(result.rows[0]!.id).toBeDefined();
+        expect(result.rowCount).toBe(1);
       });
     });
   });
@@ -165,11 +167,11 @@ describe.skipIf(!RUN_DB_TESTS)('RLS Notificaciones (ABAC)', () => {
     it('marca como leída su propia notificación', async () => {
       await withTx(async (c) => {
         const u = await seedUsuarios(c);
+        await setClaims(c, claimsFor(u.est5, 'ESTUDIANTE', 5, 'EST5'));
         const notif = await c.query<{ id: string }>(
           "INSERT INTO notificaciones (usuario_id, tipo, titulo, cuerpo, referencia_id) VALUES ($1, 'COMUNICADO_PUBLICADO', 't', 'c', NULL) RETURNING id",
           [u.est5],
         );
-        await setClaims(c, claimsFor(u.est5, 'ESTUDIANTE', 5, 'EST5'));
 
         const result = await c.query(
           'UPDATE notificaciones SET leida = true WHERE id = $1',
@@ -182,6 +184,7 @@ describe.skipIf(!RUN_DB_TESTS)('RLS Notificaciones (ABAC)', () => {
     it('no puede actualizar una notificación ajena -> 0 filas', async () => {
       await withTx(async (c) => {
         const u = await seedUsuarios(c);
+        await setClaims(c, claimsFor(u.est5, 'ESTUDIANTE', 5, 'EST5'));
         const notif = await c.query<{ id: string }>(
           "INSERT INTO notificaciones (usuario_id, tipo, titulo, cuerpo, referencia_id) VALUES ($1, 'COMUNICADO_PUBLICADO', 't', 'c', NULL) RETURNING id",
           [u.est5],
@@ -199,11 +202,11 @@ describe.skipIf(!RUN_DB_TESTS)('RLS Notificaciones (ABAC)', () => {
     it('borra su propia notificación', async () => {
       await withTx(async (c) => {
         const u = await seedUsuarios(c);
+        await setClaims(c, claimsFor(u.est5, 'ESTUDIANTE', 5, 'EST5'));
         const notif = await c.query<{ id: string }>(
           "INSERT INTO notificaciones (usuario_id, tipo, titulo, cuerpo, referencia_id) VALUES ($1, 'COMUNICADO_PUBLICADO', 't', 'c', NULL) RETURNING id",
           [u.est5],
         );
-        await setClaims(c, claimsFor(u.est5, 'ESTUDIANTE', 5, 'EST5'));
 
         const result = await c.query('DELETE FROM notificaciones WHERE id = $1', [
           notif.rows[0]!.id,
@@ -215,6 +218,7 @@ describe.skipIf(!RUN_DB_TESTS)('RLS Notificaciones (ABAC)', () => {
     it('no puede borrar una notificación ajena -> 0 filas', async () => {
       await withTx(async (c) => {
         const u = await seedUsuarios(c);
+        await setClaims(c, claimsFor(u.est5, 'ESTUDIANTE', 5, 'EST5'));
         const notif = await c.query<{ id: string }>(
           "INSERT INTO notificaciones (usuario_id, tipo, titulo, cuerpo, referencia_id) VALUES ($1, 'COMUNICADO_PUBLICADO', 't', 'c', NULL) RETURNING id",
           [u.est5],
@@ -305,26 +309,52 @@ describe.skipIf(!RUN_DB_TESTS)('RLS Notificaciones (ABAC)', () => {
     });
 
     it('en modo sistema (sin claims), SELECT devuelve los dispositivos del fan-out', async () => {
-      await withTx(async (c) => {
-        const u = await seedUsuarios(c);
-        await setClaims(c, claimsFor(u.est5, 'ESTUDIANTE', 5, 'EST5'));
-        await c.query(
-          "INSERT INTO dispositivos (usuario_id, push_token, plataforma) VALUES ($1, 'tok-est5', 'android')",
-          [u.est5],
+      // En producción el fan-out resuelve tokens con `uow.run` (NUEVA conexión
+      // sin claims, donde el GUC `request.jwt.claims` es NULL). No se puede
+      // simular dentro de la misma transacción (RESET/set_config(NULL) dejan ''
+      // y no NULL), así que se commitea un dispositivo y se relee desde una
+      // conexión limpia.
+      const ts = Date.now();
+      const c = await pool.connect();
+      let userId!: string;
+      let devId!: string;
+      try {
+        await c.query('BEGIN');
+        const u = await c.query<{ id: string }>(
+          "INSERT INTO usuarios (cedula, nombre, email, rol_id, decanato_id) VALUES ($1, 'SYS', $2, (SELECT id FROM roles WHERE nombre='ESTUDIANTE'), 5) RETURNING id",
+          [`TEST-${ts}-SYS`, `sys-${ts}@test.ve`],
         );
-        await setClaims(c, claimsFor(u.est3, 'ESTUDIANTE', 3, 'EST3'));
-        await c.query(
-          "INSERT INTO dispositivos (usuario_id, push_token, plataforma) VALUES ($1, 'tok-est3', 'android')",
-          [u.est3],
+        userId = u.rows[0]!.id;
+        await c.query('SELECT set_config($1, $2, false)', [
+          'request.jwt.claims',
+          claimsFor(userId, 'ESTUDIANTE', 5, 'SYS'),
+        ]);
+        const d = await c.query<{ id: string }>(
+          "INSERT INTO dispositivos (usuario_id, push_token, plataforma) VALUES ($1, 'tok-sistema', 'android') RETURNING id",
+          [userId],
         );
+        devId = d.rows[0]!.id;
+        await c.query('COMMIT');
+      } catch (e) {
+        await c.query('ROLLBACK');
+        c.release();
+        throw e;
+      }
 
-        // Simular uow.run (sin claims): anular el claim (auth.jwt() → NULL).
-        await c.query('SELECT set_config($1, NULL, true)', ['request.jwt.claims']);
-        const result = await c.query<{ usuario_id: string }>(
-          'SELECT usuario_id FROM dispositivos ORDER BY usuario_id',
+      try {
+        const sys = await pool.connect();
+        const r = await sys.query<{ usuario_id: string }>(
+          'SELECT usuario_id FROM dispositivos WHERE usuario_id = $1',
+          [userId],
         );
-        expect(result.rows).toHaveLength(2);
-      });
+        sys.release();
+        expect(r.rows).toHaveLength(1);
+      } finally {
+        await c.query('DELETE FROM dispositivos WHERE id = $1', [devId]);
+        await c.query('DELETE FROM usuarios WHERE id = $1', [userId]);
+        await c.query('RESET request.jwt.claims');
+        c.release();
+      }
     });
   });
 });
