@@ -7,7 +7,12 @@
  * comunicados publicados/rechazados — y se consulta exclusivamente desde el
  * usuario destinatario (RLS lo garantiza).
  */
-export const TIPOS_NOTIFICACION = ['COMUNICADO_PUBLICADO', 'COMUNICADO_RECHAZADO'] as const;
+export const TIPOS_NOTIFICACION = [
+  'COMUNICADO_PUBLICADO',
+  'COMUNICADO_RECHAZADO',
+  'EVENTO_OFICIAL_CREADO',
+  'EVENTO_RECORDATORIO',
+] as const;
 export type TipoNotificacion = (typeof TIPOS_NOTIFICACION)[number];
 
 export interface Notificacion {
