@@ -40,7 +40,20 @@ export interface EventoComunicadoRechazado {
   motivo: string;
 }
 
-export type Evento = EventoComunicadoPublicado | EventoComunicadoRechazado;
+export interface EventoOficialCreado {
+  tipo: 'EVENTO_OFICIAL_CREADO';
+  tx: DbTx;
+  eventoId: string;
+  titulo: string;
+  autorId: string;
+  /** `[]` = GLOBAL; n decanatos = audiencia local. */
+  decanatoIds: number[];
+}
+
+export type Evento =
+  | EventoComunicadoPublicado
+  | EventoComunicadoRechazado
+  | EventoOficialCreado;
 export type EventoTipo = Evento['tipo'];
 
 /** Job best-effort que se ejecuta DESPUÉS del COMMIT. Errores: el job los traga y loguea. */
