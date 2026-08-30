@@ -9,10 +9,10 @@
  *   dominio (Paso 3 — C3: `COMUNICADO_PUBLICADO` y `COMUNICADO_RECHAZADO`).
  *
  * `createNotificacionesModule` compone casos de uso, repos y fans y devuelve
- * `{ router, fanOutPublicado, fanOutRechazado }`. Es la raíz de composición
- * del módulo (regla de dependencia de Clean Architecture). Las suscripciones
- * al bus se hacen en el composition root del servidor, no aquí, para no
- * acoplar el módulo a un bus concreto.
+ * `{ router, fanOutPublicado, fanOutRechazado, fanOutEventoOficialCreado }`.
+ * Es la raíz de composición del módulo (regla de dependencia de Clean
+ * Architecture). Las suscripciones al bus se hacen en el composition root
+ * del servidor, no aquí, para no acoplar el módulo a un bus concreto.
  */
 import { Router } from 'express';
 import type { UnitOfWork } from '../../shared/kernel/unitOfWork';
@@ -42,6 +42,15 @@ export interface NotificacionesModuleDeps {
   uow: UnitOfWork;
   jwtService: IJwtService;
   pushService: IPushService;
+  /**
+   * Repositorios opcionales. Si no se inyectan, el módulo instancia las
+   * implementaciones de Postgres por defecto. Inyectarlos desde el
+   * composition root permite reutilizar la misma instancia desde otros
+   * módulos (p. ej. Calendario para el job de recordatorios) sin que el
+   * módulo exponga sus internos en su API pública.
+   */
+  notificacionRepo?: INotificacionRepository;
+  dispositivoRepo?: IDispositivoRepository;
 }
 
 export interface NotificacionesModule {
@@ -49,10 +58,6 @@ export interface NotificacionesModule {
   fanOutPublicado: FanOutComunicadoPublicado;
   fanOutRechazado: FanOutComunicadoRechazado;
   fanOutEventoOficialCreado: FanOutEventoOficialCreado;
-  /** Repositorios expuestos para que el módulo de Calendario pueda
-   * alimentar el job de recordatorios sin re-cablear el grafo. */
-  notificacionRepo: INotificacionRepository;
-  dispositivoRepo: IDispositivoRepository;
 }
 
 /**
@@ -69,8 +74,8 @@ export function seleccionarPushService(provider: 'mock' | 'expo'): IPushService 
 export function createNotificacionesModule(
   deps: NotificacionesModuleDeps,
 ): NotificacionesModule {
-  const notificacionRepo = new PostgresNotificacionRepository();
-  const dispositivoRepo = new PostgresDispositivoRepository();
+  const notificacionRepo = deps.notificacionRepo ?? new PostgresNotificacionRepository();
+  const dispositivoRepo = deps.dispositivoRepo ?? new PostgresDispositivoRepository();
 
   const registrar = new RegistrarDispositivo(dispositivoRepo, deps.uow);
   const listarDispositivos = new ListarDispositivos(dispositivoRepo, deps.uow);
@@ -126,7 +131,11 @@ export function createNotificacionesModule(
     fanOutPublicado,
     fanOutRechazado,
     fanOutEventoOficialCreado,
-    notificacionRepo,
-    dispositivoRepo,
   };
 }
+
+// Export de las implementaciones por si el composition root quiere
+// instanciarlas explícitamente y compartirlas entre módulos (manteniendo
+// la regla de fronteras DSBC: los internos no se importan desde otros
+// módulos, solo desde el composition root).
+export { PostgresNotificacionRepository, PostgresDispositivoRepository };

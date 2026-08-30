@@ -11,11 +11,23 @@
  * `createCalendarioModule` compone los casos de uso y devuelve `{ router,
  * recordatoriosJob }`. El job se inicia en el composition root del servidor
  * (no aquí) para no acoplar el módulo al ciclo de vida de Express.
+ *
+ * Las dependencias del job de recordatorios (`notifRepo`, `dispositivoRepo`,
+ * `pushService`) se tipifican con puertos del **shared kernel**, no del
+ * módulo de Notificaciones. Esto preserva la regla DSBC: ningún módulo
+ * importa las interfaces de otro módulo. En el composition root se
+ * inyectan los repos de Notificaciones (que extienden los puertos del
+ * shared kernel) directamente desde `server.ts`.
  */
 import { Router } from 'express';
 import type { UnitOfWork } from '../../shared/kernel/unitOfWork';
 import type { IJwtService } from '../../shared/security/jwt';
 import type { EventBus } from '../../shared/kernel/eventos';
+import type {
+  INotificadorInApp,
+  IProveedorTokens,
+  IPushService,
+} from '../../shared/kernel/notificacion';
 import { CrearEvento } from './application/crearEvento';
 import { EditarEvento } from './application/editarEvento';
 import { EliminarEvento } from './application/eliminarEvento';
@@ -23,11 +35,6 @@ import { ListarEventos } from './application/listarEventos';
 import { ObtenerEvento } from './application/obtenerEvento';
 import { PostgresEventoRepository } from './infrastructure/postgresEventoRepository';
 import { eventosRoutes } from './http/eventosRoutes';
-import type {
-  INotificacionRepository,
-  IDispositivoRepository,
-  IPushService,
-} from '../notificaciones/domain/ports';
 import { RecordatoriosJob } from './application/recordatoriosJob';
 
 export interface CalendarioModuleDeps {
@@ -39,9 +46,9 @@ export interface CalendarioModuleDeps {
    * los jobs de fan-out post-COMMIT. Sin bus: comportamiento idéntico.
    */
   eventos?: EventBus;
-  /** Dependencias del job de recordatorios (opcional). */
-  notifRepo?: INotificacionRepository;
-  dispositivoRepo?: IDispositivoRepository;
+  /** Dependencias del job de recordatorios (puertos del shared kernel). */
+  notifRepo?: INotificadorInApp;
+  dispositivoRepo?: IProveedorTokens;
   pushService?: IPushService;
 }
 
@@ -85,21 +92,14 @@ export function createCalendarioModule(deps: CalendarioModuleDeps): CalendarioMo
   return { router, recordatoriosJob };
 }
 
-function createNoopNotifRepo(): INotificacionRepository {
+function createNoopNotifRepo(): INotificadorInApp {
   return {
-    listar: async () => [],
-    contarNoLeidas: async () => 0,
-    marcarLeida: async () => null,
-    marcarTodasLeidas: async () => 0,
     crearMasivo: async () => undefined,
   };
 }
 
-function createNoopDispositivoRepo(): IDispositivoRepository {
+function createNoopDispositivoRepo(): IProveedorTokens {
   return {
-    upsert: async () => null,
-    listarPorUsuario: async () => [],
-    eliminar: async () => false,
     tokensDeUsuarios: async () => [],
   };
 }
