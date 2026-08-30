@@ -26,12 +26,17 @@ import { MarcarNotificacionLeida } from './application/marcarNotificacionLeida';
 import { MarcarTodasLeidas } from './application/marcarTodasLeidas';
 import { FanOutComunicadoPublicado } from './application/fanOutComunicadoPublicado';
 import { FanOutComunicadoRechazado } from './application/fanOutComunicadoRechazado';
+import { FanOutEventoOficialCreado } from './application/fanOutEventoOficialCreado';
 import { PostgresNotificacionRepository } from './infrastructure/postgresNotificacionRepository';
 import { PostgresDispositivoRepository } from './infrastructure/postgresDispositivoRepository';
 import { ExpoPushService, MockPushService } from './infrastructure/pushServices';
 import { dispositivosRoutes } from './http/dispositivosRoutes';
 import { notificacionesRoutes } from './http/notificacionesRoutes';
-import type { IPushService } from './domain/ports';
+import type {
+  INotificacionRepository,
+  IDispositivoRepository,
+  IPushService,
+} from './domain/ports';
 
 export interface NotificacionesModuleDeps {
   uow: UnitOfWork;
@@ -43,6 +48,11 @@ export interface NotificacionesModule {
   router: Router;
   fanOutPublicado: FanOutComunicadoPublicado;
   fanOutRechazado: FanOutComunicadoRechazado;
+  fanOutEventoOficialCreado: FanOutEventoOficialCreado;
+  /** Repositorios expuestos para que el módulo de Calendario pueda
+   * alimentar el job de recordatorios sin re-cablear el grafo. */
+  notificacionRepo: INotificacionRepository;
+  dispositivoRepo: IDispositivoRepository;
 }
 
 /**
@@ -83,6 +93,12 @@ export function createNotificacionesModule(
     deps.pushService,
     deps.uow,
   );
+  const fanOutEventoOficialCreado = new FanOutEventoOficialCreado(
+    notificacionRepo,
+    dispositivoRepo,
+    deps.pushService,
+    deps.uow,
+  );
 
   const router = Router();
   router.use(
@@ -105,5 +121,12 @@ export function createNotificacionesModule(
     }),
   );
 
-  return { router, fanOutPublicado, fanOutRechazado };
+  return {
+    router,
+    fanOutPublicado,
+    fanOutRechazado,
+    fanOutEventoOficialCreado,
+    notificacionRepo,
+    dispositivoRepo,
+  };
 }
