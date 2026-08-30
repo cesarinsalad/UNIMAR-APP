@@ -1,5 +1,9 @@
 import type { DbTx } from '../../../shared/kernel/db';
-import type { Notificacion, TipoNotificacion } from './notificacion';
+import type {
+  INotificadorInApp,
+  IProveedorTokens,
+} from '../../../shared/kernel/notificacion';
+import type { Notificacion } from './notificacion';
 import type { Dispositivo, Plataforma } from './dispositivo';
 
 /**
@@ -10,11 +14,15 @@ import type { Dispositivo, Plataforma } from './dispositivo';
  * los claims del usuario autenticado. La bandeja solo expone filas del
  * propio usuario autenticado (políticas SELECT/UPDATE/DELETE ya lo imponen).
  *
- * `crearMasivo` lo usa el fan-out. 
+ * `crearMasivo` lo usa el fan-out.
  * El publicador inserta notificaciones para OTROS usuarios bajo una transacción que NO es la suya.
  * La política de INSERT es `WITH CHECK(true)` precisamente para permitirlo.
+ *
+ * Extiende `INotificadorInApp` del shared kernel: cualquier consumidor del
+ * kernel que necesite crear notificaciones puede recibir un
+ * `INotificacionRepository` directamente (el contrato es estructural).
  */
-export interface INotificacionRepository {
+export interface INotificacionRepository extends INotificadorInApp {
   listar(
     tx: DbTx,
     filtro: { soloNoLeidas: boolean; limit: number; offset: number },
@@ -27,22 +35,6 @@ export interface INotificacionRepository {
 
   /** Cantidad de notificaciones marcadas como leídas en la operación. */
   marcarTodasLeidas(tx: DbTx): Promise<number>;
-
-  /**
-   * Inserta una notificación por cada id de usuario. Una sola sentencia
-   * (`unnest`) para minimizar round-trips en el fan-out. `referenciaId`
-   * puede ser null si el evento no apunta a un recurso concreto.
-   */
-  crearMasivo(
-    tx: DbTx,
-    input: {
-      usuarioIds: string[];
-      tipo: TipoNotificacion;
-      titulo: string;
-      cuerpo: string;
-      referenciaId: string | null;
-    },
-  ): Promise<void>;
 }
 
 /**
@@ -52,8 +44,12 @@ export interface INotificacionRepository {
  * RLS ya exige esa coincidencia, se valida en el dominio para defensa en
  * profundidad y para distinguir el caso "token pertenece a otro usuario"
  * (devuelve null → 409 en la capa HTTP).
+ *
+ * Extiende `IProveedorTokens` del shared kernel: el job de recordatorios
+ * puede recibir un `IDispositivoRepository` directamente para resolver
+ * tokens (contrato estructural).
  */
-export interface IDispositivoRepository {
+export interface IDispositivoRepository extends IProveedorTokens {
   upsert(
     tx: DbTx,
     input: { usuarioId: string; pushToken: string; plataforma: Plataforma },
@@ -62,37 +58,7 @@ export interface IDispositivoRepository {
   listarPorUsuario(tx: DbTx, usuarioId: string): Promise<Dispositivo[]>;
 
   eliminar(tx: DbTx, id: string): Promise<boolean>;
-
-  /**
-   * Devuelve los push tokens de los usuarios dados. Pensado para el fan-out,
-   * donde se buscan los destinatarios y sus tokens en dos queries dentro del
-   * mismo tx. `[]` si nadie tiene dispositivo registrado.
-   */
-  tokensDeUsuarios(tx: DbTx, usuarioIds: string[]): Promise<string[]>;
 }
 
-/**
- * Mensaje push individual. Modela el contrato común que entiende el adapter
- * (Expo); el dominio no conoce el detalle HTTP del proveedor.
- */
-export interface PushMensaje {
-  /** Push token destino (Expo Push Token, FCM, APNs). */
-  to: string;
-  title: string;
-  body: string;
-  /** Carga arbitraria para que la app móvil haga deep-link o clasificación. */
-  data?: Record<string, unknown>;
-  /** 'default' activa el sonido estándar en la mayoría de plataformas. */
-  sound?: 'default' | null;
-}
-
-/**
- * Puerto del proveedor de notificaciones push.
- *
- * Best-effort: la implementación debe swallow + log errores (timeouts, 5xx,
- * tokens inválidos). Nunca debe lanzar, porque se ejecuta post-COMMIT y un
- * fallo no debe propagarse al cliente que originó la publicación.
- */
-export interface IPushService {
-  enviar(mensajes: PushMensaje[]): Promise<void>;
-}
+/** Re-export del shared kernel para mantener compatibilidad con imports previos. */
+export type { IPushService, PushMensaje } from '../../../shared/kernel/notificacion';

@@ -6,14 +6,17 @@
  * del `evento` (calendario). Se genera por eventos del sistema — Fan-out de
  * comunicados publicados/rechazados — y se consulta exclusivamente desde el
  * usuario destinatario (RLS lo garantiza).
+ *
+ * Los tipos de notificación (`TIPOS_NOTIFICACION` y `TipoNotificacion`) se
+ * re-exportan del shared kernel para que otros módulos (Calendario) puedan
+ * emitir notificaciones sin acoplarse al dominio de Notificaciones. Los
+ * archivos internos del módulo siguen importándolos desde aquí para no
+ * depender directamente del shared kernel.
  */
-export const TIPOS_NOTIFICACION = [
-  'COMUNICADO_PUBLICADO',
-  'COMUNICADO_RECHAZADO',
-  'EVENTO_OFICIAL_CREADO',
-  'EVENTO_RECORDATORIO',
-] as const;
-export type TipoNotificacion = (typeof TIPOS_NOTIFICACION)[number];
+import { TIPOS_NOTIFICACION, type TipoNotificacion } from '../../../shared/kernel/tiposNotificacion';
+
+export { TIPOS_NOTIFICACION };
+export type { TipoNotificacion };
 
 export interface Notificacion {
   id: string;
