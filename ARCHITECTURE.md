@@ -86,11 +86,12 @@ comunicado_lecturas(comunicado_id, usuario_id, leido_at)   -- PK compuesta
 
 eventos(id, titulo, descripcion,
         tipo CHECK (OFICIAL|PERSONAL),
-        usuario_id,                                        -- NULL si OFICIAL
+        usuario_id uuid REFERENCES usuarios(id),           -- siempre NOT NULL: propietario/creador
         inicio_at timestamptz, fin_at timestamptz,
         dia_completo bool, recordatorio_minutos, created_at)
-  CHECK: PERSONAL ⇒ usuario_id NOT NULL; OFICIAL ⇒ usuario_id NULL
 evento_audiencias(evento_id, decanato_id)                  -- mismo patrón de audiencias
+evento_recordatorios_enviados(evento_id, usuario_id, enviado_at)
+                                                          -- idempotencia del job de recordatorios (solo sistema)
 
 notificaciones(id, usuario_id → usuarios, tipo, titulo, cuerpo,
                referencia_id, leida bool, created_at)
@@ -112,8 +113,15 @@ Notas de modelado:
   cualquier estado.
 - `comunicados INSERT/UPDATE`: COMUNICADOR solo si audiencia ⊆ su decanato;
   ADMIN sin restricción.
-- `eventos SELECT`: OFICIAL (∈ audiencia) ∨ PERSONAL propio.
-- `eventos INSERT/UPDATE/DELETE` PERSONAL: solo si `usuario_id = claim.sub`.
+- `eventos SELECT`: ADMIN ve todo. PERSONAL propio. OFICIAL: GLOBAL o decanato
+  del claim ∈ audiencias.
+- `eventos INSERT`: OFICIAL solo ADMIN o COMUNICADOR (audiencia ⊆ su decanato
+  enforced por la política de `evento_audiencias`). PERSONAL: cualquier rol
+  autenticado con `usuario_id = claim.sub`.
+- `eventos UPDATE/DELETE`: PERSONAL solo el dueño; OFICIAL solo ADMIN o el
+  COMUNICADOR que lo creó.
+- `evento_audiencias INSERT`: ADMIN sin límite; COMUNICADOR solo su decanato.
+- `evento_recordatorios_enviados`: solo en modo sistema (sin claims).
 - `notificaciones`, `comunicado_lecturas`, `dispositivos`: solo filas propias.
 
 ## 6. Estructura del monolito modular (DSBC)
@@ -125,7 +133,7 @@ src/
                       (auth, usuarios, roles, JWT, IUniversityAuthService + Mock)
     comunicaciones/   (comunicados, audiencias, adjuntos, lecturas)
     notificaciones/   (bandeja, INotificacionService, ExpoPush, fan-out)
-    calendario/       (eventos, job de recordatorios)
+    calendario/       (eventos, audiencias, job de recordatorios)
     academico/        (proxy API UNIMAR, caché LRU, DTO Zod)
   shared/             kernel: audiencias, unit-of-work (set_config),
                       middlewares RBAC, manejo de errores
@@ -151,7 +159,8 @@ supabase/
    unit-of-work `set_config`, RLS base.
 2. **Comunicaciones** — CRUD + audiencias + adjuntos + lecturas + ABAC.
 3. **Notificaciones** — bandeja + puerto push + Expo + fan-out al publicar.
-4. **Calendario** — eventos + audiencias + job de recordatorios.
+4. **Calendario** — eventos oficiales y personales, audiencias, fan-out al
+   crear un evento oficial, job de recordatorios en background.
 5. **Académico** — proxy + caché + DTO discriminado.
 
 ## 9. Pendientes externos
