@@ -18,6 +18,7 @@ import {
   createNotificacionesModule,
   seleccionarPushService,
 } from './modules/notificaciones';
+import { createCalendarioModule } from './modules/calendario';
 
 // ─── Composition root (único lugar con new de implementaciones concretas) ───
 const pool = new Pool({ connectionString: env.DATABASE_URL });
@@ -52,6 +53,9 @@ bus.suscribir('COMUNICADO_PUBLICADO', (e) =>
 bus.suscribir('COMUNICADO_RECHAZADO', (e) =>
   notificacionesModule.fanOutRechazado.manejar(e),
 );
+bus.suscribir('EVENTO_OFICIAL_CREADO', (e) =>
+  notificacionesModule.fanOutEventoOficialCreado.manejar(e),
+);
 
 const comunicacionesModule = createComunicacionesModule({
   uow,
@@ -60,21 +64,37 @@ const comunicacionesModule = createComunicacionesModule({
   eventos: bus,
 });
 
+// Módulo de calendario: recibe el bus para emitir EVENTO_OFICIAL_CREADO y
+// los repos de Notificaciones para alimentar el job de recordatorios.
+const calendarioModule = createCalendarioModule({
+  uow,
+  jwtService,
+  eventos: bus,
+  notifRepo: notificacionesModule.notificacionRepo,
+  dispositivoRepo: notificacionesModule.dispositivoRepo,
+  pushService,
+});
+
 const app = createApp({
   authService,
   jwtService,
   uow,
   comunicacionesRouter: comunicacionesModule.router,
   notificacionesRouter: notificacionesModule.router,
+  calendarioRouter: calendarioModule.router,
 });
 
 const server = app.listen(env.PORT, () => {
   console.log(`[server] UNIMARapp BFF corriendo en http://localhost:${env.PORT} (${env.NODE_ENV})`);
 });
 
+// Inicia el job de recordatorios (Paso 4 — Calendario).
+calendarioModule.recordatoriosJob.iniciar();
+
 // ─── Shutdown gracioso ───
 const shutdown = async (signal: string) => {
   console.log(`[server] ${signal} recibido. Cerrando conexiones...`);
+  calendarioModule.recordatoriosJob.detener();
   server.close(async () => {
     await pool.end();
     process.exit(0);

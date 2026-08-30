@@ -13,6 +13,7 @@ export interface AppDeps {
   uow: UnitOfWork;
   comunicacionesRouter: Router;
   notificacionesRouter: Router;
+  calendarioRouter: Router;
 }
 
 /**
@@ -37,6 +38,7 @@ export function createApp(deps: AppDeps): Express {
   app.use('/api/v1/auth', authRouter(deps.authService));
   app.use('/api/v1', deps.comunicacionesRouter);
   app.use('/api/v1', deps.notificacionesRouter);
+  app.use('/api/v1', deps.calendarioRouter);
 
   // 404 para rutas desconocidas
   app.use((_req, _res, next: NextFunction) => {
