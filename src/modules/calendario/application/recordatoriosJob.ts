@@ -2,10 +2,10 @@ import type { UnitOfWork } from '../../../shared/kernel/unitOfWork';
 import type { DbTx } from '../../../shared/kernel/db';
 import type { IEventoRepository } from '../domain/ports';
 import type {
-  INotificacionRepository,
-  IDispositivoRepository,
+  INotificadorInApp,
+  IProveedorTokens,
   IPushService,
-} from '../../notificaciones/domain/ports';
+} from '../../../shared/kernel/notificacion';
 
 /**
  * Job en background que envía recordatorios de eventos próximos.
@@ -41,8 +41,8 @@ export class RecordatoriosJob {
 
   constructor(
     private readonly eventoRepo: IEventoRepository,
-    private readonly notifRepo: INotificacionRepository,
-    private readonly dispRepo: IDispositivoRepository,
+    private readonly notifRepo: INotificadorInApp,
+    private readonly dispRepo: IProveedorTokens,
     private readonly push: IPushService,
     private readonly uow: UnitOfWork,
     private readonly options: RecordatoriosJobOptions = {},
