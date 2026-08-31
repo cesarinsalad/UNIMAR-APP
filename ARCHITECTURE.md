@@ -59,6 +59,15 @@ API institucional a través del BFF.
   - `false` → vista resumida histórica (nota_final, periodo, estado).
 - **Caché LRU en memoria** con TTL de 10–15 min + **stale-if-error**: si la API
   de UNIMAR cae, se sirve la última copia con bandera `stale: true`.
+- **Resolución UUID ↔ cédula** vía puertos del shared kernel
+  (`ICedulaResolver`, `IUsuarioIdResolver`): Académico nunca hace `tx.query`
+  directo contra `usuarios`. Implementación en `PostgresUsuarioRepository`.
+- **Historial médico**: solo el propio estudiante puede consultarlo. Ni el
+  ADMIN del sistema tiene acceso (decisión de privacidad explícita).
+- **Endpoint de sistema `POST /sistema/notas`**: protegido por API Key
+  (`SISTEMA_API_KEY`, no JWT). Simula la publicación de notas por un
+  profesor. Al ejecutarse, emite `NOTA_PUBLICADA` y Notificaciones hace
+  fan-out al estudiante.
 
 ### 3.5 Notificaciones
 - Tabla `notificaciones` (bandeja in-app por usuario), separada de
@@ -134,7 +143,7 @@ src/
     comunicaciones/   (comunicados, audiencias, adjuntos, lecturas)
     notificaciones/   (bandeja, INotificacionService, ExpoPush, fan-out)
     calendario/       (eventos, audiencias, job de recordatorios)
-    academico/        (proxy API UNIMAR, caché LRU, DTO Zod)
+    academico/        (proxy API UNIMAR, caché LRU, DTO Zod discriminado)
   shared/             kernel: audiencias, unit-of-work (set_config),
                       middlewares RBAC, manejo de errores
 supabase/
@@ -161,7 +170,9 @@ supabase/
 3. **Notificaciones** — bandeja + puerto push + Expo + fan-out al publicar.
 4. **Calendario** — eventos oficiales y personales, audiencias, fan-out al
    crear un evento oficial, job de recordatorios en background.
-5. **Académico** — proxy + caché + DTO discriminado.
+5. **Académico** — proxy contra la API de UNIMAR con caché LRU y DTO
+   discriminado; endpoint de sistema para publicación de notas con
+   notificación al estudiante (API Key, sin JWT).
 
 ## 9. Pendientes externos
 
