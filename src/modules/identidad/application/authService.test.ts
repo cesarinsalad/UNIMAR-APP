@@ -51,6 +51,8 @@ describe('AuthService', () => {
 
     const usuarios: IUsuarioRepository = {
       upsertDesdePerfil: async () => usuario,
+      obtenerCedula: async () => usuario.cedula,
+      obtenerUsuarioIdPorCedula: async () => usuario.id,
     };
 
     const authService = new AuthService(universityAuth, usuarios, jwt, makeUnitOfWork());
@@ -69,7 +71,11 @@ describe('AuthService', () => {
     };
 
     const jwt: IJwtService = { sign: () => 'x', verify: () => ({}) as Claims };
-    const usuarios: IUsuarioRepository = { upsertDesdePerfil: async () => ({}) as Usuario };
+    const usuarios: IUsuarioRepository = {
+      upsertDesdePerfil: async () => ({}) as Usuario,
+      obtenerCedula: async () => '20123456',
+      obtenerUsuarioIdPorCedula: async () => 'uuid-ana',
+    };
 
     const authService = new AuthService(universityAuth, usuarios, jwt, makeUnitOfWork());
 
@@ -104,6 +110,8 @@ describe('AuthService', () => {
 
     const usuarios: IUsuarioRepository = {
       upsertDesdePerfil: async () => usuarioComunicador,
+      obtenerCedula: async () => usuarioComunicador.cedula,
+      obtenerUsuarioIdPorCedula: async () => usuarioComunicador.id,
     };
 
     const authService = new AuthService(universityAuth, usuarios, jwt, makeUnitOfWork());

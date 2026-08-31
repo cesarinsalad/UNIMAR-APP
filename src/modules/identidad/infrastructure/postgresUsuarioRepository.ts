@@ -1,4 +1,5 @@
 import type { DbTx } from '../../../shared/kernel/db';
+import { NotFoundError } from '../../../shared/errors';
 import type { IUsuarioRepository, PerfilUniversitario, Usuario } from '../domain/ports';
 
 interface UsuarioRow {
@@ -53,5 +54,39 @@ export class PostgresUsuarioRepository implements IUsuarioRepository {
       decanatoId: row.decanato_id,
       preferencias: row.preferencias,
     };
+  }
+
+  /**
+   * Implementación de `ICedulaResolver` del shared kernel. El módulo Académico
+   * la usa para resolver el `usuarioId` del JWT a la cédula institucional que
+   * sirve como llave contra la API de UNIMAR.
+   */
+  async obtenerCedula(tx: DbTx, usuarioId: string): Promise<string> {
+    const result = await tx.query<{ cedula: string }>(
+      'SELECT cedula FROM usuarios WHERE id = $1',
+      [usuarioId],
+    );
+    const row = result.rows[0];
+    if (!row) {
+      throw new NotFoundError('Usuario no encontrado');
+    }
+    return row.cedula;
+  }
+
+  /**
+   * Implementación de `IUsuarioIdResolver` del shared kernel. La usa el caso
+   * de uso `PublicarNota` para resolver la cédula del estudiante a su UUID
+   * interno (necesario para insertar la notificación dirigida a él).
+   */
+  async obtenerUsuarioIdPorCedula(tx: DbTx, cedula: string): Promise<string> {
+    const result = await tx.query<{ id: string }>(
+      'SELECT id FROM usuarios WHERE cedula = $1',
+      [cedula],
+    );
+    const row = result.rows[0];
+    if (!row) {
+      throw new NotFoundError(`No existe un usuario local con cédula ${cedula}`);
+    }
+    return row.id;
   }
 }
