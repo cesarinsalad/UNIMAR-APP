@@ -11,6 +11,7 @@ export const TIPOS_NOTIFICACION = [
   'COMUNICADO_RECHAZADO',
   'EVENTO_OFICIAL_CREADO',
   'EVENTO_RECORDATORIO',
+  'NOTA_PUBLICADA',
 ] as const;
 
 export type TipoNotificacion = (typeof TIPOS_NOTIFICACION)[number];

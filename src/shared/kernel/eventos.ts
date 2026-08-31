@@ -50,10 +50,27 @@ export interface EventoOficialCreado {
   decanatoIds: number[];
 }
 
+/**
+ * Notificación de publicación de nota académica (Paso 5).
+ * Emitido por el caso de uso `PublicarNota` cuando un sistema externo
+ * (simulado vía `POST /sistema/notas`) reporta que un profesor subió una
+ * nota. El módulo Notificaciones hace fan-out al estudiante afectado.
+ */
+export interface EventoNotaPublicada {
+  tipo: 'NOTA_PUBLICADA';
+  tx: DbTx;
+  materiaId: string;
+  materiaNombre: string;
+  usuarioId: string;
+  nota: number;
+  periodo: string;
+}
+
 export type Evento =
   | EventoComunicadoPublicado
   | EventoComunicadoRechazado
-  | EventoOficialCreado;
+  | EventoOficialCreado
+  | EventoNotaPublicada;
 export type EventoTipo = Evento['tipo'];
 
 /** Job best-effort que se ejecuta DESPUÉS del COMMIT. Errores: el job los traga y loguea. */

@@ -1,4 +1,8 @@
 import type { DbTx } from '../../../shared/kernel/db';
+import type {
+  ICedulaResolver,
+  IUsuarioIdResolver,
+} from '../../../shared/kernel/cedulaResolver';
 
 export interface CredencialesUniversitarias {
   email: string;
@@ -33,7 +37,17 @@ export interface Usuario {
   preferencias: Record<string, unknown>;
 }
 
-export interface IUsuarioRepository {
+/**
+ * Extiende dos puertos del shared kernel:
+ *  - `ICedulaResolver`: UUID interno → cédula institucional.
+ *  - `IUsuarioIdResolver`: cédula → UUID interno.
+ *
+ * Cualquier consumidor que necesite alguno de los dos mapeos puede
+ * recibir un `IUsuarioRepository` directamente. El módulo Académico
+ * (Paso 5) lo aprovecha para evitar hacer `tx.query` directamente,
+ * manteniendo la encapsulación de la base de datos y la metodología DSBC.
+ */
+export interface IUsuarioRepository extends ICedulaResolver, IUsuarioIdResolver {
   /**
    * Crea el usuario si no existe (rol por defecto ESTUDIANTE) o actualiza sus
    * datos académicos. NUNCA sobrescribe el rol: la asignación de COMUNICADOR/ADMIN
