@@ -52,3 +52,10 @@ export class ConflictError extends AppError {
     super(409, message, 'CONFLICT');
   }
 }
+
+/** 503: dependencia externa no disponible (p. ej. API de UNIMAR caída). */
+export class ServiceUnavailableError extends AppError {
+  constructor(message: string) {
+    super(503, message, 'SERVICE_UNAVAILABLE');
+  }
+}
