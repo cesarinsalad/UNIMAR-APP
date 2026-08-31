@@ -19,6 +19,16 @@ const envSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, 'SUPABASE_SERVICE_ROLE_KEY es requerida'),
   /** Proveedor de notificaciones push: `mock` no hace red, `expo` usa Expo Push API. */
   PUSH_PROVIDER: z.enum(['mock', 'expo']).default('mock'),
+  /**
+   * API Key para endpoints de sistema a sistema (Paso 5). Si está vacía, los
+   * endpoints `/sistema/*` fallan en arranque (el middleware lo valida).
+   */
+  SISTEMA_API_KEY: z.string().min(1, 'SISTEMA_API_KEY es requerida'),
+  /** URL base de la API de UNIMAR para el adapter HTTP (Paso 5). Opcional: si
+   * está vacía, se usa el mock; si está presente, `ApiUniversityAcademicService`
+   * intenta usarla. */
+  UNIMAR_API_URL: z.string().default(''),
+  UNIMAR_API_KEY: z.string().default(''),
 });
 
 export type Env = z.infer<typeof envSchema>;
