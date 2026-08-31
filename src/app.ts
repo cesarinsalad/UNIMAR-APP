@@ -14,6 +14,8 @@ export interface AppDeps {
   comunicacionesRouter: Router;
   notificacionesRouter: Router;
   calendarioRouter: Router;
+  academicoRouter: Router;
+  sistemaRouter: Router;
 }
 
 /**
@@ -39,6 +41,8 @@ export function createApp(deps: AppDeps): Express {
   app.use('/api/v1', deps.comunicacionesRouter);
   app.use('/api/v1', deps.notificacionesRouter);
   app.use('/api/v1', deps.calendarioRouter);
+  app.use('/api/v1', deps.academicoRouter);
+  app.use('/api/v1', deps.sistemaRouter);
 
   // 404 para rutas desconocidas
   app.use((_req, _res, next: NextFunction) => {

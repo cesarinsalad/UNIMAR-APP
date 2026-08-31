@@ -21,6 +21,12 @@ import {
   PostgresDispositivoRepository,
 } from './modules/notificaciones';
 import { createCalendarioModule } from './modules/calendario';
+import {
+  createAcademicoModule,
+  CachedUniversityAcademicService,
+  MockUniversityAcademicService,
+  ApiUniversityAcademicService,
+} from './modules/academico';
 
 // ─── Composition root (único lugar con new de implementaciones concretas) ───
 const pool = new Pool({ connectionString: env.DATABASE_URL });
@@ -71,6 +77,9 @@ bus.suscribir('COMUNICADO_RECHAZADO', (e) =>
 bus.suscribir('EVENTO_OFICIAL_CREADO', (e) =>
   notificacionesModule.fanOutEventoOficialCreado.manejar(e),
 );
+bus.suscribir('NOTA_PUBLICADA', (e) =>
+  notificacionesModule.fanOutNotaPublicada.manejar(e),
+);
 
 const comunicacionesModule = createComunicacionesModule({
   uow,
@@ -91,6 +100,29 @@ const calendarioModule = createCalendarioModule({
   pushService,
 });
 
+// Módulo académico (Paso 5): selecciona entre el adapter real y el mock
+// según `UNIMAR_API_URL`. El wrapper de caché se aplica al servicio
+// elegido. El `usuarioRepo` de Identidad satisface los dos puertos del
+// shared kernel (`ICedulaResolver` + `IUsuarioIdResolver`).
+const usuarioRepo = new PostgresUsuarioRepository();
+const academicBase = env.UNIMAR_API_URL
+  ? new ApiUniversityAcademicService({
+      baseUrl: env.UNIMAR_API_URL,
+      apiKey: env.UNIMAR_API_KEY || undefined,
+    })
+  : new MockUniversityAcademicService();
+const academicService = new CachedUniversityAcademicService(academicBase);
+
+const academicoModule = createAcademicoModule({
+  uow,
+  jwtService,
+  academicService,
+  cedulaResolver: usuarioRepo,
+  usuarioIdResolver: usuarioRepo,
+  eventos: bus,
+  sistemaApiKey: env.SISTEMA_API_KEY,
+});
+
 const app = createApp({
   authService,
   jwtService,
@@ -98,6 +130,8 @@ const app = createApp({
   comunicacionesRouter: comunicacionesModule.router,
   notificacionesRouter: notificacionesModule.router,
   calendarioRouter: calendarioModule.router,
+  academicoRouter: academicoModule.router,
+  sistemaRouter: academicoModule.sistemaRouter,
 });
 
 const server = app.listen(env.PORT, () => {
