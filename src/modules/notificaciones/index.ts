@@ -27,6 +27,7 @@ import { MarcarTodasLeidas } from './application/marcarTodasLeidas';
 import { FanOutComunicadoPublicado } from './application/fanOutComunicadoPublicado';
 import { FanOutComunicadoRechazado } from './application/fanOutComunicadoRechazado';
 import { FanOutEventoOficialCreado } from './application/fanOutEventoOficialCreado';
+import { FanOutNotaPublicada } from './application/fanOutNotaPublicada';
 import { PostgresNotificacionRepository } from './infrastructure/postgresNotificacionRepository';
 import { PostgresDispositivoRepository } from './infrastructure/postgresDispositivoRepository';
 import { ExpoPushService, MockPushService } from './infrastructure/pushServices';
@@ -58,6 +59,7 @@ export interface NotificacionesModule {
   fanOutPublicado: FanOutComunicadoPublicado;
   fanOutRechazado: FanOutComunicadoRechazado;
   fanOutEventoOficialCreado: FanOutEventoOficialCreado;
+  fanOutNotaPublicada: FanOutNotaPublicada;
 }
 
 /**
@@ -104,6 +106,12 @@ export function createNotificacionesModule(
     deps.pushService,
     deps.uow,
   );
+  const fanOutNotaPublicada = new FanOutNotaPublicada(
+    notificacionRepo,
+    dispositivoRepo,
+    deps.pushService,
+    deps.uow,
+  );
 
   const router = Router();
   router.use(
@@ -131,6 +139,7 @@ export function createNotificacionesModule(
     fanOutPublicado,
     fanOutRechazado,
     fanOutEventoOficialCreado,
+    fanOutNotaPublicada,
   };
 }
 
