@@ -34,6 +34,9 @@ coverage/
 .parcel-cache/
 .turbo/
 
+# ─── Graphify (grafo de conocimiento: artefacto regenerable) ───
+graphify-out/
+
 # ─── Supabase (stack local) ───
 supabase/.branches/
 supabase/.temp/
