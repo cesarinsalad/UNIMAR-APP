@@ -40,10 +40,12 @@ export interface INotificacionRepository extends INotificadorInApp {
 /**
  * Puerto de repositorio para dispositivos (push tokens).
  *
- * El `upsert` fuerza que `usuarioId` venga de los claims: aunque la política
- * RLS ya exige esa coincidencia, se valida en el dominio para defensa en
- * profundidad y para distinguir el caso "token pertenece a otro usuario"
- * (devuelve null → 409 en la capa HTTP).
+ * El `upsert` fuerza que `usuarioId` venga de los claims (nunca del body):
+ * aunque la función `public.reasignar_dispositivo` reasigne el token al
+ * usuario actual bajo identidad autenticada (SECURITY DEFINER), el dominio
+ * re-afirma la invariante para defensa en profundidad. Si el `push_token`
+ * ya pertenecía a otro usuario, el RPC lo reasigna al nuevo dueño
+ * (mismo dispositivo físico, nuevo login) — la respuesta nunca es null.
  *
  * Extiende `IProveedorTokens` del shared kernel: el job de recordatorios
  * puede recibir un `IDispositivoRepository` directamente para resolver
@@ -53,7 +55,7 @@ export interface IDispositivoRepository extends IProveedorTokens {
   upsert(
     tx: DbTx,
     input: { usuarioId: string; pushToken: string; plataforma: Plataforma },
-  ): Promise<Dispositivo | null>;
+  ): Promise<Dispositivo>;
 
   listarPorUsuario(tx: DbTx, usuarioId: string): Promise<Dispositivo[]>;
 

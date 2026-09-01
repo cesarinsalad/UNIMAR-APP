@@ -253,7 +253,7 @@ envío real; `mock` lo loguea.
 3. **snake_case:** los campos JSON son `snake_case` (no `camelCase`).
 4. **Errores típicos por código:** `UNAUTHORIZED` (401, token inválido/ausente),
    `FORBIDDEN` (403, rol insuficiente), `BAD_REQUEST` (400, validación Zod),
-   `NOT_FOUND` (404), `CONFLICT` (409, p. ej. token push duplicado),
+   `NOT_FOUND` (404), `CONFLICT` (409, conflicto con el estado actual del recurso),
    `SERVICE_UNAVAILABLE` (503, API UNIMAR caída o caché sin dato previo).
 5. **Paginación** en listas: `limit` (1-100, default 20) y `offset` (default 0).
 
@@ -299,9 +299,13 @@ La UI debe renderizar según `es_actual` (no asumir campos comunes).
 - Al recibir un push, el `data` del payload incluye `tipo` y `referencia_id`
   para hacer **deep-link** (p. ej. `COMUNICADO_PUBLICADO` → pantalla del
   comunicado; `EVENTO_OFICIAL_CREADO` → evento; `NOTA_PUBLICADA` → materia).
-- El token único de Expo no se puede compartir entre usuarios: si el BFF
-  responde `409 CONFLICT` en `POST /dispositivos`, el token ya está asociado a
-  otro usuario (caso de reasignación al reinstalar).
+- El token Expo está ligado al dispositivo físico, no al usuario. Si un
+  usuario distinto inicia sesión en el mismo dispositivo (caso típico al
+  probar varios usuarios en un equipo), el BFF **reasigna** el token
+  automáticamente al nuevo usuario vía la función SECURITY DEFINER
+  `public.reasignar_dispositivo`. El endpoint siempre responde `201` con el
+  dispositivo vinculado al usuario activo; ningún usuario queda sin
+  notificaciones por una reasignación pendiente.
 
 ### Calendario
 - Los eventos `PERSONAL` son privados (solo dueño); los `OFICIAL` se muestran
@@ -359,5 +363,5 @@ El backend ya está preparado para el stack **React Native + Expo**:
 3. Distingues `data` vs `error` en las respuestas.
 4. Sabes que un comunicado/evento con `decanato_ids: []` es **global**.
 5. Sabes que `materias` devuelve dos formas según `es_actual`.
-6. Sabes cómo registrar el token Expo y qué significa un `409`.
+6. Sabes cómo registrar el token Expo y que el BFF lo reasigna al usuario activo.
 7. Sabes qué endpoints usan `X-API-Key` en lugar de JWT (solo sistema).

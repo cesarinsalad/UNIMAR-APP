@@ -29,12 +29,15 @@ interface TestUsuarios {
 /**
  * Integración de RLS para el componente Notificaciones.
  *
- * Evidencia ejecutable del modelo ABAC del Paso 3:
+ * Evidencia ejecutable del modelo ABAC del Paso 3 + reasignación de dispositivo:
  * - notificaciones: INSERT libre para app_bff (escenario fan-out), pero
  *   SELECT/UPDATE/DELETE solo sobre filas propias (fail-closed).
- * - dispositivos: escritura por dueño; el SELECT en modo sistema (sin claims)
- *   solo aplica para resolver tokens del fan-out (política
- *   `dispositivos_select_sistema`), no bajo claims de usuario.
+ * - dispositivos: las políticas RLS siguen siendo estrictas por dueño (sin
+ *   relajaciones); la reasignación de un `push_token` se hace exclusivamente
+ *   vía la función SECURITY DEFINER `public.reasignar_dispositivo`, que
+ *   requiere claims activos y verifica que el `usuario_id` coincida con
+ *   `claims.sub`. El SELECT en modo sistema (sin claims) sigue aplicando
+ *   solo para resolver tokens del fan-out (`dispositivos_select_sistema`).
  *
  * Se saltan salvo que se pase RUN_DB_TESTS=1. Patrón: transacción manual con
  * ROLLBACK final para no dejar datos de prueba.
@@ -234,26 +237,57 @@ describe.skipIf(!RUN_DB_TESTS)('RLS Notificaciones (ABAC)', () => {
   });
 
   // ──────────────────────────────────────────────────────────
-  // dispositivos: escritura por dueño + SELECT en modo sistema
+  // dispositivos: SECURITY DEFINER (reasignar_dispositivo)
+  //
+  // Las políticas RLS siguen siendo fail-closed por dueño. La reasignación
+  // se hace exclusivamente vía la función `public.reasignar_dispositivo`,
+  // SECURITY DEFINER, que verifica:
+  //   (a) que haya claims de usuario activos en la transacción, y
+  //   (b) que el p_usuario_id coincida con claims.sub.
   // ──────────────────────────────────────────────────────────
-  describe('dispositivos (fan-out)', () => {
-    it('el upsert del mismo usuario actualiza su propio dispositivo', async () => {
+  describe('dispositivos (reasignar_dispositivo)', () => {
+    it('reasigna un token al nuevo usuario bajo identidad autenticada', async () => {
+      await withTx(async (c) => {
+        const u = await seedUsuarios(c);
+
+        // est5 registra primero el token
+        await setClaims(c, claimsFor(u.est5, 'ESTUDIANTE', 5, 'EST5'));
+        await c.query(
+          "INSERT INTO dispositivos (usuario_id, push_token, plataforma) VALUES ($1, 'tok-ajeno', 'android')",
+          [u.est5],
+        );
+
+        // est3 lo reclama bajo su propia identidad
+        await setClaims(c, claimsFor(u.est3, 'ESTUDIANTE', 3, 'EST3'));
+        const result = await c.query<{ usuario_id: string; plataforma: string }>(
+          `SELECT usuario_id, plataforma
+             FROM public.reasignar_dispositivo($1, $2, $3)`,
+          ['tok-ajeno', u.est3, 'android'],
+        );
+        expect(result.rows).toHaveLength(1);
+        expect(result.rows[0]!.usuario_id).toBe(u.est3);
+
+        // bajo claims de est3, el token reasignado es visible
+        const visibles = await c.query<{ push_token: string }>(
+          'SELECT push_token FROM dispositivos',
+        );
+        expect(visibles.rows.map((r) => r.push_token)).toContain('tok-ajeno');
+      });
+    });
+
+    it('actualiza plataforma y ultimo_uso_at cuando el token ya pertenece al mismo usuario', async () => {
       await withTx(async (c) => {
         const u = await seedUsuarios(c);
         await setClaims(c, claimsFor(u.est5, 'ESTUDIANTE', 5, 'EST5'));
 
         await c.query(
-          "INSERT INTO dispositivos (usuario_id, push_token, plataforma) VALUES ($1, 'tok-x', 'android')",
+          "INSERT INTO dispositivos (usuario_id, push_token, plataforma) VALUES ($1, 'tok-refresh', 'android')",
           [u.est5],
         );
         const result = await c.query<{ plataforma: string; ultimo_uso_at: Date | null }>(
-          `INSERT INTO dispositivos (usuario_id, push_token, plataforma)
-           VALUES ($1, 'tok-x', 'ios')
-           ON CONFLICT (push_token) DO UPDATE
-             SET plataforma = EXCLUDED.plataforma, ultimo_uso_at = now()
-             WHERE dispositivos.usuario_id = EXCLUDED.usuario_id
-           RETURNING plataforma, ultimo_uso_at`,
-          [u.est5],
+          `SELECT plataforma, ultimo_uso_at
+             FROM public.reasignar_dispositivo($1, $2, $3)`,
+          ['tok-refresh', u.est5, 'ios'],
         );
         expect(result.rows).toHaveLength(1);
         expect(result.rows[0]!.plataforma).toBe('ios');
@@ -261,28 +295,37 @@ describe.skipIf(!RUN_DB_TESTS)('RLS Notificaciones (ABAC)', () => {
       });
     });
 
-    it('un token de OTRO usuario no se re-asigna (RETURNING vacío)', async () => {
+    it('rechaza un p_usuario_id que no coincide con claims.sub', async () => {
       await withTx(async (c) => {
         const u = await seedUsuarios(c);
-        // est5 registra el token
         await setClaims(c, claimsFor(u.est5, 'ESTUDIANTE', 5, 'EST5'));
-        await c.query(
-          "INSERT INTO dispositivos (usuario_id, push_token, plataforma) VALUES ($1, 'tok-ajeno', 'android')",
-          [u.est5],
-        );
 
-        // est3 intenta registrar el mismo token
-        await setClaims(c, claimsFor(u.est3, 'ESTUDIANTE', 3, 'EST3'));
-        const result = await c.query(
-          `INSERT INTO dispositivos (usuario_id, push_token, plataforma)
-           VALUES ($1, 'tok-ajeno', 'android')
-           ON CONFLICT (push_token) DO UPDATE
-             SET plataforma = EXCLUDED.plataforma, ultimo_uso_at = now()
-             WHERE dispositivos.usuario_id = EXCLUDED.usuario_id
-           RETURNING id`,
-          [u.est3],
-        );
-        expect(result.rows).toHaveLength(0);
+        await expect(
+          c.query(
+            `SELECT * FROM public.reasignar_dispositivo($1, $2, $3)`,
+            ['tok-x', u.est3, 'android'],
+          ),
+        ).rejects.toThrow(/usuario_id no coincide con la identidad autenticada/);
+      });
+    });
+
+    it('rechaza la invocación sin claims activos (fail-closed del RPC)', async () => {
+      await withTx(async (c) => {
+        const u = await seedUsuarios(c);
+        // Inserto el usuario bajo claims para poder referenciar su id
+        await setClaims(c, claimsFor(u.est5, 'ESTUDIANTE', 5, 'EST5'));
+
+        // RESET quita el GUC de la transacción (set_config con true es local,
+        // RESET dentro de la misma conexión lo borra). Tras esto la
+        // transacción no tiene claims activos.
+        await c.query('RESET request.jwt.claims');
+
+        await expect(
+          c.query(
+            `SELECT * FROM public.reasignar_dispositivo($1, $2, $3)`,
+            ['tok-no-claims', u.est5, 'android'],
+          ),
+        ).rejects.toThrow(/requiere claims de usuario activos/);
       });
     });
 

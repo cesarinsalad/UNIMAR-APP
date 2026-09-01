@@ -25,42 +25,41 @@ function mapRow(row: DispositivoRow): Dispositivo {
 /**
  * Implementación de IDispositivoRepository sobre PostgreSQL.
  *
- * El `upsert` cubre los dos escenarios esperados:
- *  - Token nuevo para un usuario: INSERT simple.
- *  - Reinstalación de la app en otro dispositivo del mismo usuario: el mismo
- *    `push_token` se re-asigna al usuario actualizando `ultimo_uso_at` y
- *    `plataforma` (idempotente, soporta claves distintas de Expo al rotar).
+ * El `upsert` no toca directamente la tabla: delega en la función
+ * `public.reasignar_dispositivo(text, uuid, text)`, SECURITY DEFINER, que
+ * ejecuta el UPSERT bajo privilegios del dueño (postgres). Esa función:
+ *  - Requiere `request.jwt.claims` activos (fail-closed en modo sistema).
+ *  - Verifica que el `p_usuario_id` coincida con `claims.sub`.
+ *  - Reasigna `usuario_id` cuando el `push_token` ya pertenecía a otro
+ *    usuario (mismo dispositivo físico, nuevo login).
  *
- * El `WHERE dispositivos.usuario_id = EXCLUDED.usuario_id` del DO UPDATE
- * combinado con la política RLS (UPDATE solo permite filas propias) garantiza
- * que un token asignado a OTRO usuario no se roba: el conflicto se detecta,
- * la cláusula WHERE no aplica, y RLS esconde la fila ajena. Resultado: 0
- * filas en `RETURNING` → la capa HTTP traduce a 409.
+ * Las políticas RLS de `dispositivos` permanecen intactas (escritura por
+ * dueño). Este RPC es el único camino de elevación y solo el rol
+ * `app_bff` puede ejecutarlo.
  */
 export class PostgresDispositivoRepository implements IDispositivoRepository {
   async upsert(
     tx: DbTx,
     input: { usuarioId: string; pushToken: string; plataforma: Plataforma },
-  ): Promise<Dispositivo | null> {
+  ): Promise<Dispositivo> {
     const result = await tx.query<DispositivoRow>(
-      `INSERT INTO dispositivos (usuario_id, push_token, plataforma)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (push_token) DO UPDATE
-         SET plataforma = EXCLUDED.plataforma,
-             ultimo_uso_at = now()
-         WHERE dispositivos.usuario_id = EXCLUDED.usuario_id
-       RETURNING id, usuario_id, push_token, plataforma, registrado_at, ultimo_uso_at`,
+      `SELECT id, usuario_id, push_token, plataforma, registrado_at, ultimo_uso_at
+         FROM public.reasignar_dispositivo($1, $2, $3)`,
       [input.usuarioId, input.pushToken, input.plataforma],
     );
-    return result.rows[0] ? mapRow(result.rows[0]) : null;
+    const row = result.rows[0];
+    if (!row) {
+      throw new Error('reasignar_dispositivo no devolvió fila');
+    }
+    return mapRow(row);
   }
 
   async listarPorUsuario(tx: DbTx, usuarioId: string): Promise<Dispositivo[]> {
     const result = await tx.query<DispositivoRow>(
       `SELECT id, usuario_id, push_token, plataforma, registrado_at, ultimo_uso_at
-         FROM dispositivos
-        WHERE usuario_id = $1
-        ORDER BY registrado_at DESC`,
+          FROM dispositivos
+         WHERE usuario_id = $1
+         ORDER BY registrado_at DESC`,
       [usuarioId],
     );
     return result.rows.map(mapRow);

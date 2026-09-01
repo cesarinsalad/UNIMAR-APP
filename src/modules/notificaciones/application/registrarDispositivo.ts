@@ -1,21 +1,18 @@
 import type { Claims } from '../../../shared/security/jwt';
 import type { UnitOfWork } from '../../../shared/kernel/unitOfWork';
-import { ConflictError } from '../../../shared/errors';
 import type { Dispositivo, Plataforma } from '../domain/dispositivo';
 import type { IDispositivoRepository } from '../domain/ports';
 
 /**
- * Caso de uso: registrar (o re-registrar) un dispositivo para push.
+ * Caso de uso: registrar (o reasignar) un dispositivo para push.
  *
  * El `usuarioId` se toma SIEMPRE del JWT (`claims.sub`), nunca del body:
- * la política RLS de `dispositivos` exige `usuario_id = claims.sub` y el
- * dominio lo re-afirma por defensa en profundidad. El cuerpo solo aporta
- * `push_token` y `plataforma`.
- *
- * Edge case: si el `push_token` ya está asociado a OTRO usuario, el repositorio
- * devuelve `null` (el ON CONFLICT con WHERE de igual propietario + RLS aísla
- * la fila ajena). Esto se traduce en `ConflictError(409)` para que el cliente
- * libere el token de la sesión anterior.
+ * es la identidad bajo la que `RegistrarDispositivo` ejecuta la transacción
+ * (`uow.runAs`). La función RPC `public.reasignar_dispositivo` (SECURITY
+ * DEFINER) eleva privilegios internamente para hacer el UPSERT que reasigna
+ * el `push_token` al usuario activo cuando ya pertenecía a otro (mismo
+ * dispositivo físico, nuevo login). Resultado: el usuario activo del
+ * dispositivo siempre recibe sus notificaciones; nadie queda sin push.
  */
 export class RegistrarDispositivo {
   constructor(
@@ -33,9 +30,6 @@ export class RegistrarDispositivo {
         pushToken: input.pushToken,
         plataforma: input.plataforma,
       });
-      if (!dispositivo) {
-        throw new ConflictError('Token ya registrado en otro dispositivo');
-      }
       return dispositivo;
     });
   }

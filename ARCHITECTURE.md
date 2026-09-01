@@ -132,6 +132,15 @@ Notas de modelado:
 - `evento_audiencias INSERT`: ADMIN sin límite; COMUNICADOR solo su decanato.
 - `evento_recordatorios_enviados`: solo en modo sistema (sin claims).
 - `notificaciones`, `comunicado_lecturas`, `dispositivos`: solo filas propias.
+- **`dispositivos` — excepción controlada de elevación:** la reasignación de un
+  `push_token` al usuario activo (caso "mismo dispositivo físico, nuevo login")
+  se hace exclusivamente vía la función `public.reasignar_dispositivo`
+  (`SECURITY DEFINER`, ejecutada por `RegistrarDispositivo` bajo `uow.runAs`).
+  La función valida que `request.jwt.claims` esté activo y que el
+  `p_usuario_id` coincida con `claims.sub` antes de hacer el UPSERT. Las
+  políticas RLS de `dispositivos` (`propios_insert/update/delete` +
+  `select_sistema`) no se relajan; este RPC es el único camino de elevación y
+  solo el rol `app_bff` tiene `EXECUTE` (PUBLIC revocado).
 
 ## 6. Estructura del monolito modular (DSBC)
 

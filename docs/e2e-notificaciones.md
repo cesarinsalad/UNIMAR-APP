@@ -78,8 +78,10 @@ obtiene una notificación:
 - Sin claims activos (flujos `uow.run`), la política `dispositivos_select_sistema`
   aplica vía `current_setting('request.jwt.claims', true) IS NULL`, porque el GUC
   nunca se establece en una conexión nueva del pool.
-- Un token de dispositivo reutilizado por otro usuario devuelve `409` al intentar
-  re-registrarlo (escenario de reasignación de token Expo).
+- Un token de dispositivo reutilizado por otro usuario **se reasigna** al nuevo
+  dueño vía la función SECURITY DEFINER `public.reasignar_dispositivo` (siempre
+  `201`). El BFF no devuelve `409` en este flujo; el cliente siempre recibe el
+  dispositivo vinculado al usuario activo.
 - `INSERT ... RETURNING` sobre `notificaciones` aplica la política SELECT al
   devolver la fila: el fan-out usa `INSERT ... SELECT unnest(...)` sin
   `RETURNING`, así que no se ve afectado.

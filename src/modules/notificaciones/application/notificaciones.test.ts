@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 import type { DbTx } from '../../../shared/kernel/db';
 import type { UnitOfWork } from '../../../shared/kernel/unitOfWork';
 import type { Claims } from '../../../shared/security/jwt';
-import { ConflictError, NotFoundError } from '../../../shared/errors';
+import { NotFoundError } from '../../../shared/errors';
 import type { INotificacionRepository, IDispositivoRepository } from '../domain/ports';
 import type { Notificacion } from '../domain/notificacion';
 import type { Dispositivo, Plataforma } from '../domain/dispositivo';
@@ -24,10 +24,18 @@ import { MarcarTodasLeidas } from './marcarTodasLeidas';
 const fakeTx = {} as DbTx;
 
 function makeUnitOfWork() {
+  const calls: { method: 'run' | 'runAs'; claims?: unknown }[] = [];
   return {
-    runAs: async <T>(_claims: Record<string, unknown>, fn: (tx: DbTx) => Promise<T>) =>
-      fn(fakeTx),
-  } as unknown as UnitOfWork;
+    run: async <T>(fn: (tx: DbTx) => Promise<T>) => {
+      calls.push({ method: 'run' });
+      return fn(fakeTx);
+    },
+    runAs: async <T>(claims: Record<string, unknown>, fn: (tx: DbTx) => Promise<T>) => {
+      calls.push({ method: 'runAs', claims });
+      return fn(fakeTx);
+    },
+    _calls: calls,
+  } as unknown as UnitOfWork & { _calls: typeof calls };
 }
 
 function makeClaims(sub = 'uuid-user', role = 'ESTUDIANTE', decanato_id: number | null = 5): Claims {
@@ -160,17 +168,18 @@ describe('RegistrarDispositivo', () => {
     expect(result.pushToken).toBe('ExpoPushToken[nuevo]');
   });
 
-  it('token de otro usuario -> ConflictError', async () => {
-    const repo: IDispositivoRepository = {
-      upsert: async () => null,
-      listarPorUsuario: async () => [],
-      eliminar: async () => false,
-      tokensDeUsuarios: async () => [],
-    };
-    const uc = new RegistrarDispositivo(repo, makeUnitOfWork());
-    await expect(
-      uc.ejecutar(makeClaims(), { pushToken: 'ExpoPushToken[otro]', plataforma: 'android' }),
-    ).rejects.toThrow(ConflictError);
+  it('ejecuta bajo uow.runAs (no run) para preservar identidad del usuario', async () => {
+    const uow = makeUnitOfWork();
+    const { repo } = makeDispositivoRepo();
+    const uc = new RegistrarDispositivo(repo, uow);
+
+    await uc.ejecutar(makeClaims('uuid-real'), {
+      pushToken: 'ExpoPushToken[nuevo]',
+      plataforma: 'android',
+    });
+
+    expect(uow._calls).toHaveLength(1);
+    expect(uow._calls[0]?.method).toBe('runAs');
   });
 });
 
