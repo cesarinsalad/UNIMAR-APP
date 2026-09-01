@@ -50,8 +50,10 @@
     "extra": {
       "apiBaseUrl": "http://localhost:3000/api/v1",
       "eas": {
-        "projectId": "00000000-0000-0000-0000-000000000000"
-      }
-    }
+        "projectId": "99359622-bb83-44be-912f-e6fad44f525b"
+      },
+      "router": {}
+    },
+    "owner": "cesarinsalads-team"
   }
 }
