@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 
 import { invalidarNotificaciones } from '@/features/notificaciones/api/notificaciones.api';
 import type { PushDataPayload } from '@/features/identidad/types';
+import { guardarRutaPendiente } from './pendingLink';
 import { rutaParaNotificacion } from './rutas';
 
 Notifications.setNotificationHandler({
@@ -15,6 +16,11 @@ Notifications.setNotificationHandler({
 });
 
 export { rutaParaNotificacion } from './rutas';
+
+// Guard contra doble navegación: el response listener en vivo y la promise
+// tardía de getLastNotificationResponseAsync pueden recibir la MISMA acción
+// del usuario. El primero que actúa fija la bandera.
+let rutaInicialConsumida = false;
 
 function navegarAPayload(payload: PushDataPayload | undefined): void {
   const ruta = rutaParaNotificacion(payload?.tipo, payload?.referencia_id);
@@ -33,6 +39,10 @@ export function registrarListenersPush(): () => void {
 
   const respondida = Notifications.addNotificationResponseReceivedListener((response) => {
     const data = response.notification.request.content.data as PushDataPayload | undefined;
+    const tieneRuta = rutaParaNotificacion(data?.tipo, data?.referencia_id) !== null;
+    if (tieneRuta) {
+      rutaInicialConsumida = true;
+    }
     navegarAPayload(data);
     invalidarNotificaciones();
   });
@@ -43,15 +53,22 @@ export function registrarListenersPush(): () => void {
   };
 }
 
-// Cold start (app cerrada → usuario tocó una notificación): el skeleton aún
-// navega directo; la cola pendiente llega en el siguiente commit.
-void Notifications.getLastNotificationResponseAsync().then((response) => {
-  if (!response) return;
+/**
+ * Cold start (app cerrada → usuario tocó una notificación): extrae la
+ * respuesta de arranque y guarda la ruta en la cola. NO navega aquí:
+ * el consumo ocurre cuando la sesión está hidratada (layout de (app)) o
+ * tras el login (pantalla de login).
+ */
+export async function prepararRutaInicial(): Promise<void> {
+  const response = await Notifications.getLastNotificationResponseAsync();
+  if (!response || rutaInicialConsumida) return;
   const data = response.notification.request.content.data as PushDataPayload | undefined;
-  setTimeout(() => {
-    navegarAPayload(data);
-  }, 0);
-});
+  const ruta = rutaParaNotificacion(data?.tipo, data?.referencia_id);
+  if (ruta) {
+    rutaInicialConsumida = true;
+    guardarRutaPendiente(ruta);
+  }
+}
 
 export async function ensureCanalAndroid(): Promise<void> {
   await Notifications.setNotificationChannelAsync('default', {

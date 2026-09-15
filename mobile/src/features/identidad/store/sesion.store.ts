@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { api } from '@/shared/api/axios';
 import { TOKEN_STORAGE_KEY } from '@/shared/lib/constants';
 import { decodeJwt, expiresWithin, isExpired, type JwtClaims } from '@/shared/lib/jwt';
+import { limpiarRutaPendiente } from '@/shared/notifications/pendingLink';
 import { queryClient } from '@/shared/api/queryClient';
 import type { Rol, Usuario } from '../types';
 
@@ -130,6 +131,9 @@ export const useSesionStore = create<SesionStore>((set, get) => ({
       const { dispositivoId } = get();
       await unregisterDeviceBestEffort(dispositivoId);
       queryClient.clear();
+      // Un deep-link del usuario saliente no abre contenido al que inicie
+      // sesión después (privacidad entre usuarios del mismo dispositivo).
+      limpiarRutaPendiente();
       await clearPersistedToken();
       set({
         token: null,

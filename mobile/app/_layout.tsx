@@ -11,7 +11,11 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import { colors } from '@/shared/ui';
 import { queryClient } from '@/shared/api/queryClient';
-import { ensureCanalAndroid, registrarListenersPush } from '@/shared/notifications';
+import {
+  ensureCanalAndroid,
+  prepararRutaInicial,
+  registrarListenersPush,
+} from '@/shared/notifications';
 
 SplashScreen.preventAutoHideAsync().catch(() => {
   // El splash puede haber sido ocultado ya; continuar.
@@ -26,6 +30,7 @@ export default function RootLayout() {
     void (async () => {
       await ensureCanalAndroid();
       await hydrate();
+      await prepararRutaInicial();
       setListenersActivos(true);
       await SplashScreen.hideAsync().catch(() => undefined);
     })();

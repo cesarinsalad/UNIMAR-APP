@@ -8,6 +8,7 @@ import { ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
 import { login as loginApi } from '@/features/identidad/api/auth.api';
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import { ApiError } from '@/shared/api/axios';
+import { tomarRutaPendiente } from '@/shared/notifications/pendingLink';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -27,7 +28,9 @@ export default function LoginScreen() {
     try {
       const sesion = await loginApi(email.trim(), password);
       await setSesion(sesion.token);
-      router.replace('/');
+      // Si el usuario tocó una notificación sin sesión, la cola vive hasta
+      // este punto (get-and-clear: doble consumo imposible).
+      router.replace((tomarRutaPendiente() ?? '/') as Parameters<typeof router.replace>[0]);
     } catch (e) {
       if (e instanceof ApiError) {
         if (e.status === 401) {
