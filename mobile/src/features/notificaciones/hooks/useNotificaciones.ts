@@ -1,8 +1,8 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 
+import { aplanarPaginas } from '@/shared/lib/paginar';
 import { listarNotificaciones } from '../api/notificaciones.api';
 import { PAGE_SIZE_NOTIFICACIONES, calcularSiguienteOffset } from './paginacion';
-import type { Notificacion } from '../types';
 
 export type EstadoBandeja = 'cargando' | 'refrescando' | 'pagina-siguiente' | 'ok' | 'error';
 
@@ -23,8 +23,5 @@ export function useNotificaciones() {
   });
 }
 
-/** Aplana las páginas del infinite query a una sola lista para el FlatList. */
-export function aplanarPaginas(paginas: Notificacion[][] | undefined): Notificacion[] {
-  if (!paginas) return [];
-  return paginas.flat();
-}
+/** Re-export del genérico para los consumidores de la feature. */
+export { aplanarPaginas };
