@@ -13,24 +13,30 @@ export const TIPOS_NOTIFICACION: readonly TipoNotificacion[] = [
   'NOTA_PUBLICADA',
 ] as const;
 
+/**
+ * Espeja el formato real del wire de GET /notificaciones:
+ * la capa HTTP del BFF serializa la entidad de dominio directamente
+ * (camelCase). Los request bodies sí van en snake_case (lo que exige Zod).
+ */
 export interface Notificacion {
   id: string;
-  usuario_id: string;
+  usuarioId: string;
   tipo: TipoNotificacion;
   titulo: string;
   cuerpo: string;
-  referencia_id: string | null;
+  referenciaId: string | null;
   leida: boolean;
-  created_at: string;
+  createdAt: string;
 }
 
 export type Plataforma = 'android' | 'ios' | 'web';
 
+/** Espeja el formato real del wire de /dispositivos (camelCase, ver Notificación). */
 export interface Dispositivo {
   id: string;
-  usuario_id: string;
-  push_token: string;
+  usuarioId: string;
+  pushToken: string;
   plataforma: Plataforma;
-  registrado_at: string;
-  ultimo_uso_at: string | null;
+  registradoAt: string;
+  ultimoUsoAt: string | null;
 }
