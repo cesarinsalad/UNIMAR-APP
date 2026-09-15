@@ -1,7 +1,5 @@
 import { Pressable, StyleSheet, View } from 'react-native';
-import { router } from 'expo-router';
 
-import { rutaParaNotificacion } from '@/shared/notifications';
 import { colors, radius, spacing } from '@/shared/ui';
 import { ThemedText, ThemedView } from '@/shared/ui';
 import type { Notificacion, TipoNotificacion } from '../types';
@@ -19,18 +17,17 @@ const FORMATO_FECHA = new Intl.DateTimeFormat('es-VE', {
   timeStyle: 'short',
 });
 
-export function NotificacionCard({ notificacion }: { notificacion: Notificacion }) {
+interface Props {
+  notificacion: Notificacion;
+  /** La pantalla decide qué hacer al tocar (marcar leída + deep-link). */
+  onAbrir: (notificacion: Notificacion) => void;
+}
+
+export function NotificacionCard({ notificacion, onAbrir }: Props) {
   const noLeida = !notificacion.leida;
 
-  function navegar() {
-    const ruta = rutaParaNotificacion(notificacion.tipo, notificacion.referenciaId);
-    if (ruta) {
-      router.push(ruta as Parameters<typeof router.push>[0]);
-    }
-  }
-
   return (
-    <Pressable onPress={navegar} accessibilityRole="button">
+    <Pressable onPress={() => onAbrir(notificacion)} accessibilityRole="button">
       <ThemedView
         variant="card"
         style={[styles.card, noLeida && styles.noLeida]}>

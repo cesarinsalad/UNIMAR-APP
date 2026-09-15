@@ -13,7 +13,11 @@ import type { Notificacion } from '../types';
 import { aplanarPaginas, useNotificaciones } from '../hooks/useNotificaciones';
 import { NotificacionCard } from './NotificacionCard';
 
-export function NotificacionesList() {
+export function NotificacionesList({
+  onAbrir,
+}: {
+  onAbrir: (notificacion: Notificacion) => void;
+}) {
   const query = useNotificaciones();
   const insets = useSafeAreaInsets();
 
@@ -50,7 +54,7 @@ export function NotificacionesList() {
       data={notificaciones}
       keyExtractor={(item) => item.id}
       renderItem={({ item }: ListRenderItemInfo<Notificacion>) => (
-        <NotificacionCard notificacion={item} />
+        <NotificacionCard notificacion={item} onAbrir={onAbrir} />
       )}
       contentContainerStyle={[
         styles.contenido,

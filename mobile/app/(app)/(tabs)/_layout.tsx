@@ -3,6 +3,8 @@ import { Platform } from 'react-native';
 
 import { colors, layout, spacing } from '@/shared/ui';
 import { ThemedText } from '@/shared/ui';
+import { useNoLeidas } from '@/features/notificaciones/hooks/useNoLeidas';
+import { formatearBadge } from '@/features/notificaciones/hooks/badge';
 
 function TabGlyph({ glyph }: { glyph: string }) {
   return (
@@ -13,6 +15,9 @@ function TabGlyph({ glyph }: { glyph: string }) {
 }
 
 export default function TabsLayout() {
+  const noLeidas = useNoLeidas();
+  const badge = formatearBadge(noLeidas.data?.total);
+
   return (
     <Tabs
       screenOptions={{
@@ -45,7 +50,16 @@ export default function TabsLayout() {
         name="notificaciones"
         options={{
           title: 'Bandeja',
+          // Header lineal propio de la pantalla (necesita estado vivo para
+          // el botón "Marcar todo leído").
+          headerShown: false,
           tabBarIcon: () => <TabGlyph glyph="N" />,
+          tabBarBadge: badge,
+          tabBarBadgeStyle: {
+            backgroundColor: colors.accent,
+            color: colors.text.onPrimary,
+            fontSize: 10,
+          },
         }}
       />
       <Tabs.Screen
