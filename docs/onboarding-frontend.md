@@ -182,7 +182,7 @@ universidad). Con decanatos = solo esos. Un COMUNICADOR solo puede publicar a
 | POST | `/dispositivos` | Registrar dispositivo. Body: `push_token`, `plataforma` (`android`\|`ios`\|`web`). |
 | GET | `/dispositivos` | Listar mis dispositivos |
 | DELETE | `/dispositivos/:id` | Eliminar dispositivo |
-| GET | `/notificaciones?solo_no_leidas=&limit=&offset=` | Bandeja |
+| GET | `/notificaciones?solo_no_leidas=true\|false&limit=&offset=` | Bandeja |
 | GET | `/notificaciones/no-leidas` | `{ total: number }` |
 | POST | `/notificaciones/:id/leer` | Marcar leída |
 | POST | `/notificaciones/leer-todas` | Marcar todas leídas |

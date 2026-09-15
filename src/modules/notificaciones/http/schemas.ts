@@ -14,7 +14,13 @@ export const registrarDispositivoSchema = z.object({
 });
 
 export const listarNotificacionesQuerySchema = z.object({
-  solo_no_leidas: z.coerce.boolean().default(false),
+  // String estricto 'true'/'false' transformado a boolean, NO z.coerce.boolean():
+  // Boolean('false') evalúa true, y los query params llegan como strings.
+  // Garbage o string vacío → 400 (fail-fast), igual que los numéricos.
+  solo_no_leidas: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   offset: z.coerce.number().int().min(0).default(0),
 });
