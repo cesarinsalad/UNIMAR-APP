@@ -1,4 +1,10 @@
-import { StyleSheet, View, type ViewProps, type ViewStyle } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  type StyleProp,
+  type ViewProps,
+  type ViewStyle,
+} from 'react-native';
 
 import { colors, radius, spacing } from '@/shared/ui';
 
@@ -7,7 +13,7 @@ type Variant = 'base' | 'elevated' | 'sunken' | 'card';
 export interface ThemedViewProps extends ViewProps {
   variant?: Variant;
   padding?: keyof typeof spacing;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }
 
 export function ThemedView({

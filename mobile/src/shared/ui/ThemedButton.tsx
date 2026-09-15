@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, StyleSheet, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
 import { colors, elevation, radius, spacing, typography } from '@/shared/ui';
 import { ThemedText } from './ThemedText';
@@ -13,7 +13,7 @@ export interface ThemedButtonProps {
   size?: Size;
   loading?: boolean;
   disabled?: boolean;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }
 
 export function ThemedButton({
