@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 
 import type { PushDataPayload } from '@/features/identidad/types';
+import { rutaParaNotificacion } from './rutas';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -12,38 +13,27 @@ Notifications.setNotificationHandler({
   }),
 });
 
-function rutaParaPayload(payload: PushDataPayload | null): string | null {
-  if (!payload) return null;
-  switch (payload.tipo) {
-    case 'COMUNICADO_PUBLICADO':
-    case 'COMUNICADO_RECHAZADO':
-      return `/comunicados/${payload.referencia_id}`;
-    case 'EVENTO_OFICIAL_CREADO':
-    case 'EVENTO_RECORDATORIO':
-      return `/eventos/${payload.referencia_id}`;
-    case 'NOTA_PUBLICADA':
-      return `/academico/materias/${payload.referencia_id}`;
+export { rutaParaNotificacion } from './rutas';
+
+function navegarAPayload(payload: PushDataPayload | undefined): void {
+  const ruta = rutaParaNotificacion(payload?.tipo, payload?.referencia_id);
+  if (ruta) {
+    router.push(ruta as Parameters<typeof router.push>[0]);
   }
 }
 
 export function registrarListenersPush(): () => void {
   const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
     const data = response.notification.request.content.data as PushDataPayload | undefined;
-    const ruta = rutaParaPayload(data ?? null);
-    if (ruta) {
-      router.push(ruta as Parameters<typeof router.push>[0]);
-    }
+    navegarAPayload(data);
   });
 
   void Notifications.getLastNotificationResponseAsync().then((response) => {
     if (!response) return;
     const data = response.notification.request.content.data as PushDataPayload | undefined;
-    const ruta = rutaParaPayload(data ?? null);
-    if (ruta) {
-      setTimeout(() => {
-        router.push(ruta as Parameters<typeof router.push>[0]);
-      }, 0);
-    }
+    setTimeout(() => {
+      navegarAPayload(data);
+    }, 0);
   });
 
   return () => {
