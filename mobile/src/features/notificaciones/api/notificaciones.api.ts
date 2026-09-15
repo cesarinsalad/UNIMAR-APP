@@ -1,4 +1,6 @@
 import { api } from '@/shared/api/axios';
+import { queryClient } from '@/shared/api/queryClient';
+import { CLAVES_NOTIFICACIONES } from '../hooks/queryKeys';
 import type { Notificacion, TipoNotificacion } from '../types';
 
 export interface FiltroNotificaciones {
@@ -45,6 +47,15 @@ export async function marcarNotificacionLeida(id: string): Promise<Notificacion>
 export async function marcarTodasLeidas(): Promise<{ actualizadas: number }> {
   const { data } = await api.post<{ actualizadas: number }>('/notificaciones/leer-todas');
   return data;
+}
+
+/**
+ * Invalida bandeja + contador al recibir un push: refetch contra el servidor
+ * sin esperar a que el usuario navegue. Usa el prefijo común
+ * ['notificaciones'], que cubre ambas queries del módulo.
+ */
+export function invalidarNotificaciones(): void {
+  void queryClient.invalidateQueries({ queryKey: CLAVES_NOTIFICACIONES.prefijo });
 }
 
 export type { Notificacion, TipoNotificacion };
