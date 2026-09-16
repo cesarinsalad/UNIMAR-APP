@@ -20,6 +20,11 @@ import { CuerpoMarkdown } from '@/features/comunicaciones/components/CuerpoMarkd
 import { SeccionAdjuntos } from '@/features/comunicaciones/components/SeccionAdjuntos';
 import { chipEstado, etiquetaAudiencia } from '@/features/comunicaciones/helpers';
 import { accionesPermitidas } from '@/features/comunicaciones/hooks/accionesPermitidas';
+import {
+  etiquetaLecturas,
+  puedeVerEstadisticas,
+  useEstadisticas,
+} from '@/features/comunicaciones/hooks/estadisticas';
 import { useComunicadoDetalle } from '@/features/comunicaciones/hooks/useComunicadoDetalle';
 import { useMutacionComunicado } from '@/features/comunicaciones/hooks/useMutacionComunicado';
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
@@ -64,6 +69,31 @@ export default function ComunicadoDetalleScreen() {
       ) : query.data ? (
         <Contenido comunicado={query.data} comunicadoId={id} />
       ) : null}
+    </ThemedView>
+  );
+}
+
+/** Chip "N lecturas" — visible solo para autor o ADMIN. */
+function VerLecturas({
+  comunicado,
+  comunicadoId,
+}: {
+  comunicado: Comunicado;
+  comunicadoId: string;
+}) {
+  const usuario = useSesionStore((s) => s.usuario);
+  const stats = useEstadisticas(
+    comunicadoId,
+    puedeVerEstadisticas(usuario?.rol ?? null, comunicado.autorId === usuario?.id),
+  );
+
+  if (!stats.data) return null;
+
+  return (
+    <ThemedView variant="sunken" style={estilos.chip}>
+      <ThemedText variant="caption" weight="semibold">
+        {etiquetaLecturas(stats.data.lecturas)}
+      </ThemedText>
     </ThemedView>
   );
 }
@@ -195,6 +225,7 @@ function Contenido({
         <ThemedText variant="caption" tone="secondary">
           {etiquetaAudiencia(comunicado.decanatoIds)}
         </ThemedText>
+        <VerLecturas comunicado={comunicado} comunicadoId={comunicadoId} />
       </View>
 
       {comunicado.motivoRechazo ? (

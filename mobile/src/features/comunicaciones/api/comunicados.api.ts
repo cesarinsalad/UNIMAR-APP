@@ -84,3 +84,9 @@ export async function archivarComunicado(id: string): Promise<Comunicado> {
   const { data } = await api.post<Comunicado>(`/comunicados/${id}/archivar`);
   return data;
 }
+
+/** GET /comunicados/:id/estadisticas → { lecturas } (autor o ADMIN; 403 demás). */
+export async function estadisticasComunicado(id: string): Promise<{ lecturas: number }> {
+  const { data } = await api.get<{ lecturas: number }>(`/comunicados/${id}/estadisticas`);
+  return data;
+}
