@@ -17,6 +17,7 @@ import {
   solicitarRevisionComunicado,
 } from '@/features/comunicaciones/api/comunicados.api';
 import { CuerpoMarkdown } from '@/features/comunicaciones/components/CuerpoMarkdown';
+import { SeccionAdjuntos } from '@/features/comunicaciones/components/SeccionAdjuntos';
 import { chipEstado, etiquetaAudiencia } from '@/features/comunicaciones/helpers';
 import { accionesPermitidas } from '@/features/comunicaciones/hooks/accionesPermitidas';
 import { useComunicadoDetalle } from '@/features/comunicaciones/hooks/useComunicadoDetalle';
@@ -208,6 +209,8 @@ function Contenido({
       ) : null}
 
       <CuerpoMarkdown cuerpo={comunicado.cuerpo} />
+
+      <SeccionAdjuntos comunicadoId={comunicado.id} puedeEditar={acciones.puedeEditar} />
 
       <View style={estilos.footer}>
         <ThemedText variant="caption" tone="tertiary">
