@@ -8,6 +8,9 @@ import {
   AuthService,
   MockUniversityAuthService,
   PostgresUsuarioRepository,
+  PostgresDecanatoRepository,
+  ListarDecanatos,
+  decanatosRouter,
 } from './modules/identidad';
 import {
   BUCKET_ADJUNTOS,
@@ -123,10 +126,17 @@ const academicoModule = createAcademicoModule({
   sistemaApiKey: env.SISTEMA_API_KEY,
 });
 
+// Catálogo de decanatos (Paso 3 — selectores de audiencia del cliente).
+const listarDecanatos = new ListarDecanatos(
+  new PostgresDecanatoRepository(),
+  uow,
+);
+
 const app = createApp({
   authService,
   jwtService,
   uow,
+  decanatosRouter: decanatosRouter({ jwtService, listar: listarDecanatos }),
   comunicacionesRouter: comunicacionesModule.router,
   notificacionesRouter: notificacionesModule.router,
   calendarioRouter: calendarioModule.router,

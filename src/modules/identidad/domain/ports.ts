@@ -3,6 +3,7 @@ import type {
   ICedulaResolver,
   IUsuarioIdResolver,
 } from '../../../shared/kernel/cedulaResolver';
+import type { Decanato } from './decanato';
 
 export interface CredencialesUniversitarias {
   email: string;
@@ -54,4 +55,13 @@ export interface IUsuarioRepository extends ICedulaResolver, IUsuarioIdResolver 
    * la hace el sistema (seed/admin), no la API universitaria.
    */
   upsertDesdePerfil(tx: DbTx, perfil: PerfilUniversitario): Promise<Usuario>;
+}
+
+/**
+ * Puerto del catálogo de decanatos (solo lectura). Alimenta los selectores
+ * de audiencia del cliente móvil: COMUNICADOR usa su decanato fijo, ADMIN
+ * elige GLOBAL ([]) o cualquier lista.
+ */
+export interface IDecanatoRepository {
+  listar(tx: DbTx): Promise<Decanato[]>;
 }

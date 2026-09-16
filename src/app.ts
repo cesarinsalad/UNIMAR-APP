@@ -11,6 +11,7 @@ export interface AppDeps {
   authService: AuthService;
   jwtService: IJwtService;
   uow: UnitOfWork;
+  decanatosRouter: Router;
   comunicacionesRouter: Router;
   notificacionesRouter: Router;
   calendarioRouter: Router;
@@ -38,6 +39,7 @@ export function createApp(deps: AppDeps): Express {
   app.use((req, res, next) => unitOfWorkMiddleware(deps.uow)(req, res, next));
 
   app.use('/api/v1/auth', authRouter(deps.authService));
+  app.use('/api/v1/decanatos', deps.decanatosRouter);
   app.use('/api/v1', deps.comunicacionesRouter);
   app.use('/api/v1', deps.notificacionesRouter);
   app.use('/api/v1', deps.calendarioRouter);

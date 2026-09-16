@@ -8,6 +8,9 @@
  */
 export { AuthService } from './application/authService';
 export type { LoginResult } from './application/authService';
+export { ListarDecanatos } from './application/listarDecanatos';
 export { MockUniversityAuthService } from './infrastructure/mockUniversityAuthService';
 export { PostgresUsuarioRepository } from './infrastructure/postgresUsuarioRepository';
+export { PostgresDecanatoRepository } from './infrastructure/postgresDecanatoRepository';
 export { authRouter } from './http/authRoutes';
+export { decanatosRouter } from './http/decanatosRoutes';
