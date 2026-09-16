@@ -66,3 +66,8 @@ export async function editarEvento(
   });
   return data;
 }
+
+/** DELETE /eventos/:id → 204. Solo dueño (personal) o ADMIN/comunicador creador (oficial). */
+export async function eliminarEvento(id: string): Promise<void> {
+  await api.delete(`/eventos/${id}`);
+}

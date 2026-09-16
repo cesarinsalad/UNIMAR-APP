@@ -1,6 +1,7 @@
 import {
   ajustarDiaCompleto,
   audienciaParaEvento,
+  etiquetaRecordatorioMinutos,
   finPredeterminado,
   PRESETS_RECORDATORIO,
   tieneErroresEvento,
@@ -102,5 +103,28 @@ describe('audienciaParaEvento', () => {
 
   it('OFICIAL + ESTUDIANTE (no puede crear oficiales) → [] defensivo', () => {
     expect(audienciaParaEvento('ESTUDIANTE', 'OFICIAL', 5, null)).toEqual([]);
+  });
+});
+
+describe('etiquetaRecordatorioMinutos', () => {
+  it('null → sin chip', () => {
+    expect(etiquetaRecordatorioMinutos(null)).toBeNull();
+  });
+
+  it.each([
+    [15, 'Avisa 15 min antes'],
+    [60, 'Avisa 1 hora antes'],
+    [1440, 'Avisa 1 día antes'],
+  ])('preset %v → %s', (minutos, esperado) => {
+    expect(etiquetaRecordatorioMinutos(minutos)).toBe(esperado);
+  });
+
+  it('valor arbitrario <60 → texto generado', () => {
+    expect(etiquetaRecordatorioMinutos(45)).toBe('Avisa 45 min antes');
+  });
+
+  it('valor arbitrario en horas exactas', () => {
+    expect(etiquetaRecordatorioMinutos(120)).toBe('Avisa 2 h antes');
+    expect(etiquetaRecordatorioMinutos(90)).toBe('Avisa 1.5 h antes');
   });
 });

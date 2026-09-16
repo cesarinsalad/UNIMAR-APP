@@ -79,9 +79,26 @@ export interface PresetRecordatorio {
 export const PRESETS_RECORDATORIO: PresetRecordatorio[] = [
   { etiqueta: 'Sin recordatorio', minutos: null },
   { etiqueta: '15 min', minutos: 15 },
-  { minutos: 60, etiqueta: '1 hora' },
-  { minutos: 1440, etiqueta: '1 día' },
+  { etiqueta: '1 hora', minutos: 60 },
+  { etiqueta: '1 día', minutos: 1440 },
 ];
+
+/**
+ * Etiqueta legible del recordatorio: reutiliza los presets conocidos y
+ * genera texto para valores arbitrarios (el contrato admite cualquier
+ * int ≥ 0). null = sin recordatorio (sin chip).
+ */
+export function etiquetaRecordatorioMinutos(minutos: number | null): string | null {
+  if (minutos === null) return null;
+  const preset = PRESETS_RECORDATORIO.find((p) => p.minutos === minutos);
+  if (preset) return `Avisa ${preset.etiqueta.toLowerCase()} antes`;
+  if (minutos < 60) return `Avisa ${minutos} min antes`;
+  if (minutos % 60 === 0) {
+    const horas = minutos / 60;
+    return horas === 1 ? 'Avisa 1 hora antes' : `Avisa ${horas} h antes`;
+  }
+  return `Avisa ${(minutos / 60).toFixed(1)} h antes`;
+}
 
 /**
  * Anti-global de eventos: OFICIAL + COMUNICADOR → fijo su decanato ([]
