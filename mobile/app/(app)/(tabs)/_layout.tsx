@@ -1,10 +1,13 @@
 import { Tabs } from 'expo-router';
+import { Pressable } from 'react-native';
+import { router } from 'expo-router';
 import { Platform } from 'react-native';
 
 import { colors, layout, spacing } from '@/shared/ui';
 import { ThemedText } from '@/shared/ui';
 import { useNoLeidas } from '@/features/notificaciones/hooks/useNoLeidas';
 import { formatearBadge } from '@/features/notificaciones/hooks/badge';
+import { usePermisos } from '@/features/identidad/hooks/usePermisos';
 
 function TabGlyph({ glyph }: { glyph: string }) {
   return (
@@ -17,6 +20,7 @@ function TabGlyph({ glyph }: { glyph: string }) {
 export default function TabsLayout() {
   const noLeidas = useNoLeidas();
   const badge = formatearBadge(noLeidas.data?.total);
+  const permisos = usePermisos();
 
   return (
     <Tabs
@@ -43,6 +47,19 @@ export default function TabsLayout() {
         name="comunicados"
         options={{
           title: 'Comunicados',
+          headerRight: permisos.puedeCrearComunicado
+            ? () => (
+                <Pressable onPress={() => router.push('/comunicados/mis')}>
+                  <ThemedText
+                    variant="body"
+                    weight="semibold"
+                    tone="onPrimary"
+                    style={{ paddingHorizontal: 16 }}>
+                    Gestionar
+                  </ThemedText>
+                </Pressable>
+              )
+            : undefined,
           tabBarIcon: () => <TabGlyph glyph="C" />,
         }}
       />

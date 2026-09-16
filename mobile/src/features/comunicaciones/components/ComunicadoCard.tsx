@@ -3,15 +3,24 @@ import { router } from 'expo-router';
 
 import { spacing } from '@/shared/ui';
 import { ThemedText, ThemedView } from '@/shared/ui';
-import { etiquetaAudiencia } from '../helpers';
+import { chipEstado, etiquetaAudiencia } from '../helpers';
 import type { Comunicado } from '../types';
 
 const FORMATO_FECHA = new Intl.DateTimeFormat('es-VE', { dateStyle: 'long' });
 
-export function ComunicadoCard({ comunicado }: { comunicado: Comunicado }) {
+export function ComunicadoCard({
+  comunicado,
+  showEstado = false,
+}: {
+  comunicado: Comunicado;
+  /** En mis.tsx: muestra el chip de estado (línea de audiencia se mantiene). */
+  showEstado?: boolean;
+}) {
   function abrir() {
     router.push(`/comunicados/${comunicado.id}` as Parameters<typeof router.push>[0]);
   }
+
+  const chip = showEstado ? chipEstado(comunicado.estado) : null;
 
   return (
     <Pressable onPress={abrir} accessibilityRole="button">
@@ -19,6 +28,11 @@ export function ComunicadoCard({ comunicado }: { comunicado: Comunicado }) {
         <ThemedText variant="caption" tone="tertiary">
           {etiquetaAudiencia(comunicado.decanatoIds)}
         </ThemedText>
+        {chip ? (
+          <ThemedText variant="caption" weight="semibold">
+            {chip}
+          </ThemedText>
+        ) : null}
         <ThemedText variant="bodyLg" weight="semibold" numberOfLines={2}>
           {comunicado.titulo}
         </ThemedText>

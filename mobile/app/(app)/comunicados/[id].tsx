@@ -1,16 +1,29 @@
 import {
   ActivityIndicator,
+  Modal,
   ScrollView,
   StyleSheet,
+  TextInput,
   View,
 } from 'react-native';
-import { Stack } from 'expo-router';
-import { useLocalSearchParams } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
 
+import {
+  aprobarComunicado,
+  archivarComunicado,
+  publicarComunicado,
+  rechazarComunicado,
+  solicitarRevisionComunicado,
+} from '@/features/comunicaciones/api/comunicados.api';
 import { CuerpoMarkdown } from '@/features/comunicaciones/components/CuerpoMarkdown';
 import { chipEstado, etiquetaAudiencia } from '@/features/comunicaciones/helpers';
+import { accionesPermitidas } from '@/features/comunicaciones/hooks/accionesPermitidas';
 import { useComunicadoDetalle } from '@/features/comunicaciones/hooks/useComunicadoDetalle';
+import { useMutacionComunicado } from '@/features/comunicaciones/hooks/useMutacionComunicado';
+import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import type { Comunicado } from '@/features/comunicaciones/types';
+import { ApiError } from '@/shared/api/axios';
 import { colors, radius, spacing } from '@/shared/ui';
 import { ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
 
@@ -24,7 +37,7 @@ export default function ComunicadoDetalleScreen() {
   const query = useComunicadoDetalle(id);
 
   return (
-    <ThemedView variant="base" style={styles.container}>
+    <ThemedView variant="base" style={estilos.container}>
       <Stack.Screen
         options={{
           headerShown: true,
@@ -42,40 +55,139 @@ export default function ComunicadoDetalleScreen() {
       ) : query.isError ? (
         <Centrado gap>
           <ThemedText variant="subtitle" weight="semibold">
-            {query.error instanceof Error && 'status' in query.error
-              ? // 404: la audiencia cambió o el comunicado expiró/archivó
-                'Este comunicado ya no está disponible.'
+            {query.error instanceof ApiError && query.error.status === 404
+              ? 'Este comunicado ya no está disponible.'
               : 'No se pudo cargar el comunicado.'}
           </ThemedText>
-          <ThemedButton
-            title="Volver"
-            variant="ghost"
-            onPress={() => query.refetch()}
-          />
         </Centrado>
       ) : query.data ? (
-        <Contenido comunicado={query.data} />
+        <Contenido comunicado={query.data} comunicadoId={id} />
       ) : null}
     </ThemedView>
   );
 }
 
-function Contenido({ comunicado }: { comunicado: Comunicado }) {
-  const chip = chipEstado(comunicado.estado);
+function Contenido({
+  comunicado,
+  comunicadoId,
+}: {
+  comunicado: Comunicado;
+  comunicadoId: string;
+}) {
+  const usuario = useSesionStore((s) => s.usuario);
+  const acciones = accionesPermitidas({
+    rol: usuario?.rol ?? null,
+    esAutor: comunicado.autorId === usuario?.id,
+    estado: comunicado.estado,
+  });
+  const hayAcciones = Object.values(acciones).some(Boolean);
+
+  const rechazar = useMutacionComunicado((motivo: string) =>
+    rechazarComunicado(comunicadoId, motivo),
+  );
+  const solicitar = useMutacionComunicado(() =>
+    solicitarRevisionComunicado(comunicadoId),
+  );
+  const aprobar = useMutacionComunicado(() => aprobarComunicado(comunicadoId));
+  const publicar = useMutacionComunicado(() => publicarComunicado(comunicadoId));
+  const archivar = useMutacionComunicado(() => archivarComunicado(comunicadoId));
+
+  const [modalAbierto, setModalAbierto] = useState(false);
+  const [motivo, setMotivo] = useState('');
+  const [errorMutacion, setErrorMutacion] = useState<string | null>(null);
+
+  const algunaPendiente =
+    rechazar.isPending || solicitar.isPending || aprobar.isPending || publicar.isPending || archivar.isPending;
+
+  async function ejecutarAccion(accion: () => Promise<unknown>) {
+    setErrorMutacion(null);
+    try {
+      await accion();
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setErrorMutacion(e.message);
+      } else {
+        setErrorMutacion('Error de red. Verifica tu conexión.');
+      }
+    }
+  }
 
   return (
     <ScrollView
-      contentContainerStyle={styles.scroll}
+      contentContainerStyle={estilos.scroll}
       showsVerticalScrollIndicator={false}>
+      {hayAcciones ? (
+        <View style={estilos.acciones}>
+          {acciones.puedeSolicitarRevision ? (
+            <ThemedButton
+              title="Solicitar revisión"
+              variant="secondary"
+              size="sm"
+              disabled={algunaPendiente}
+              onPress={() => void ejecutarAccion(() => solicitar.mutateAsync())}
+            />
+          ) : null}
+          {acciones.puedeAprobar ? (
+            <ThemedButton
+              title="Aprobar"
+              size="sm"
+              disabled={algunaPendiente}
+              onPress={() => void ejecutarAccion(() => aprobar.mutateAsync())}
+            />
+          ) : null}
+          {acciones.puedeRechazar ? (
+            <ThemedButton
+              title="Rechazar"
+              variant="secondary"
+              size="sm"
+              disabled={algunaPendiente}
+              onPress={() => setModalAbierto(true)}
+            />
+          ) : null}
+          {acciones.puedePublicar ? (
+            <ThemedButton
+              title="Publicar ahora"
+              size="sm"
+              disabled={algunaPendiente}
+              onPress={() => void ejecutarAccion(() => publicar.mutateAsync())}
+            />
+          ) : null}
+          {acciones.puedeArchivar ? (
+            <ThemedButton
+              title="Archivar"
+              variant="secondary"
+              size="sm"
+              disabled={algunaPendiente}
+              onPress={() => void ejecutarAccion(() => archivar.mutateAsync())}
+            />
+          ) : null}
+          {acciones.puedeEditar ? (
+            <ThemedButton
+              title="Editar"
+              variant="ghost"
+              size="sm"
+              disabled={algunaPendiente}
+              onPress={() => router.push(`/comunicados/nuevo?id=${comunicado.id}` as never)}
+            />
+          ) : null}
+        </View>
+      ) : null}
+
+      {errorMutacion ? (
+        <ThemedText variant="caption" style={estilos.errorTexto}>
+          {errorMutacion}
+        </ThemedText>
+      ) : null}
+
       <ThemedText variant="headline" weight="bold">
         {comunicado.titulo}
       </ThemedText>
 
-      <View style={styles.metaFila}>
-        {chip ? (
-          <ThemedView variant="elevated" style={styles.chip}>
+      <View style={estilos.metaFila}>
+        {chipEstado(comunicado.estado) ? (
+          <ThemedView variant="sunken" style={estilos.chip}>
             <ThemedText variant="caption" weight="semibold">
-              {chip}
+              {chipEstado(comunicado.estado)}
             </ThemedText>
           </ThemedView>
         ) : null}
@@ -85,7 +197,7 @@ function Contenido({ comunicado }: { comunicado: Comunicado }) {
       </View>
 
       {comunicado.motivoRechazo ? (
-        <ThemedView variant="card" style={[styles.motivoBox]}>
+        <ThemedView variant="card" style={[estilos.motivoBox]}>
           <ThemedText variant="caption" weight="semibold">
             Motivo del rechazo
           </ThemedText>
@@ -97,7 +209,7 @@ function Contenido({ comunicado }: { comunicado: Comunicado }) {
 
       <CuerpoMarkdown cuerpo={comunicado.cuerpo} />
 
-      <View style={styles.footer}>
+      <View style={estilos.footer}>
         <ThemedText variant="caption" tone="tertiary">
           {comunicado.publicadoAt
             ? `Publicado el ${FORMATO_FECHA_LARGA.format(new Date(comunicado.publicadoAt))}`
@@ -107,6 +219,54 @@ function Contenido({ comunicado }: { comunicado: Comunicado }) {
             : null}
         </ThemedText>
       </View>
+
+      <Modal
+        visible={modalAbierto}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setModalAbierto(false)}>
+        <View style={estilos.modalFondo}>
+          <ThemedView variant="card" style={estilos.modalTarjeta}>
+            <ThemedText variant="subtitle" weight="semibold">
+              Motivo del rechazo
+            </ThemedText>
+            <ThemedText variant="caption" tone="secondary">
+              Se informará al autor vía notificación (COMUNICADO_RECHAZADO).
+            </ThemedText>
+            <TextInput
+              value={motivo}
+              onChangeText={setMotivo}
+              multiline
+              maxLength={500}
+              textAlignVertical="top"
+              style={[estilos.input, estilos.textarea]}
+              placeholder="Explica por qué se devuelve al autor..."
+              placeholderTextColor={colors.text.tertiary}
+              editable={!rechazar.isPending}
+            />
+            <View style={estilos.modalBotones}>
+              <ThemedButton
+                title="Cancelar"
+                variant="ghost"
+                size="sm"
+                onPress={() => setModalAbierto(false)}
+              />
+              <ThemedButton
+                title="Rechazar"
+                variant="primary"
+                size="sm"
+                loading={rechazar.isPending}
+                disabled={motivo.trim().length === 0 || rechazar.isPending}
+                onPress={() => {
+                  const motivoLimpio = motivo.trim();
+                  setModalAbierto(false);
+                  void ejecutarAccion(() => rechazar.mutateAsync(motivoLimpio));
+                }}
+              />
+            </View>
+          </ThemedView>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -119,13 +279,13 @@ function Centrado({
   gap?: boolean;
 }) {
   return (
-    <ThemedView variant="base" style={[styles.centro, gap && styles.centroConGap]}>
+    <ThemedView variant="base" style={[estilos.centro, gap && estilos.centroConGap]}>
       {children}
     </ThemedView>
   );
 }
 
-const styles = StyleSheet.create({
+const estilos = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.base,
@@ -155,7 +315,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.two,
     paddingVertical: spacing.one,
     borderRadius: radius.sm,
-    backgroundColor: colors.background.sunken,
+  },
+  acciones: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.two,
   },
   motivoBox: {
     borderColor: colors.status.danger,
@@ -164,5 +328,38 @@ const styles = StyleSheet.create({
   },
   footer: {
     marginTop: spacing.four,
+  },
+  modalFondo: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.four,
+  },
+  modalTarjeta: {
+    width: '100%',
+    gap: spacing.two,
+  },
+  modalBotones: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: spacing.two,
+    marginTop: spacing.one,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.three,
+    paddingVertical: spacing.three,
+    fontSize: 16,
+    color: colors.text.primary,
+    backgroundColor: colors.background.base,
+  },
+  textarea: {
+    minHeight: 100,
+  },
+  errorTexto: {
+    color: colors.status.danger,
   },
 });
