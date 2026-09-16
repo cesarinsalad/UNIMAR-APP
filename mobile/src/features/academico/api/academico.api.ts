@@ -1,5 +1,5 @@
 import { api } from '@/shared/api/axios';
-import type { MateriaDTO, PerfilAcademico } from '../types';
+import type { MateriaDTO, PensumDTO, PerfilAcademico } from '../types';
 
 /** GET /academico/perfil — identidad académica del dueño del JWT. */
 export async function getPerfil(): Promise<PerfilAcademico> {
@@ -25,5 +25,17 @@ export async function listarMaterias(filtro: FiltroMaterias = {}): Promise<Mater
 
 export async function obtenerMateria(id: string): Promise<MateriaDTO> {
   const { data } = await api.get<MateriaDTO>(`/academico/materias/${id}`);
+  return data;
+}
+
+/**
+ * GET /academico/pensum?carrera_id= — el param es OBLIGATORIO en el
+ * contrato (string 1–50). El llamador pasa `perfil.carrera` (decisión 5c:
+ * funciona con el mock, que devuelve eco; revisar con la API real UNIMAR).
+ */
+export async function getPensum(carreraId: string): Promise<PensumDTO> {
+  const { data } = await api.get<PensumDTO>('/academico/pensum', {
+    params: { carrera_id: carreraId },
+  });
   return data;
 }

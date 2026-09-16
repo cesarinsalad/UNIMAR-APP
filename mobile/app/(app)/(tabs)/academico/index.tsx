@@ -8,9 +8,10 @@ import {
   type ListRenderItemInfo,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 
 import { colors, radius, spacing } from '@/shared/ui';
-import { ThemedText, ThemedView } from '@/shared/ui';
+import { ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
 import {
   filtrarPorPeriodo,
   particionarMaterias,
@@ -100,6 +101,12 @@ export default function AcademicoScreen() {
       ListHeaderComponent={
         <View style={estilos.cabecera}>
           <PerfilHeader perfil={perfil.data} />
+          <ThemedButton
+            title="Ver plan de estudios"
+            variant="secondary"
+            size="sm"
+            onPress={() => router.push('/academico/pensum')}
+          />
           <View style={estilos.filaChips}>
             <ChipVista
               etiqueta={`En curso (${particion.actuales.length})`}

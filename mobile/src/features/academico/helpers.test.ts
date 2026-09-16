@@ -1,11 +1,13 @@
 import {
+  agruparPorTrimestre,
   colorNota,
   etiquetaEstadoHistorica,
   filtrarPorPeriodo,
+  marcarAprobadas,
   particionarMaterias,
   periodosDisponibles,
 } from './helpers';
-import type { MateriaDTO, MateriaHistoricaDTO } from './types';
+import type { MateriaDTO, MateriaHistoricaDTO, PensumMateriaDTO } from './types';
 
 const EN_CURSO = {
   id: 'mat-1',
@@ -102,5 +104,45 @@ describe('filtrarPorPeriodo', () => {
 
   it('período concreto → solo sus materias', () => {
     expect(filtrarPorPeriodo(lista, '2025-1').map((m) => m.id)).toEqual(['mat-hist-2']);
+  });
+});
+
+const PENSUM: PensumMateriaDTO[] = [
+  { codigo: 'IS-101', nombre: 'Programación I', creditos: 4, semestreSugerido: 1, prerequisitos: [] },
+  { codigo: 'IS-201', nombre: 'Programación II', creditos: 4, semestreSugerido: 2, prerequisitos: ['IS-101'] },
+  { codigo: 'IS-701', nombre: 'Bases de Datos II', creditos: 4, semestreSugerido: 7, prerequisitos: ['IS-501'] },
+];
+
+describe('marcarAprobadas (cruce por código)', () => {
+  it('marca solo las coincidentes con histórica APROBADA', () => {
+    const pensumConAprobada: PensumMateriaDTO[] = [
+      { codigo: 'IS-501', nombre: 'Algoritmos I', creditos: 4, semestreSugerido: 5, prerequisitos: [] },
+      ...PENSUM,
+    ];
+    const resultado = marcarAprobadas(pensumConAprobada, [HIST_2025_2, HIST_2025_1]);
+    expect(resultado.find((m) => m.codigo === 'IS-501')?.aprobada).toBe(true);
+    expect(resultado.find((m) => m.codigo === 'IS-101')?.aprobada).toBe(false);
+    expect(resultado.find((m) => m.codigo === 'IS-701')?.aprobada).toBe(false);
+  });
+
+  it('reprobadas no cuentan como aprobadas', () => {
+    const resultado = marcarAprobadas(
+      [{ codigo: 'IS-102', nombre: 'MD', creditos: 3, semestreSugerido: 1, prerequisitos: [] }],
+      [HIST_2025_1],
+    );
+    expect(resultado[0]?.aprobada).toBe(false);
+  });
+
+  it('sin historial → todo pendiente', () => {
+    expect(marcarAprobadas(PENSUM, []).every((m) => !m.aprobada)).toBe(true);
+  });
+});
+
+describe('agruparPorTrimestre', () => {
+  it('agrupa por semestreSugerido y ordena ascendente', () => {
+    const items = marcarAprobadas(PENSUM, [HIST_2025_2]);
+    const grupos = agruparPorTrimestre(items);
+    expect(grupos.map((g) => g.trimestre)).toEqual([1, 2, 7]);
+    expect(grupos[0]?.items.map((m) => m.codigo)).toEqual(['IS-101']);
   });
 });

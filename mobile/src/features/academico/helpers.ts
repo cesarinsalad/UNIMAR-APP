@@ -3,6 +3,7 @@ import type {
   MateriaDTO,
   MateriaActualDTO,
   MateriaHistoricaDTO,
+  PensumMateriaDTO,
 } from './types';
 
 /** Escala UNIMAR 0–20: aprobado desde 10. */
@@ -68,4 +69,45 @@ export function filtrarPorPeriodo(
 ): MateriaHistoricaDTO[] {
   if (periodo === null) return historicas;
   return historicas.filter((m) => m.periodo === periodo);
+}
+
+export interface PensumItem extends PensumMateriaDTO {
+  /** true si el código coincide con una histórica APROBADA del estudiante. */
+  aprobada: boolean;
+}
+
+export interface GrupoTrimestre {
+  /** Número del período lectivo. La UI lo etiqueta "Trimestre N" (UNIMAR). */
+  trimestre: number;
+  items: PensumItem[];
+}
+
+/**
+ * Cruce pénsum × historial: marca aprobadas por coincidencia de `codigo`.
+ * Solo cuenta el estado APROBADA (reprobadas/retiradas siguen pendientes).
+ */
+export function marcarAprobadas(
+  pensum: PensumMateriaDTO[],
+  historicas: MateriaHistoricaDTO[],
+): PensumItem[] {
+  const aprobadas = new Set(
+    historicas.filter((h) => h.estado === 'APROBADA').map((h) => h.codigo),
+  );
+  return pensum.map((materia) => ({
+    ...materia,
+    aprobada: aprobadas.has(materia.codigo),
+  }));
+}
+
+/** Agrupa por `semestreSugerido` del contrato, ordenado ascendente. */
+export function agruparPorTrimestre(items: PensumItem[]): GrupoTrimestre[] {
+  const mapa = new Map<number, PensumItem[]>();
+  for (const item of items) {
+    const grupo = mapa.get(item.semestreSugerido) ?? [];
+    grupo.push(item);
+    mapa.set(item.semestreSugerido, grupo);
+  }
+  return [...mapa.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([trimestre, grupoItems]) => ({ trimestre, items: grupoItems }));
 }

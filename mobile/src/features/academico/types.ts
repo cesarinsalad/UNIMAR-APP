@@ -53,3 +53,21 @@ export interface PerfilAcademico {
   promedio: number | null;
   estatus: EstatusAcademico;
 }
+
+/**
+ * Pénsum (wire camelCase: `semestreSugerido`). OJO — dominio UNIMAR:
+ * la universidad trabaja por TRIMESTRES, no semestres; el campo del
+ * contrato se llama así pero la UI etiqueta "Trimestre N".
+ */
+export interface PensumMateriaDTO {
+  codigo: string;
+  nombre: string;
+  creditos: number;
+  semestreSugerido: number;
+  prerequisitos: string[];
+}
+
+export interface PensumDTO {
+  carrera: string;
+  materias: PensumMateriaDTO[];
+}
