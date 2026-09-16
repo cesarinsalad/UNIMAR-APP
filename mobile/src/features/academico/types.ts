@@ -55,6 +55,25 @@ export interface PerfilAcademico {
 }
 
 /**
+ * Historial médico (wire camelCase: `tipoSangre`).
+ * Recurso sensible: el BFF nunca lo cachea y solo lo sirve al propio
+ * estudiante (403 al resto, incluido ADMIN). Solo lectura en v1 — la
+ * edición requeriría endpoint de escritura contra UNIMAR (mejora futura).
+ */
+export interface VacunaDTO {
+  nombre: string;
+  /** ISO 8601. */
+  fecha: string;
+}
+
+export interface HistorialMedicoDTO {
+  cedula: string;
+  tipoSangre: string;
+  alergias: string[];
+  vacunas: VacunaDTO[];
+}
+
+/**
  * Pénsum (wire camelCase: `semestreSugerido`). OJO — dominio UNIMAR:
  * la universidad trabaja por TRIMESTRES, no semestres; el campo del
  * contrato se llama así pero la UI etiqueta "Trimestre N".

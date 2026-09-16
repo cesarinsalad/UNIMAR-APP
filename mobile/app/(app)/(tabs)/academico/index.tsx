@@ -101,12 +101,20 @@ export default function AcademicoScreen() {
       ListHeaderComponent={
         <View style={estilos.cabecera}>
           <PerfilHeader perfil={perfil.data} />
-          <ThemedButton
-            title="Ver plan de estudios"
-            variant="secondary"
-            size="sm"
-            onPress={() => router.push('/academico/pensum')}
-          />
+          <View style={estilos.filaBotones}>
+            <ThemedButton
+              title="Ver plan de estudios"
+              variant="secondary"
+              size="sm"
+              onPress={() => router.push('/academico/pensum')}
+            />
+            <ThemedButton
+              title="Historial médico"
+              variant="secondary"
+              size="sm"
+              onPress={() => router.push('/academico/historial')}
+            />
+          </View>
           <View style={estilos.filaChips}>
             <ChipVista
               etiqueta={`En curso (${particion.actuales.length})`}
@@ -214,6 +222,11 @@ const estilos = StyleSheet.create({
     marginBottom: spacing.one,
   },
   filaChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.two,
+  },
+  filaBotones: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.two,
