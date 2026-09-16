@@ -83,6 +83,19 @@ export default function TabsLayout() {
         name="calendario"
         options={{
           title: 'Calendario',
+          // Cualquier rol autenticado puede crear eventos PERSONAL (el tipo
+          // OFICIAL se desvanece en el formulario según el rol).
+          headerRight: () => (
+            <Pressable onPress={() => router.push('/eventos/nuevo')}>
+              <ThemedText
+                variant="body"
+                weight="semibold"
+                tone="onPrimary"
+                style={{ paddingHorizontal: 16 }}>
+                + Evento
+              </ThemedText>
+            </Pressable>
+          ),
           tabBarIcon: () => <TabGlyph glyph="K" />,
         }}
       />
