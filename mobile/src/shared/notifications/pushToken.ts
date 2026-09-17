@@ -39,6 +39,11 @@ export interface ResultadoExpoPushToken {
 }
 
 export async function obtenerExpoPushToken(): Promise<ResultadoExpoPushToken> {
+  // En web no hay token Expo push (requeriría FCM/VAPID): se omite el
+  // registro y la app sigue normal con pushDeshabilitado.
+  if (Platform.OS === 'web') {
+    return { token: null, motivo: 'no_es_dispositivo_fisico' };
+  }
   const permiso = await solicitarPermisoPush();
   if (permiso !== 'concedido') {
     return { token: null, motivo: 'permiso_denegado' };

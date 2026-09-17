@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 
@@ -30,6 +31,9 @@ function navegarAPayload(payload: PushDataPayload | undefined): void {
 }
 
 export function registrarListenersPush(): () => void {
+  // En web no hay push nativo: los listeners JS jamás dispararían.
+  if (Platform.OS === 'web') return () => undefined;
+
   // Push recibido con la app abierta: el banner lo muestra el handler de
   // módulo; aquí refrescamos bandeja y badge sin esperar a que el usuario
   // navegue.
@@ -60,7 +64,14 @@ export function registrarListenersPush(): () => void {
  * tras el login (pantalla de login).
  */
 export async function prepararRutaInicial(): Promise<void> {
-  const response = await Notifications.getLastNotificationResponseAsync();
+  // En web no hay notificaciones que lancen la app: no hay nada que recuperar.
+  if (Platform.OS === 'web') return;
+  let response: Awaited<ReturnType<typeof Notifications.getLastNotificationResponseAsync>> | null;
+  try {
+    response = await Notifications.getLastNotificationResponseAsync();
+  } catch {
+    return;
+  }
   if (!response || rutaInicialConsumida) return;
   const data = response.notification.request.content.data as PushDataPayload | undefined;
   const ruta = rutaParaNotificacion(data?.tipo, data?.referencia_id);
@@ -71,6 +82,8 @@ export async function prepararRutaInicial(): Promise<void> {
 }
 
 export async function ensureCanalAndroid(): Promise<void> {
+  // Los channels son concepto Android; en el resto de plataformas no hay nada que crear.
+  if (Platform.OS !== 'android') return;
   await Notifications.setNotificationChannelAsync('default', {
     name: 'UNIMARapp',
     importance: Notifications.AndroidImportance.HIGH,

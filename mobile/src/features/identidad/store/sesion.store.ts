@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { create } from 'zustand';
 
 import { api } from '@/shared/api/axios';
@@ -36,17 +37,23 @@ function usuarioFromClaims(claims: JwtClaims): Usuario {
   };
 }
 
+// SecureStore no existe en web (su build exporta un objeto vacío): la
+// sesión vive solo en memoria y se pierde al recargar. En nativo persiste
+// cifrada entre arranques.
 async function persistToken(token: string): Promise<void> {
+  if (Platform.OS === 'web') return;
   const SecureStore = await import('expo-secure-store');
   await SecureStore.setItemAsync(TOKEN_STORAGE_KEY, token);
 }
 
 async function clearPersistedToken(): Promise<void> {
+  if (Platform.OS === 'web') return;
   const SecureStore = await import('expo-secure-store');
   await SecureStore.deleteItemAsync(TOKEN_STORAGE_KEY);
 }
 
 async function readPersistedToken(): Promise<string | null> {
+  if (Platform.OS === 'web') return null;
   const SecureStore = await import('expo-secure-store');
   return SecureStore.getItemAsync(TOKEN_STORAGE_KEY);
 }
