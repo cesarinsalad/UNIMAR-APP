@@ -21,3 +21,4 @@ export { TextField, type TextFieldProps } from './TextField';
 export { SectionHeader, type SectionHeaderProps } from './SectionHeader';
 export { ListItem, type ListItemProps } from './ListItem';
 export { EmptyState, type EmptyStateProps } from './EmptyState';
+export { IconTile, type IconTileProps } from './IconTile';
