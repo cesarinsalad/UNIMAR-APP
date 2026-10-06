@@ -1,5 +1,6 @@
 import {
   agruparPorDia,
+  ventanaDias,
   claveDia,
   matrizMes,
   mesAnterior,
@@ -122,5 +123,26 @@ describe('tituloDia', () => {
 describe('claveDia', () => {
   it('pad de mes y día', () => {
     expect(claveDia(new Date(2026, 8, 4))).toBe('2026-09-04');
+  });
+});
+describe('ventanaDias', () => {
+  it('desde 00:00 local; hasta último ms del día N-1; clave por día inicio', () => {
+    const desde = new Date(2026, 9, 7); // mié 7 oct
+    const v = ventanaDias(desde, 30);
+    expect(new Date(v.desde).getTime()).toBe(new Date(2026, 9, 7, 0, 0, 0, 0).getTime());
+    expect(new Date(v.hasta).getTime()).toBe(new Date(2026, 9, 7 + 29, 23, 59, 59, 999).getTime());
+    expect(v.clave).toBe('dias-2026-10-07-30');
+    expect('etiqueta' in v).toBe(false);
+  });
+
+  it('cruza fin de mes sin errores (30 días desde 20 de feb no bisiesto)', () => {
+    const v = ventanaDias(new Date(2027, 1, 20), 10);
+    expect(new Date(v.hasta).getTime()).toBe(new Date(2027, 1, 20 + 9, 23, 59, 59, 999).getTime());
+  });
+
+  it('clave estable por día: dos llamadas el mismo día → misma clave', () => {
+    const a = ventanaDias(new Date(2026, 9, 7, 8), 30);
+    const b = ventanaDias(new Date(2026, 9, 7, 22), 30);
+    expect(a.clave).toBe(b.clave);
   });
 });

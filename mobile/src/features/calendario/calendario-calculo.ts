@@ -16,6 +16,21 @@ export interface VentanaMes {
   clave: string;
 }
 
+/**
+ * Ventana deslizante de N días desde una fecha (00:00 local hasta el último
+ * ms del día N-1). Pensada para "próximos eventos" del Home: covers el mes
+ * que sigue sin depender del calendario mensual. Máx del contrato: 90 días.
+ */
+export function ventanaDias(desde: Date, dias: number): Omit<VentanaMes, 'etiqueta'> {
+  const inicio = new Date(desde.getFullYear(), desde.getMonth(), desde.getDate(), 0, 0, 0, 0);
+  const fin = new Date(desde.getFullYear(), desde.getMonth(), desde.getDate() + dias - 1, 23, 59, 59, 999);
+  return {
+    desde: inicio.toISOString(),
+    hasta: fin.toISOString(),
+    clave: `dias-${claveDia(desde)}-${dias}`,
+  };
+}
+
 export interface CeldaDia {
   /** Clave local del día: 'yyyy-mm-dd'. */
   clave: string;

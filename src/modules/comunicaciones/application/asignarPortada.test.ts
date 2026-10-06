@@ -73,12 +73,12 @@ function makeRepos(store: Store) {
     listar: async () => [store.comunicado],
     actualizar: async (_tx, id, input) => {
       if (store.comunicado.id !== id) return null;
-      store.comunicado = { ...store.comunicado, ...input };
+      store.comunicado = { ...store.comunicado, ...input } as Comunicado;
       return store.comunicado;
     },
     transicionarEstado: async (_tx, id, input) => {
       if (store.comunicado.id !== id) return null;
-      store.comunicado = { ...store.comunicado, ...input };
+      store.comunicado = { ...store.comunicado, ...input } as Comunicado;
       return store.comunicado;
     },
     registrarLectura: async () => undefined,

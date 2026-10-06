@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Tabs, router } from 'expo-router';
 import {
-  Bell,
   CalendarBlank,
   GraduationCap,
   House,
@@ -12,6 +11,7 @@ import {
 
 import { colors, elevation, radius, spacing } from '@/shared/ui/theme';
 import { ThemedText } from '@/shared/ui/ThemedText';
+import { CampanaConBadge } from '@/features/notificaciones/components/CampanaConBadge';
 import { useNoLeidas } from '@/features/notificaciones/hooks/useNoLeidas';
 import { usePermisos } from '@/features/identidad/hooks/usePermisos';
 
@@ -67,18 +67,6 @@ function TabBarFlotante({ state, descriptors, navigation }: TabBarProps) {
   );
 }
 
-/** Campana del header Perfil con punto naranja si hay no leídas. */
-function CampanaConBadge({ total }: { total: number }) {
-  return (
-    <Pressable style={styles.campana} onPress={() => router.push('/notificaciones')} hitSlop={8}>
-      <Bell size={24} color={colors.text.onPrimary} />
-      {total > 0 ? (
-        <View style={styles.campanapunto} accessibilityLabel={`${total} notificaciones sin leer`} />
-      ) : null}
-    </Pressable>
-  );
-}
-
 export default function TabsLayout() {
   const noLeidas = useNoLeidas();
   const totalNoLeidas = noLeidas.data?.total ?? 0;
@@ -96,6 +84,7 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Inicio',
+          headerShown: false,
           tabBarIcon: ({ focused }) =>
             focused ? (
               <House size={26} color={focused ? colors.brand.primary : colors.text.secondary} weight="fill" />
@@ -199,15 +188,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
-  },
-  campana: { paddingHorizontal: spacing.lg },
-  campanapunto: {
-    position: 'absolute',
-    top: 4,
-    right: spacing.lg,
-    width: 8,
-    height: 8,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accent.urgent,
   },
 });
