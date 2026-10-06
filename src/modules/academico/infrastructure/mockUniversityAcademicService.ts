@@ -45,6 +45,9 @@ export class MockUniversityAcademicService implements IUniversityAcademicService
         profesor: 'Dra. Pérez',
         aula: 'A-12',
         horario: 'Lun-Mié 9:00-10:30',
+        dias_semana: [1, 3],
+        hora_inicio: '09:00',
+        hora_fin: '10:30',
         cortes: [
           { nombre: 'Parcial 1', fecha: '2026-09-15', ponderacion: 30, nota: 14 },
           { nombre: 'Parcial 2', fecha: '2026-10-20', ponderacion: 30, nota: null },
@@ -60,6 +63,9 @@ export class MockUniversityAcademicService implements IUniversityAcademicService
         profesor: 'Mg. Rosales',
         aula: 'B-04',
         horario: 'Mar-Jue 14:00-15:30',
+        dias_semana: [2, 4],
+        hora_inicio: '14:00',
+        hora_fin: '15:30',
         cortes: [
           { nombre: 'Proyecto 1', fecha: '2026-09-30', ponderacion: 25, nota: null },
           { nombre: 'Proyecto 2', fecha: '2026-11-10', ponderacion: 35, nota: null },

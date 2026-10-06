@@ -33,12 +33,24 @@ const materiaBaseShape = {
   creditos: z.number().int().nonnegative(),
 };
 
+/**
+ * Horario estructurado de materia en curso (opcional para mantener
+ * compatibilidad con la API UNIMAR real, que hoy solo envía el string).
+ * `dias_semana` sigue ISO-8601: 1=lunes … 7=domingo. Las horas son
+ * "HH:MM" locales en formato 24h. Con ambos presentes, el cliente puede
+ * calcular "próxima clase"; sin ellos, solo muestra el string `horario`.
+ */
+const HORA_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
 const materiaActualSchema = z.object({
   ...materiaBaseShape,
   es_actual: z.literal(true),
   profesor: z.string().min(1),
   aula: z.string().min(1),
   horario: z.string().min(1),
+  dias_semana: z.array(z.number().int().min(1).max(7)).optional(),
+  hora_inicio: z.string().regex(HORA_RE, 'hora "HH:MM"').optional(),
+  hora_fin: z.string().regex(HORA_RE, 'hora "HH:MM"').optional(),
   cortes: z.array(corteSchema),
 });
 

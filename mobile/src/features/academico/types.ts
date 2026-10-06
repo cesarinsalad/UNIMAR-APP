@@ -29,6 +29,12 @@ export interface MateriaActualDTO extends MateriaBase {
   profesor: string;
   aula: string;
   horario: string;
+  /** Horario estructurado opcional (ISO-8601: 1=lun … 7=dom). Ausente en la
+   *  API UNIMAR real; presente en el mock → habilita el cálculo de próxima
+   *  clase. Horas "HH:MM" locales 24h. */
+  dias_semana?: number[];
+  hora_inicio?: string;
+  hora_fin?: string;
   cortes: CorteDTO[];
 }
 
