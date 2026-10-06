@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, spacing } from '@/shared/ui';
+import { colors, layout, spacing } from '@/shared/ui';
 import { ThemedText, ThemedView } from '@/shared/ui';
 import type { Comunicado } from '../types';
 import { aplanarPaginas, useComunicadosFeed } from '../hooks/useComunicadosFeed';
@@ -54,7 +54,7 @@ export function ComunicadosList() {
       )}
       contentContainerStyle={[
         styles.contenido,
-        { paddingBottom: insets.bottom + spacing.eight },
+        { paddingBottom: insets.bottom + layout.bottomTabInset },
       ]}
       ItemSeparatorComponent={Separador}
       ListEmptyComponent={

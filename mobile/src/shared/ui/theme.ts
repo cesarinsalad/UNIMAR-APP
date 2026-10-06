@@ -180,7 +180,7 @@ export const highlight = {
 export const touchTarget = { min: 44 } as const;
 
 export const layout = {
-  bottomTabInset: 50,
+  bottomTabInset: 88,
   maxContentWidth: 800,
   screenPadding: spacing.lg,
 } as const;

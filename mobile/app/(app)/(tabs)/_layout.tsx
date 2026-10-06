@@ -1,52 +1,119 @@
-import { Tabs } from 'expo-router';
-import { Pressable } from 'react-native';
-import { router } from 'expo-router';
-import { Platform } from 'react-native';
+import type { ReactNode } from 'react';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Tabs, router } from 'expo-router';
+import {
+  Bell,
+  CalendarBlank,
+  GraduationCap,
+  House,
+  Megaphone,
+  UserCircle,
+} from 'phosphor-react-native';
 
-import { colors, layout, spacing } from '@/shared/ui';
-import { ThemedText } from '@/shared/ui';
+import { colors, elevation, radius, spacing } from '@/shared/ui/theme';
+import { ThemedText } from '@/shared/ui/ThemedText';
 import { useNoLeidas } from '@/features/notificaciones/hooks/useNoLeidas';
-import { formatearBadge } from '@/features/notificaciones/hooks/badge';
 import { usePermisos } from '@/features/identidad/hooks/usePermisos';
 
-function TabGlyph({ glyph }: { glyph: string }) {
+/** Contrato mínimo que consume el bar (evita deep-imports de internals). */
+interface TabBarProps {
+  state: { index: number; routes: { key: string; name: string }[] };
+  descriptors: Record<
+    string,
+    {
+      options: {
+        title?: string;
+        tabBarIcon?: (props: { focused: boolean; color: string; size: number }) => ReactNode;
+      };
+    }
+  >;
+  navigation: { dispatch: (action: { type: string; payload?: object }) => void };
+  insets: { bottom: number };
+}
+
+/** Tab bar flotante estilo Figma, 100% propia:
+ *  pill blanca con márgenes e insets controlados, items centrados con
+ *  Phosphor (fill activo) + label Montserrat. Reemplaza el bar default.
+ *  Los iconos viven en el `tabBarIcon` de cada Tabs.Screen; el texto, en su
+ *  `title`, de modo que el bar no depende del naming de rutas anidadas. */
+function TabBarFlotante({ state, descriptors, navigation }: TabBarProps) {
+  // Knob de posición vertical: `+ spacing.xs` es el aire sobre el home indicator.
+  const bottom = Platform.OS === 'ios' ? spacing.xl : spacing.lg;
+
   return (
-    <ThemedText variant="caption" weight="bold">
-      {glyph}
-    </ThemedText>
+    <View style={[styles.tabBar, { bottom }]}>
+      {state.routes.map((route, index) => {
+        const { options } = descriptors[route.key] ?? {};
+        const activo = index === state.index;
+        const color = activo ? colors.brand.primary : colors.text.secondary;
+        const titulo = options?.title ?? route.name;
+        return (
+          <Pressable
+            key={route.key}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: activo }}
+            accessibilityLabel={titulo}
+            android_ripple={{ color: colors.brand.surfaceBlue }}
+            onPress={() => navigation.dispatch({ type: 'JUMP_TO', payload: { name: route.name } })}
+            style={styles.item}>
+            {options?.tabBarIcon?.({ focused: activo, color, size: 26 })}
+            <ThemedText variant="caption" weight={activo ? 'semibold' : 'medium'} style={{ color }}>
+              {titulo}
+            </ThemedText>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/** Campana del header Perfil con punto naranja si hay no leídas. */
+function CampanaConBadge({ total }: { total: number }) {
+  return (
+    <Pressable style={styles.campana} onPress={() => router.push('/notificaciones')} hitSlop={8}>
+      <Bell size={24} color={colors.text.onPrimary} />
+      {total > 0 ? (
+        <View style={styles.campanapunto} accessibilityLabel={`${total} notificaciones sin leer`} />
+      ) : null}
+    </Pressable>
   );
 }
 
 export default function TabsLayout() {
   const noLeidas = useNoLeidas();
-  const badge = formatearBadge(noLeidas.data?.total);
+  const totalNoLeidas = noLeidas.data?.total ?? 0;
   const permisos = usePermisos();
 
   return (
     <Tabs
+      tabBar={(props) => <TabBarFlotante {...props} />}
       screenOptions={{
-        headerStyle: { backgroundColor: colors.primary },
+        headerStyle: { backgroundColor: colors.brand.primary },
         headerTintColor: colors.text.onPrimary,
         headerTitleStyle: { fontWeight: '600' },
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.text.secondary,
-        tabBarStyle: {
-          backgroundColor: colors.background.base,
-          paddingBottom: Platform.OS === 'ios' ? layout.bottomTabInset : spacing.two,
-          height: Platform.OS === 'ios' ? layout.bottomTabInset + 40 : 56,
-        },
       }}>
       <Tabs.Screen
         name="index"
         options={{
           title: 'Inicio',
-          tabBarIcon: () => <TabGlyph glyph="H" />,
+          tabBarIcon: ({ focused }) =>
+            focused ? (
+              <House size={26} color={focused ? colors.brand.primary : colors.text.secondary} weight="fill" />
+            ) : (
+              <House size={26} color={focused ? colors.brand.primary : colors.text.secondary} weight="duotone" />
+            ),
         }}
       />
       <Tabs.Screen
         name="comunicados"
         options={{
-          title: 'Comunicados',
+          title: 'Noticias',
+          tabBarIcon: ({ focused }) =>
+            focused ? (
+              <Megaphone size={26} color={focused ? colors.brand.primary : colors.text.secondary} weight="fill" />
+            ) : (
+              <Megaphone size={26} color={focused ? colors.brand.primary : colors.text.secondary} weight="duotone" />
+            ),
           headerRight: permisos.puedeCrearComunicado
             ? () => (
                 <Pressable onPress={() => router.push('/comunicados/mis')}>
@@ -54,58 +121,93 @@ export default function TabsLayout() {
                     variant="body"
                     weight="semibold"
                     tone="onPrimary"
-                    style={{ paddingHorizontal: 16 }}>
+                    style={{ paddingHorizontal: spacing.lg }}>
                     Gestionar
                   </ThemedText>
                 </Pressable>
               )
             : undefined,
-          tabBarIcon: () => <TabGlyph glyph="C" />,
         }}
       />
       <Tabs.Screen
-        name="notificaciones"
+        name="academico"
         options={{
-          title: 'Bandeja',
-          // Header lineal propio de la pantalla (necesita estado vivo para
-          // el botón "Marcar todo leído").
-          headerShown: false,
-          tabBarIcon: () => <TabGlyph glyph="N" />,
-          tabBarBadge: badge,
-          tabBarBadgeStyle: {
-            backgroundColor: colors.accent.urgent,
-            color: colors.text.onPrimary,
-            fontSize: 10,
-          },
+          title: 'Clases',
+          tabBarIcon: ({ focused }) =>
+            focused ? (
+              <GraduationCap size={26} color={focused ? colors.brand.primary : colors.text.secondary} weight="fill" />
+            ) : (
+              <GraduationCap size={26} color={focused ? colors.brand.primary : colors.text.secondary} weight="duotone" />
+            ),
         }}
       />
       <Tabs.Screen
         name="calendario"
         options={{
-          title: 'Calendario',
-          // Cualquier rol autenticado puede crear eventos PERSONAL (el tipo
-          // OFICIAL se desvanece en el formulario según el rol).
+          title: 'Agenda',
+          tabBarIcon: ({ focused }) =>
+            focused ? (
+              <CalendarBlank size={26} color={focused ? colors.brand.primary : colors.text.secondary} weight="fill" />
+            ) : (
+              <CalendarBlank size={26} color={focused ? colors.brand.primary : colors.text.secondary} weight="duotone" />
+            ),
           headerRight: () => (
             <Pressable onPress={() => router.push('/eventos/nuevo')}>
               <ThemedText
                 variant="body"
                 weight="semibold"
                 tone="onPrimary"
-                style={{ paddingHorizontal: 16 }}>
+                style={{ paddingHorizontal: spacing.lg }}>
                 + Evento
               </ThemedText>
             </Pressable>
           ),
-          tabBarIcon: () => <TabGlyph glyph="K" />,
         }}
       />
       <Tabs.Screen
-        name="academico"
+        name="perfil"
         options={{
-          title: 'Académico',
-          tabBarIcon: () => <TabGlyph glyph="A" />,
+          title: 'Perfil',
+          tabBarIcon: ({ focused }) =>
+            focused ? (
+              <UserCircle size={26} color={focused ? colors.brand.primary : colors.text.secondary} weight="fill" />
+            ) : (
+              <UserCircle size={26} color={focused ? colors.brand.primary : colors.text.secondary} weight="duotone" />
+            ),
+          headerRight: () => <CampanaConBadge total={totalNoLeidas} />,
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    position: 'absolute',
+    left: spacing.sm,
+    right: spacing.sm,
+    height: 72,
+    paddingHorizontal: spacing.lg,
+    flexDirection: 'row',
+    borderRadius: radius.pill,
+    backgroundColor: colors.bg.surface,
+    overflow: 'hidden',
+    ...elevation.md,
+  },
+  item: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+  },
+  campana: { paddingHorizontal: spacing.lg },
+  campanapunto: {
+    position: 'absolute',
+    top: 4,
+    right: spacing.lg,
+    width: 8,
+    height: 8,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accent.urgent,
+  },
+});

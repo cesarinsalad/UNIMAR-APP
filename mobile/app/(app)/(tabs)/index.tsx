@@ -1,6 +1,6 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { colors, spacing } from '@/shared/ui';
+import { colors, layout, spacing } from '@/shared/ui';
 import { ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
 
@@ -40,6 +40,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   scroll: {
     padding: spacing.four,
+    paddingBottom: layout.bottomTabInset,
     gap: spacing.six,
     backgroundColor: colors.background.base,
   },

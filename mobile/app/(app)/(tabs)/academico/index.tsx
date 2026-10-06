@@ -10,7 +10,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
-import { colors, radius, spacing } from '@/shared/ui';
+import { colors, layout, radius, spacing } from '@/shared/ui';
 import { ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
 import {
   filtrarPorPeriodo,
@@ -95,7 +95,7 @@ export default function AcademicoScreen() {
       }
       contentContainerStyle={[
         estilos.contenido,
-        { paddingBottom: insets.bottom + spacing.eight },
+        { paddingBottom: insets.bottom + layout.bottomTabInset },
       ]}
       ItemSeparatorComponent={Separador}
       ListHeaderComponent={
