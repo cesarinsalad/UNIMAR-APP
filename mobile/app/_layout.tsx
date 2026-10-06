@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { ActivityIndicator } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -17,6 +16,7 @@ import {
 } from '@expo-google-fonts/montserrat';
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import { colors } from '@/shared/ui';
+import SplashLogo from '../assets/images/unimar/logo-vertical-blanco.png';
 import { queryClient } from '@/shared/api/queryClient';
 import {
   ensureCanalAndroid,
@@ -56,10 +56,12 @@ export default function RootLayout() {
     return cleanup;
   }, [listenersActivos]);
 
-  if (!hidratado) {
+  if (!hidratado || !fuenteCargada) {
+    // Réplica del splash nativo (Expo Go no permite boot splash custom):
+    // fondo azul corporativo + logo vertical blanco centrado.
     return (
       <View style={styles.splash}>
-        <ActivityIndicator color={colors.white} />
+        <Image source={SplashLogo} style={styles.splashLogo} resizeMode="contain" />
       </View>
     );
   }
@@ -72,7 +74,7 @@ export default function RootLayout() {
           <Stack
             screenOptions={{
               headerShown: false,
-              contentStyle: { backgroundColor: colors.background.base },
+              contentStyle: { backgroundColor: colors.bg.canvas },
             }}>
             <Stack.Screen name="(auth)" />
             <Stack.Screen name="(app)" />
@@ -84,11 +86,12 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.primary },
+  root: { flex: 1, backgroundColor: colors.brand.primary },
   splash: {
     flex: 1,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.brand.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  splashLogo: { width: 256, height: 227 },
 });

@@ -6,6 +6,10 @@ export interface CardProps {
   children?: React.ReactNode;
   highlight?: boolean;
   padding?: keyof typeof spacing;
+  /** Padding horizontal; si se omite usa `padding` (regla: ≥ vertical). */
+  paddingH?: keyof typeof spacing;
+  /** Padding vertical; si se omite usa `padding` (regla: ≤ horizontal). */
+  paddingV?: keyof typeof spacing;
   elevationKey?: keyof typeof elevation;
   style?: StyleProp<ViewStyle>;
 }
@@ -18,12 +22,25 @@ export function Card({
   children,
   highlight: conHighlight = true,
   padding = 'lg',
+  paddingH,
+  paddingV,
   elevationKey = 'sm',
   style,
 }: CardProps) {
   const elev = elevation[elevationKey];
   return (
-    <View style={[styles.base, elev, conHighlight ? highlight[elevationKey] : null, { padding: spacing[padding] }, style]}>
+    <View
+      style={[
+        styles.base,
+        elev,
+        conHighlight ? highlight[elevationKey] : null,
+        {
+          padding: spacing[padding],
+          paddingHorizontal: paddingH ? spacing[paddingH] : undefined,
+          paddingVertical: paddingV ? spacing[paddingV] : undefined,
+        },
+        style,
+      ]}>
       {children}
     </View>
   );
@@ -64,7 +81,7 @@ export function PressableCard({
 const styles = StyleSheet.create({
   base: {
     backgroundColor: colors.bg.surface,
-    borderRadius: radius.lg,
+    borderRadius: radius.card,
   },
   pressed: {
     opacity: 0.85,

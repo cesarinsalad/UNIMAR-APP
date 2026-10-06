@@ -69,7 +69,7 @@ export function ListItem({
 const styles = StyleSheet.create({
   base: {
     backgroundColor: colors.bg.surface,
-    borderRadius: radius.lg,
+    borderRadius: radius.card,
     padding: spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',

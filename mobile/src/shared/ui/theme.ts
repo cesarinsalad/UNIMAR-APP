@@ -55,11 +55,13 @@ export const colors = {
 } as const;
 
 export const spacing = {
+  zero: 0,
   xs: 4,
   sm: 8,
   md: 12,
   lg: 16,
   xl: 24,
+  xxl: 32,
 
   // Alias legacy (migrar a xs/sm/md/lg/xl, luego eliminar)
   base: 4,
@@ -80,6 +82,12 @@ export const radius = {
   md: 8,
   lg: 12,
   xl: 16,
+  /** Botones e interactivos (regla STYLE.md: múltiplos de 4). */
+  button: 16,
+  /** Campos de texto. */
+  input: 12,
+  /** Tarjetas. */
+  card: 20,
   pill: 999,
 } as const;
 

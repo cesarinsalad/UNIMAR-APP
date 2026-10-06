@@ -102,7 +102,7 @@ const VARIANT_STYLES: Record<Variant, { container: ViewStyle; labelColor: string
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: radius.md,
+    borderRadius: radius.button,
     alignItems: 'center',
     justifyContent: 'center',
   },

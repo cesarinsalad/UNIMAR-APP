@@ -37,7 +37,7 @@ const VARIANT_STYLES: Record<Variant, ViewStyle> = {
   sunken: { backgroundColor: colors.background.sunken },
   card: {
     backgroundColor: colors.background.base,
-    borderRadius: radius.lg,
+    borderRadius: radius.card,
     padding: spacing.four,
   },
 };
