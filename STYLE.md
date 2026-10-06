@@ -4,32 +4,62 @@ Este documento establece las directrices visuales y de accesibilidad para el des
 
 ## 1. Sistema de Color y Accesibilidad
 
-La paleta se rige por los lineamientos corporativos institucionales y principios de accesibilidad modernos, priorizando el formato OKLCH o HSL para manipular la luminosidad y generar consistencia.
+La paleta se rige por los lineamientos corporativos institucionales y principios de accesibilidad modernos. Los tokens se nombran de forma semántica y se espejan 1:1 en `mobile/src/shared/ui/theme.ts`.
 
-* **Azul Corporativo (`#0D4D98`):** Color primario (RGB: 13, 77, 151 / CMYK: 98, 72, 6, 0). Se utiliza exclusivamente para el fondo del *header* superior, botones de acción principal y avatares de iconos.
+### 1.1 Tokens de marca (Brand)
 
-
-* **Blanco Puro (`#ffffff`):** Fondo principal y color de texto obligatorio sobre el Azul Corporativo.
-
-
-* **Gris Claro (`#e8e8e8`):** Se utiliza para separaciones sutiles de tarjetas y bordes.
+* `brand/primary` — **Azul Corporativo `#0D4D98`**: botones de acción principal, encabezados superior y avatares de iconos.
 
 
-* **Gris Oscuro (`#413D3C`):** Color principal para toda la tipografía de lectura y datos. Se mantiene la saturación en cero para los textos neutrales, variando únicamente su luminosidad para crear jerarquía.
+* `brand/on-primary` — **Blanco Puro `#FFFFFF`**: texto e iconos obligatorios sobre el Azul Corporativo. Prohibido el uso de naranja sobre azul para evitar la vibración visual.
 
 
-* **Naranja (Acento):** Uso estrictamente restringido a indicadores urgentes, burbujas de notificaciones (badges) y puntos de estado en el calendario. **Nunca** se debe utilizar para tipografía.
-* **Regla de Contraste Estricta:** Todo texto o icono sobre el Azul Corporativo debe ser Blanco Puro (`#ffffff`); queda prohibido el uso de naranja sobre azul para evitar la vibración visual.
+* `brand/surface-blue` — **`#EBF2FA`**: variante del azul con alta luminosidad, para pills y fondos de etiquetas activas.
+
+### 1.2 Neutros (superficies y texto)
+
+* `bg/canvas` — **`#F8F9FA`**: fondo general de la pantalla, ligeramente separado del blanco puro para que las tarjetas destaquen por contraste tonal.
+
+
+* `bg/surface` — **`#FFFFFF`**: fondo de tarjetas, modales y entradas de texto (inputs).
+
+
+* `border/subtle` — **`#E8E8E8`**: borde sutil para delimitar tarjetas sin recurrir a líneas negras o trazos sólidos.
+
+
+* `text/primary` — **Gris Oscuro Institucional `#413D3C`**: títulos y datos principales.
+
+
+* `text/secondary` — **`#7A7574`**: subtítulos, aulas, nombres de profesores y metadatos. La atenuación de textos secundarios se logra restando luminosidad, nunca reduciendo el tamaño de la fuente.
+
+### 1.3 Acento (urgencias)
+
+* `accent/urgent` — **`#FF7A00`**: reservado con exclusividad para puntos de notificación (badges), indicadores urgentes y puntos de estado del calendario. **Nunca** en tipografía, íconos de navegación ni rellenos decorativos.
 
 ## 2. Tipografía y Jerarquía
 
 El manejo tipográfico representa el núcleo de la jerarquía visual del portal.
 
-* **Títulos (Headings):** Se utiliza la fuente corporativa **Montserrat**. Deben escribirse siempre en *Title Case* o *Sentence Case*. Queda **estrictamente prohibido** el uso de Montserrat Bold en mayúsculas sostenidas en la interfaz, ya que este formato está reservado con carácter de exclusividad para el logotipo institucional.
+* **Fuente única:** **Montserrat** se usa en toda la aplicación (títulos, cuerpo y datos). Los estilos definidos aquí se espejan en `typography` de `theme.ts`; la fuente se carga en el arranque mediante `@expo-google-fonts/montserrat`.
 
+* **Title/Sentence Case:** Los títulos se escriben siempre en *Title Case* o *Sentence Case*. Queda **estrictamente prohibido** el uso de Montserrat Bold en mayúsculas sostenidas en la interfaz: ese formato está reservado con carácter de exclusividad para el logotipo institucional.
 
-* **Cuerpo y Datos (Body):** Se utilizan fuentes nativas del sistema, **SF Pro** (iOS) o **Roboto** (Android), para mostrar datos académicos, horarios y mensajes, garantizando una lectura limpia.
-* **Escala Tipográfica:** Se implementa un sistema simplificado de tres tamaños base, definiendo 14px o 16px como el tamaño estándar de lectura.
+### 2.1 Estilos tipográficos (tokens)
+
+| Token | Tamaño / Interlineado | Peso | Uso |
+| --- | --- | --- | --- |
+| `headline` | 28px / 34px | Bold | Resaltados y cifras puntuales |
+| `title` | 22px / 28px | Bold / SemiBold | Título de pantalla |
+| `subtitle` | 18px / 24px | SemiBold | Título de sección |
+| `body` | 16px / 24px | Regular | Body/Default: párrafos, descripciones, datos principales |
+| `bodySm` | 14px / 20px | Regular / Medium | Texto denso secundario, labels de inputs |
+| `caption` | 12px / 16px | Regular | Metadatos: horarios, aulas, códigos (`MAT-401`), timestamps |
+
+* **Escalado en pares:** Todos los tamaños avanzan en pasos de 2px (o múltiplos de 4 en interlineado), garantizando progresión matemática de la jerarquía.
+
+* **Pesos:** Regular para lectura, Medium (500) para énfasis suave (nombres de asignaturas, labels de botón) y SemiBold (600)/Bold (700) exclusivamente para títulos. El abuse del SemiBold en el cuerpo destruye la jerarquía de los encabezados.
+
+* **Legibilidad:** La escala de 2 en 2 parte de 12px como mínimo absoluto (solo metadatos); 16px es el cuerpo por defecto para asegurar lectura cómoda de datos académicos.
 
 
 * **Agrupación Visual:** El espacio entre un título y su contenido descriptivo se controla mediante el interlineado (`line-height`) en lugar de depender de márgenes manuales, conectando visualmente la información. Para reducir el énfasis de textos secundarios, se debe atenuar su color disminuyendo la luminosidad en lugar de cambiar el tamaño de la fuente.
@@ -40,16 +70,21 @@ El manejo tipográfico representa el núcleo de la jerarquía visual del portal.
 
 El espaciado se utiliza activamente para agrupar elementos relacionados y separar contextos diferentes en la interfaz.
 
-* **Unidades Relativas:** Todo el espaciado y *padding* debe declararse utilizando `rem` para asegurar la escalabilidad correcta en diferentes dispositivos.
+* **Escala estandarizada:** Incrementos constantes de `0.25rem` (4px), referenciados por nombre semántico (espejados en `spacing` de `theme.ts`):
 
+| Token | Valor | Uso típico |
+| --- | --- | --- |
+| `xs` | 4px | Espacio interno entre un icono y su texto descriptivo |
+| `sm` | 8px | Separación entre el título de una clase y su profesor/aula |
+| `md` | 12px | Padding vertical de tarjetas y botones |
+| `lg` | 16px | Padding horizontal de tarjetas, márgenes laterales de pantalla, gap entre ítems de lista |
+| `xl` | 24px | Separación entre secciones distintas (ej. bloque de materias ↔ comunicados) |
 
-* **Incrementos Constantes:** El sistema escala estrictamente en bloques de `0.25rem` (4 píxeles) para mantener la consistencia matemática en toda la aplicación.
+* **Regla de oro 1 — Peso óptico:** El padding interno responde al peso óptico: en botones y tarjetas, el padding vertical siempre es menor que el horizontal.
 
+* **Regla de oro 2 — Proximidad:** El espacio entre elementos de un mismo grupo debe ser menor que el espacio que separa a grupos distintos. El espacio vacío entre dos grupos de tarjetas distintos siempre es mayor que el espacio interno de los elementos que componen una sola tarjeta.
 
-* **Regla de Proximidad:** El espacio vacío entre dos grupos de tarjetas distintos siempre debe ser mayor que el espacio interno de los elementos que componen una sola tarjeta. El diseño debe iniciar con separaciones amplias (ej. `1.5rem`) y reducirse gradualmente según sea necesario.
-
-
-* **Estructura de Botones:** El *padding* vertical de los botones debe ser menor que el *padding* horizontal para respetar el peso óptico. La separación interna entre un icono y el texto del botón siempre será menor que el *padding* exterior hacia los bordes.
+* **Estructura de Botones:** La separación interna entre un icono y el texto del botón es siempre menor que el padding exterior hacia los bordes.
 
 
 
@@ -57,10 +92,18 @@ El espaciado se utiliza activamente para agrupar elementos relacionados y separa
 
 La aplicación prescinde de divisiones rígidas o líneas negras, generando estructura mediante el uso de luz y sombras para indicar interactividad.
 
-* **Niveles de Elevación (Tokens):** Las sombras se definen centralizadamente en variables globales mediante nombres semánticos como `shadow-sm` para tarjetas estáticas y `shadow-lg` para modales flotantes, dictando la importancia del elemento.
+* **Niveles de Elevación (Tokens):** Las sombras se definen centralizadamente en `elevation` de `theme.ts`, con nombres semánticos: `sm` para tarjetas estáticas, `md` para elementos flotantes (chips, pills activos) y `lg` para modales. El nivel dicta la importancia del elemento.
 
+* **Especificación Figma (estilos de sombra):** Cada nivel combina dos drop shadows neutras (negro al 8% y 19%) más un inner shadow de iluminación superior (`#FFFFFF` al 19–44%):
 
-* **Escala Tonal:** Se generan de 3 a 4 matices del color base, alterando la luminosidad en saltos de `0.1` para diferenciar el fondo principal de los contenedores superpuestos.
+| Token | Drop shadow 1 | Drop shadow 2 | Inner shadow |
+| --- | --- | --- | --- |
+| `small` | Y 2 · B 4 · 8% | Y 1 · B 2 · 19% | Y 1 · B 2 · 19% |
+| `medium` | Y 4 · B 8 · 8% | Y 2 · B 4 · 19% | Y 1 · B 2 · 31% |
+| `large` | Y 6 · B 10 · 8% | Y 4 · B 6 · 19% | Y 1 · B 2 · 44% |
 
+* **Aproximación en React Native:** RN nativo solo renderiza una sombra por vista. La implementación en `theme.ts` compone ambas drop shadows en una sombra neutral (`#000000`) única equivalente; el inner shadow de iluminación superior se simula con un resplandor claro (borde superior sutil) dentro del componente `Card`. No se deben importar librerías de sombras múltiple para esto.
 
-* **Iluminación Realista:** Las tarjetas y botones principales logran un efecto tridimensional sutil al combinar un resplandor claro en el borde superior y una sombra direccional en el inferior. Las separaciones de secciones se logran mediante el contraste tonal de estos fondos en lugar de usar trazos sólidos.
+* **Escala Tonal:** Diferenciar fondo principal (`bg/canvas #F8F9FA`) de contenedores superpuestos (`bg/surface #FFFFFF`) y superficies tintadas (`brand/surface-blue #EBF2FA`) alterando la luminosidad, en lugar de usar trazos sólidos.
+
+* **Iluminación Realista:** Las tarjetas y botones principales logran un efecto tridimensional sutil combinando el resplandor claro en el borde superior con la sombra direccional en el inferior. Las separaciones de secciones se logran mediante el contraste tonal de estos fondos.
