@@ -13,8 +13,11 @@ import type { RechazarComunicado } from '../application/rechazarComunicado';
 import type { PublicarComunicado } from '../application/publicarComunicado';
 import type { ArchivarComunicado } from '../application/archivarComunicado';
 import type { EstadisticasComunicado } from '../application/estadisticasComunicado';
+import type { AsignarPortada } from '../application/asignarPortada';
+import type { UrlPortada } from '../application/urlPortada';
 import {
   aprobarComunicadoSchema,
+  asignarPortadaSchema,
   crearComunicadoSchema,
   editarComunicadoSchema,
   listarComunicadosQuerySchema,
@@ -42,6 +45,8 @@ export interface ComunicadosRoutesDeps {
   publicar: PublicarComunicado;
   archivar: ArchivarComunicado;
   estadisticas: EstadisticasComunicado;
+  asignarPortada: AsignarPortada;
+  urlPortada: UrlPortada;
 }
 
 function getParamId(raw: string | string[] | undefined): string | undefined {
@@ -176,6 +181,36 @@ export function comunicadosRoutes(deps: ComunicadosRoutesDeps): Router {
     asyncHandler(async (req, res) => {
       const id = parseId(getParamId(req.params.id));
       const result = await deps.archivar.ejecutar(requireAuth(req)!, id);
+      res.json({ data: result });
+    }),
+  );
+
+  router.put(
+    '/:id/portada',
+    authorize('COMUNICADOR'),
+    asyncHandler(async (req, res) => {
+      const id = parseId(getParamId(req.params.id));
+      const body = parseBody(asignarPortadaSchema, req.body);
+      const result = await deps.asignarPortada.ejecutar(requireAuth(req)!, id, body.adjunto_id);
+      res.json({ data: result });
+    }),
+  );
+
+  router.delete(
+    '/:id/portada',
+    authorize('COMUNICADOR'),
+    asyncHandler(async (req, res) => {
+      const id = parseId(getParamId(req.params.id));
+      const result = await deps.asignarPortada.ejecutar(requireAuth(req)!, id, null);
+      res.json({ data: result });
+    }),
+  );
+
+  router.get(
+    '/:id/portada',
+    asyncHandler(async (req, res) => {
+      const id = parseId(getParamId(req.params.id));
+      const result = await deps.urlPortada.ejecutar(requireAuth(req)!, id);
       res.json({ data: result });
     }),
   );

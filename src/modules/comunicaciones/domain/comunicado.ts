@@ -23,6 +23,9 @@ export interface Comunicado {
   publicadoAt: Date | null;
   programadoPara: Date | null;
   expiraAt: Date | null;
+  /** Ruta del asset de portada en el bucket de adjuntos (image/png|jpeg,
+   *  registrado como adjunto del propio comunicado). null = sin portada. */
+  imagenPath: string | null;
   createdAt: Date;
   updatedAt: Date;
   decanatoIds: number[]; // audiencia; [] = GLOBAL

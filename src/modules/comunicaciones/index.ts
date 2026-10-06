@@ -27,6 +27,8 @@ import { RechazarComunicado } from './application/rechazarComunicado';
 import { PublicarComunicado } from './application/publicarComunicado';
 import { ArchivarComunicado } from './application/archivarComunicado';
 import { EstadisticasComunicado } from './application/estadisticasComunicado';
+import { AsignarPortada } from './application/asignarPortada';
+import { UrlPortada } from './application/urlPortada';
 import { SolicitarUrlCarga } from './application/solicitarUrlCarga';
 import { RegistrarAdjunto } from './application/registrarAdjunto';
 import { ListarAdjuntos } from './application/listarAdjuntos';
@@ -71,6 +73,8 @@ export function createComunicacionesModule(deps: ComunicacionesModuleDeps): Comu
   const publicar = new PublicarComunicado(comunicadoRepo, deps.uow, deps.eventos);
   const archivar = new ArchivarComunicado(comunicadoRepo, deps.uow);
   const estadisticas = new EstadisticasComunicado(comunicadoRepo, deps.uow);
+  const asignarPortada = new AsignarPortada(comunicadoRepo, adjuntoRepo, deps.uow);
+  const urlPortada = new UrlPortada(comunicadoRepo, deps.storageService, deps.uow);
 
   const solicitarUrlCarga = new SolicitarUrlCarga(comunicadoRepo, deps.storageService, deps.uow);
   const registrarAdjunto = new RegistrarAdjunto(
@@ -103,6 +107,8 @@ export function createComunicacionesModule(deps: ComunicacionesModuleDeps): Comu
       publicar,
       archivar,
       estadisticas,
+      asignarPortada,
+      urlPortada,
     }),
   );
   router.use(

@@ -47,6 +47,10 @@ export const rechazarComunicadoSchema = z.object({
 
 export const publicarComunicadoSchema = aprobarComunicadoSchema;
 
+export const asignarPortadaSchema = z.object({
+  adjunto_id: z.string().uuid('ID de adjunto inválido'),
+});
+
 export const listarComunicadosQuerySchema = z.object({
   estado: z.enum(ESTADOS).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(20),

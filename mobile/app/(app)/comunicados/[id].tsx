@@ -1,5 +1,6 @@
 import {
   ActivityIndicator,
+  Image,
   Modal,
   ScrollView,
   StyleSheet,
@@ -26,6 +27,7 @@ import {
   useEstadisticas,
 } from '@/features/comunicaciones/hooks/estadisticas';
 import { useComunicadoDetalle } from '@/features/comunicaciones/hooks/useComunicadoDetalle';
+import { usePortada } from '@/features/comunicaciones/hooks/usePortada';
 import { useMutacionComunicado } from '@/features/comunicaciones/hooks/useMutacionComunicado';
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import type { Comunicado } from '@/features/comunicaciones/types';
@@ -210,6 +212,8 @@ function Contenido({
         </ThemedText>
       ) : null}
 
+      {comunicado.imagenPath ? <PortadaDetalle comunicadoId={comunicado.id} /> : null}
+
       <ThemedText variant="headline" weight="bold">
         {comunicado.titulo}
       </ThemedText>
@@ -305,6 +309,19 @@ function Contenido({
   );
 }
 
+/** Portada 3:2 en el detalle (URL firmada con cache por id). */
+function PortadaDetalle({ comunicadoId }: { comunicadoId: string }) {
+  const portada = usePortada(comunicadoId, true);
+  if (!portada.url) return null;
+  return (
+    <Image
+      source={{ uri: portada.url }}
+      style={estilos.portadaDetalle}
+      resizeMode="cover"
+    />
+  );
+}
+
 function Centrado({
   children,
   gap = false,
@@ -320,6 +337,11 @@ function Centrado({
 }
 
 const estilos = StyleSheet.create({
+  portadaDetalle: {
+    width: '100%',
+    aspectRatio: 3 / 2,
+    borderRadius: radius.md,
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background.base,

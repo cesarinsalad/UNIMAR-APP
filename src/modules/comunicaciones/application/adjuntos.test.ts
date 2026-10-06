@@ -43,6 +43,7 @@ function makeComunicado(overrides: Partial<Comunicado> = {}): Comunicado {
     publicadoAt: null,
     programadoPara: null,
     expiraAt: null,
+    imagenPath: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     decanatoIds: [5],
@@ -123,6 +124,8 @@ function makeComRepo(initial: Comunicado | null = null): IComunicadoRepository {
     transicionarEstado: async (tx, id, input) => (initial ? ({ ...initial, ...input } as Comunicado) : null),
     registrarLectura: async () => undefined,
     contarLecturas: async () => 0,
+    asignarPortada: async (tx, id, imagenPath) =>
+      initial ? ({ ...initial, imagenPath } as Comunicado) : null,
   };
 }
 

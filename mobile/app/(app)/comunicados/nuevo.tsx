@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -12,10 +13,16 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
+  asignarPortada,
   crearComunicado,
   editarComunicado,
+  quitarPortada,
   type InputComunicado,
 } from '@/features/comunicaciones/api/comunicados.api';
+import { seleccionarPortada } from '@/features/comunicaciones/api/portada.api';
+import type { ArchivoAdjunto } from '@/features/comunicaciones/api/adjuntos.api';
+import { subirAdjunto } from '@/features/comunicaciones/api/adjuntos.api';
+import { usePortada } from '@/features/comunicaciones/hooks/usePortada';
 import {
   clampAudiencia,
   tieneErrores,
@@ -28,6 +35,8 @@ import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import { ApiError } from '@/shared/api/axios';
 import { colors, radius, spacing } from '@/shared/ui';
 import { ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
+import { useQueryClient } from '@tanstack/react-query';
+import { CLAVES_COMUNICADOS } from '@/features/comunicaciones/hooks/queryKeys';
 
 export default function FormularioComunicadoScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -40,6 +49,14 @@ export default function FormularioComunicadoScreen() {
   const [cuerpo, setCuerpo] = useState('');
   const [seleccion, setSeleccion] = useState<number[] | null>(null);
   const [errorServidor, setErrorServidor] = useState<string | null>(null);
+  // Portada: archivo local elegido (aún sin subir) o la API/servidor en edición.
+  const [portadaLocal, setPortadaLocal] = useState<ArchivoAdjunto | null>(null);
+  const [quitarPortadaActual, setQuitarPortadaActual] = useState(false);
+  const queryClient = useQueryClient();
+  const portadaApi = usePortada(
+    id ?? 'nuevo',
+    Boolean(esEdicion && detalle.data?.imagenPath && !quitarPortadaActual && !portadaLocal),
+  );
 
   const crear = useMutacionComunicado(crearComunicado);
   const editar = useMutacionComunicado((patch: Partial<InputComunicado>) =>
@@ -79,6 +96,33 @@ export default function FormularioComunicadoScreen() {
     setSeleccion(seleccion === null || seleccion.length > 0 ? [] : null);
   }
 
+  async function elegirPortada(desdeCamara: boolean) {
+    setErrorServidor(null);
+    try {
+      const archivo = await seleccionarPortada(desdeCamara);
+      if (archivo) {
+        setPortadaLocal(archivo);
+        setQuitarPortadaActual(false);
+      }
+    } catch (e) {
+      setErrorServidor(e instanceof Error ? e.message : 'No se pudo abrir el selector.');
+    }
+  }
+
+  async function eliminarPortadaElegida() {
+    if (portadaLocal) {
+      setPortadaLocal(null);
+      return;
+    }
+    if (esEdicion && detalle.data?.imagenPath) {
+      setQuitarPortadaActual(true);
+    }
+  }
+
+  const tienePortadaActual =
+    Boolean(portadaLocal) ||
+    Boolean(esEdicion && detalle.data?.imagenPath && !quitarPortadaActual);
+
   async function guardar() {
     setErrorServidor(null);
     const err = validarFormularioComunicado({ titulo, cuerpo });
@@ -91,19 +135,30 @@ export default function FormularioComunicadoScreen() {
     );
 
     try {
-      if (esEdicion) {
-        await editar.mutateAsync({
-          titulo: titulo.trim(),
-          cuerpo,
-          decanatoIds: audiencia,
-        });
-      } else {
-        await crear.mutateAsync({
-          titulo: titulo.trim(),
-          cuerpo,
-          decanatoIds: audiencia,
-        });
+      const guardado = esEdicion
+        ? await editar.mutateAsync({
+            titulo: titulo.trim(),
+            cuerpo,
+            decanatoIds: audiencia,
+          })
+        : await crear.mutateAsync({
+            titulo: titulo.trim(),
+            cuerpo,
+            decanatoIds: audiencia,
+          });
+
+      // Portada opcional sobre el comunicado ya guardado: subir como
+      // adjunto (flujo de 2 fases) y asignar; o quitar la que existía.
+      if (portadaLocal && guardado?.id) {
+        const adjunto = await subirAdjunto(guardado.id, portadaLocal);
+        await asignarPortada(guardado.id, adjunto.id);
+        setPortadaLocal(null);
       }
+      if (quitarPortadaActual && guardado?.id) {
+        await quitarPortada(guardado.id);
+        setQuitarPortadaActual(false);
+      }
+      void queryClient.invalidateQueries({ queryKey: CLAVES_COMUNICADOS.portada(guardado?.id ?? '') });
       router.back();
     } catch (e) {
       if (e instanceof ApiError) {
@@ -171,6 +226,42 @@ export default function FormularioComunicadoScreen() {
               placeholder="Escribe el comunicado. Puede usar **negritas**, listas y enlaces."
               placeholderTextColor={colors.text.tertiary}
             />
+          </Campo>
+
+          <Campo label="Portada (opcional)">
+            {tienePortadaActual ? (
+              <View style={estilos.wrapPortada}>
+                {portadaLocal ? (
+                  <Image source={{ uri: portadaLocal.uri }} style={estilos.portada} resizeMode="cover" />
+                ) : portadaApi.url ? (
+                  <Image source={{ uri: portadaApi.url }} style={estilos.portada} resizeMode="cover" />
+                ) : null}
+                <ThemedButton
+                  title="Quitar portada"
+                  variant="ghost"
+                  size="sm"
+                  onPress={eliminarPortadaElegida}
+                />
+              </View>
+            ) : (
+              <View style={estilos.filaPortada}>
+                <ThemedButton
+                  title="Galería"
+                  variant="secondary"
+                  size="sm"
+                  onPress={() => void elegirPortada(false)}
+                />
+                <ThemedButton
+                  title="Cámara"
+                  variant="secondary"
+                  size="sm"
+                  onPress={() => void elegirPortada(true)}
+                />
+              </View>
+            )}
+            <ThemedText variant="caption" tone="secondary">
+              Recorte 3:2. Se sube al guardar.
+            </ThemedText>
           </Campo>
 
           <Campo
@@ -301,6 +392,19 @@ const estilos = StyleSheet.create({
   },
   errorTexto: {
     color: colors.status.danger,
+  },
+  filaPortada: {
+    flexDirection: 'row',
+    gap: spacing.two,
+  },
+  wrapPortada: {
+    gap: spacing.xs,
+  },
+  portada: {
+    width: '100%',
+    aspectRatio: 3 / 2,
+    borderRadius: radius.md,
+    backgroundColor: colors.brand.surfaceBlue,
   },
   error: {
     color: colors.status.danger,

@@ -13,6 +13,7 @@ interface ComunicadoRow {
   publicado_at: Date | null;
   programado_para: Date | null;
   expira_at: Date | null;
+  imagen_path: string | null;
   created_at: Date;
   updated_at: Date;
   decanato_ids: number[];
@@ -30,6 +31,7 @@ function mapRow(row: ComunicadoRow): Comunicado {
     publicadoAt: row.publicado_at,
     programadoPara: row.programado_para,
     expiraAt: row.expira_at,
+    imagenPath: row.imagen_path,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     decanatoIds: row.decanato_ids ?? [],
@@ -239,5 +241,17 @@ export class PostgresComunicadoRepository implements IComunicadoRepository {
       [comunicadoId],
     );
     return result.rows[0]?.n ?? 0;
+  }
+
+  async asignarPortada(
+    tx: DbTx,
+    id: string,
+    imagenPath: string | null,
+  ): Promise<Comunicado | null> {
+    await tx.query('UPDATE comunicados SET imagen_path = $1 WHERE id = $2', [
+      imagenPath,
+      id,
+    ]);
+    return this.buscarPorId(tx, id);
   }
 }

@@ -23,6 +23,8 @@ export interface Comunicado {
   publicadoAt: string | null;
   programadoPara: string | null;
   expiraAt: string | null;
+  /** Ruta storage de la portada (adjunto imagen del propio comunicado). */
+  imagenPath: string | null;
   createdAt: string;
   updatedAt: string;
   /** Audiencia; [] = GLOBAL (toda la universidad). */

@@ -155,6 +155,19 @@ enviarlo en el header `Authorization` de los demás requests.
 | POST | `/comunicados/:id/archivar` | autor/ADMIN | PUBLICADO → ARCHIVADO |
 | GET | `/comunicados/:id/estadisticas` | autor/ADMIN | `{ lecturas: number }` |
 
+#### Portada (imagen de la tarjeta)
+| Método | Ruta | Rol | Descripción |
+|--------|------|-----|-------------|
+| PUT | `/comunicados/:id/portada` | autor/ADMIN | Body: `adjunto_id` (adjunto imagen **del propio comunicado**, ya registrado). Asigna `imagen_path`. |
+| DELETE | `/comunicados/:id/portada` | autor/ADMIN | Quita la portada (`imagen_path = null`). |
+| GET | `/comunicados/:id/portada` | todos | `{ url }` firmada (TTL 300 s); 404 si no tiene. |
+
+- La respuesta de comunicados (crear/listar/obtener/patch) incluso incluye
+  `imagenPath: string | null` de la entidad.
+- El asset debe estar registrado como adjunto del propio comunicado con
+  mime `image/png` o `image/jpeg`; de lo contrario el PUT falla con 400.
+- Proporción de recorte recomendada en el cliente: **3:2**.
+
 **Regla de audiencia:** `decanato_ids` vacío (`[]`) = **GLOBAL** (toda la
 universidad). Con decanatos = solo esos. Un COMUNICADOR solo puede publicar a
 **su propio** decanato; el ADMIN a cualquiera o global.

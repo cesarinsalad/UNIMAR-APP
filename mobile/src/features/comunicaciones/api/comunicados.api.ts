@@ -85,6 +85,26 @@ export async function archivarComunicado(id: string): Promise<Comunicado> {
   return data;
 }
 
+/** PUT /comunicados/:id/portada — asigna portada (adjunto imagen ya registrado). */
+export async function asignarPortada(id: string, adjuntoId: string): Promise<Comunicado> {
+  const { data } = await api.put<Comunicado>(`/comunicados/${id}/portada`, {
+    adjunto_id: adjuntoId,
+  });
+  return data;
+}
+
+/** DELETE /comunicados/:id/portada — quita la portada. */
+export async function quitarPortada(id: string): Promise<Comunicado> {
+  const { data } = await api.delete<Comunicado>(`/comunicados/${id}/portada`);
+  return data;
+}
+
+/** GET /comunicados/:id/portada → { url } firmada TTL 300s. */
+export async function urlPortada(id: string): Promise<{ url: string }> {
+  const { data } = await api.get<{ url: string }>(`/comunicados/${id}/portada`);
+  return data;
+}
+
 /** GET /comunicados/:id/estadisticas → { lecturas } (autor o ADMIN; 403 demás). */
 export async function estadisticasComunicado(id: string): Promise<{ lecturas: number }> {
   const { data } = await api.get<{ lecturas: number }>(`/comunicados/${id}/estadisticas`);

@@ -56,6 +56,7 @@ function makeComunicado(overrides: Partial<Comunicado> = {}): Comunicado {
     publicadoAt: null,
     programadoPara: null,
     expiraAt: null,
+    imagenPath: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     decanatoIds: [5],
@@ -111,6 +112,13 @@ function makeRepo(initial: Comunicado | null = null): { repo: IComunicadoReposit
     contarLecturas: async (tx, id) => {
       calls.push({ method: 'contarLecturas', args: [id] });
       return 0;
+    },
+    asignarPortada: async (tx, id, imagenPath) => {
+      calls.push({ method: 'asignarPortada', args: [id, imagenPath] });
+      if (store && store.id === id) {
+        store = { ...store, imagenPath } as Comunicado;
+      }
+      return store;
     },
   };
   return { repo, calls };

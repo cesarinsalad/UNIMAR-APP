@@ -58,6 +58,9 @@ export interface IComunicadoRepository {
   registrarLectura(tx: DbTx, comunicadoId: string, usuarioId: string): Promise<void>;
 
   contarLecturas(tx: DbTx, comunicadoId: string): Promise<number>;
+
+  /** Asigna la portada (ruta en storage) o la quita (null) y devuelve el comunicado. */
+  asignarPortada(tx: DbTx, id: string, imagenPath: string | null): Promise<Comunicado | null>;
 }
 
 /**
