@@ -2,11 +2,11 @@ import type { ReactNode } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Tabs, router } from 'expo-router';
 import {
-  CalendarBlank,
-  GraduationCap,
-  House,
-  Megaphone,
-  UserCircle,
+  CalendarBlankIcon,
+  GraduationCapIcon,
+  HouseIcon,
+  MegaphoneIcon,
+  UserCircleIcon,
 } from 'phosphor-react-native';
 
 import { colors, elevation, radius, spacing } from '@/shared/ui/theme';
@@ -33,7 +33,7 @@ interface TabBarProps {
 
 /** Tab bar flotante estilo Figma, 100% propia:
  *  pill blanca con márgenes e insets controlados, items centrados con
- *  Phosphor (fill activo) + label Montserrat. Reemplaza el bar default.
+ *  Phosphor icons + label Montserrat. Reemplaza el bar default.
  *  Los iconos viven en el `tabBarIcon` de cada Tabs.Screen; el texto, en su
  *  `title`, de modo que el bar no depende del naming de rutas anidadas. */
 function TabBarFlotante({ state, descriptors, navigation }: TabBarProps) {
@@ -45,7 +45,7 @@ function TabBarFlotante({ state, descriptors, navigation }: TabBarProps) {
       {state.routes.map((route, index) => {
         const { options } = descriptors[route.key] ?? {};
         const activo = index === state.index;
-        const color = activo ? colors.brand.primary : colors.text.secondary;
+        const color = activo ? colors.brand.primary : colors.text.primary;
         const titulo = options?.title ?? route.name;
         return (
           <Pressable
@@ -87,9 +87,9 @@ export default function TabsLayout() {
           headerShown: false,
           tabBarIcon: ({ focused }) =>
             focused ? (
-              <House size={26} color={focused ? colors.brand.primary : colors.text.secondary} weight="fill" />
+              <HouseIcon size={26} color={focused ? colors.brand.primary : colors.text.primary} weight="duotone" />
             ) : (
-              <House size={26} color={focused ? colors.brand.primary : colors.text.secondary} weight="duotone" />
+              <HouseIcon size={26} color={focused ? colors.brand.primary : colors.text.primary} weight="duotone" />
             ),
         }}
       />
@@ -99,9 +99,9 @@ export default function TabsLayout() {
           title: 'Noticias',
           tabBarIcon: ({ focused }) =>
             focused ? (
-              <Megaphone size={26} color={focused ? colors.brand.primary : colors.text.secondary} weight="fill" />
+              <MegaphoneIcon size={26} color={focused ? colors.brand.primary : colors.text.primary} weight="duotone" />
             ) : (
-              <Megaphone size={26} color={focused ? colors.brand.primary : colors.text.secondary} weight="duotone" />
+              <MegaphoneIcon size={26} color={focused ? colors.brand.primary : colors.text.primary} weight="duotone" />
             ),
           headerRight: permisos.puedeCrearComunicado
             ? () => (
@@ -124,9 +124,9 @@ export default function TabsLayout() {
           title: 'Clases',
           tabBarIcon: ({ focused }) =>
             focused ? (
-              <GraduationCap size={26} color={focused ? colors.brand.primary : colors.text.secondary} weight="fill" />
+              <GraduationCapIcon size={26} color={focused ? colors.brand.primary : colors.text.primary} weight="duotone" />
             ) : (
-              <GraduationCap size={26} color={focused ? colors.brand.primary : colors.text.secondary} weight="duotone" />
+              <GraduationCapIcon size={26} color={focused ? colors.brand.primary : colors.text.primary} weight="duotone" />
             ),
         }}
       />
@@ -136,9 +136,9 @@ export default function TabsLayout() {
           title: 'Agenda',
           tabBarIcon: ({ focused }) =>
             focused ? (
-              <CalendarBlank size={26} color={focused ? colors.brand.primary : colors.text.secondary} weight="fill" />
+              <CalendarBlankIcon size={26} color={focused ? colors.brand.primary : colors.text.primary} weight="duotone" />
             ) : (
-              <CalendarBlank size={26} color={focused ? colors.brand.primary : colors.text.secondary} weight="duotone" />
+              <CalendarBlankIcon size={26} color={focused ? colors.brand.primary : colors.text.primary} weight="duotone" />
             ),
           headerRight: () => (
             <Pressable onPress={() => router.push('/eventos/nuevo')}>
@@ -159,9 +159,9 @@ export default function TabsLayout() {
           title: 'Perfil',
           tabBarIcon: ({ focused }) =>
             focused ? (
-              <UserCircle size={26} color={focused ? colors.brand.primary : colors.text.secondary} weight="fill" />
+              <UserCircleIcon size={26} color={focused ? colors.brand.primary : colors.text.primary} weight="duotone" />
             ) : (
-              <UserCircle size={26} color={focused ? colors.brand.primary : colors.text.secondary} weight="duotone" />
+              <UserCircleIcon size={26} color={focused ? colors.brand.primary : colors.text.primary} weight="duotone" />
             ),
           headerRight: () => <CampanaConBadge total={totalNoLeidas} />,
         }}
