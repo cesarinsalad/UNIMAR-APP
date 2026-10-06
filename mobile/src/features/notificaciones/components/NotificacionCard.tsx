@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
   },
   noLeida: {
     borderLeftWidth: 3,
-    borderLeftColor: colors.accent,
+    borderLeftColor: colors.accent.urgent,
   },
   headerRow: {
     flexDirection: 'row',
@@ -71,6 +71,6 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: radius.pill / 2,
-    backgroundColor: colors.accent,
+    backgroundColor: colors.accent.urgent,
   },
 });

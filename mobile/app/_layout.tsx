@@ -8,6 +8,13 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClientProvider } from '@tanstack/react-query';
 
+import {
+  Montserrat_400Regular,
+  Montserrat_500Medium,
+  Montserrat_600SemiBold,
+  Montserrat_700Bold,
+  useFonts,
+} from '@expo-google-fonts/montserrat';
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import { colors } from '@/shared/ui';
 import { queryClient } from '@/shared/api/queryClient';
@@ -25,8 +32,15 @@ export default function RootLayout() {
   const hidratado = useSesionStore((s) => s.hidratado);
   const hydrate = useSesionStore((s) => s.hydrate);
   const [listenersActivos, setListenersActivos] = useState(false);
+  const [fuenteCargada] = useFonts({
+    Montserrat_400Regular,
+    Montserrat_500Medium,
+    Montserrat_600SemiBold,
+    Montserrat_700Bold,
+  });
 
   useEffect(() => {
+    if (!fuenteCargada) return;
     void (async () => {
       await ensureCanalAndroid();
       await hydrate();
@@ -34,7 +48,7 @@ export default function RootLayout() {
       setListenersActivos(true);
       await SplashScreen.hideAsync().catch(() => undefined);
     })();
-  }, [hydrate]);
+  }, [hydrate, fuenteCargada]);
 
   useEffect(() => {
     if (!listenersActivos) return;

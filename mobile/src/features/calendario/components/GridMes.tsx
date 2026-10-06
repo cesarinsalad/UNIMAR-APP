@@ -96,7 +96,7 @@ const estilos = StyleSheet.create({
   celdaHoy: {
     backgroundColor: colors.background.sunken,
     borderWidth: 1,
-    borderColor: colors.accent,
+    borderColor: colors.accent.urgent,
   },
   celdaSeleccionada: {
     backgroundColor: colors.primary,
@@ -107,7 +107,7 @@ const estilos = StyleSheet.create({
     borderRadius: 3,
     // STYLE.md §1: el naranja es el acento designado para "puntos de estado
     // en el calendario" — sobre selección azul y sobre celda neutra contrasta.
-    backgroundColor: colors.accent,
+    backgroundColor: colors.accent.urgent,
     position: 'absolute',
     bottom: 4,
   },

@@ -73,7 +73,7 @@ export default function TabsLayout() {
           tabBarIcon: () => <TabGlyph glyph="N" />,
           tabBarBadge: badge,
           tabBarBadgeStyle: {
-            backgroundColor: colors.accent,
+            backgroundColor: colors.accent.urgent,
             color: colors.text.onPrimary,
             fontSize: 10,
           },

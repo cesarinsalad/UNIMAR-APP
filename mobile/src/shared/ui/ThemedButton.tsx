@@ -1,6 +1,6 @@
 import { ActivityIndicator, Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
-import { colors, elevation, radius, spacing, typography } from '@/shared/ui';
+import { colors, elevation, radius, spacing, typography } from './theme';
 import { ThemedText } from './ThemedText';
 
 type Variant = 'primary' | 'secondary' | 'ghost';

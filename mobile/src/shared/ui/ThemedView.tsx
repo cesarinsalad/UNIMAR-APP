@@ -6,7 +6,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import { colors, radius, spacing } from '@/shared/ui';
+import { colors, radius, spacing } from './theme';
 
 type Variant = 'base' | 'elevated' | 'sunken' | 'card';
 
