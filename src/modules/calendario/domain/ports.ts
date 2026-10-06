@@ -24,6 +24,7 @@ export interface IEventoRepository {
       finAt: string | null;
       diaCompleto: boolean;
       recordatorioMinutos: number | null;
+      lugar: string | null;
     },
   ): Promise<Evento>;
 
@@ -46,6 +47,7 @@ export interface IEventoRepository {
       finAt?: string | null;
       diaCompleto?: boolean;
       recordatorioMinutos?: number | null;
+      lugar?: string | null;
       decanatoIds?: number[];
     },
   ): Promise<Evento | null>;

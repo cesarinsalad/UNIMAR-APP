@@ -16,6 +16,7 @@ interface Props {
     tipo: Evento['tipo'];
     inicioAt: string;
     diaCompleto: boolean;
+    lugar: string | null;
     decanatoIds: number[];
   }>;
 }
@@ -45,7 +46,8 @@ export function EventosDelDia({ eventos }: { eventos: Props['eventos'] }) {
               <ThemedText variant="body" weight="semibold" numberOfLines={2}>
                 {evento.titulo}
               </ThemedText>
-              <ThemedText variant="caption" tone="secondary">
+              <ThemedText variant="caption" tone="secondary" numberOfLines={1}>
+                {evento.lugar ? `${evento.lugar} · ` : ''}
                 {evento.diaCompleto
                   ? 'Todo el día'
                   : FORMATO_HORA.format(new Date(evento.inicioAt))}

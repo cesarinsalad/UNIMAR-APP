@@ -32,6 +32,8 @@ export interface InputEvento {
   finAt: string | null;
   diaCompleto: boolean;
   recordatorioMinutos: number | null;
+  /** Ubicación opcional (aula, sala, edificio); null la limpia. */
+  lugar: string | null;
   /** Solo OFICIAL; null en PERSONAL (el BFF lo aplica solo a oficiales). */
   decanatoIds: number[] | null;
 }
@@ -45,6 +47,7 @@ export async function crearEvento(input: InputEvento): Promise<Evento> {
     fin_at: input.finAt,
     dia_completo: input.diaCompleto,
     recordatorio_minutos: input.recordatorioMinutos,
+    lugar: input.lugar,
     decanato_ids: input.decanatoIds ?? undefined,
   });
   return data;
@@ -62,6 +65,7 @@ export async function editarEvento(
     fin_at: patch.finAt,
     dia_completo: patch.diaCompleto,
     recordatorio_minutos: patch.recordatorioMinutos,
+    lugar: patch.lugar,
     decanato_ids: patch.decanatoIds,
   });
   return data;

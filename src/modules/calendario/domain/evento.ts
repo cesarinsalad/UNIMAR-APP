@@ -26,6 +26,8 @@ export interface Evento {
   finAt: Date | null;
   diaCompleto: boolean;
   recordatorioMinutos: number | null;
+  /** Ubicación opcional (aula, sala, edificio). */
+  lugar: string | null;
   createdAt: Date;
   /** Solo aplica a eventos OFICIALES; `[]` = GLOBAL. */
   decanatoIds: number[];
@@ -40,6 +42,7 @@ export interface CrearEventoInput {
   finAt?: string | null;
   diaCompleto?: boolean;
   recordatorioMinutos?: number | null;
+  lugar?: string | null;
   /** Audiencia: aplica solo a OFICIAL; `[]` = GLOBAL. */
   decanatoIds?: number[];
 }

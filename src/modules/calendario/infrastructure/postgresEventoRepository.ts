@@ -12,6 +12,7 @@ interface EventoRow {
   fin_at: Date | null;
   dia_completo: boolean;
   recordatorio_minutos: number | null;
+  lugar: string | null;
   created_at: Date;
   decanato_ids: number[];
 }
@@ -27,6 +28,7 @@ function mapRow(row: EventoRow): Evento {
     finAt: row.fin_at,
     diaCompleto: row.dia_completo,
     recordatorioMinutos: row.recordatorio_minutos,
+    lugar: row.lugar,
     createdAt: row.created_at,
     decanatoIds: row.decanato_ids ?? [],
   };
@@ -61,11 +63,12 @@ export class PostgresEventoRepository implements IEventoRepository {
       finAt: string | null;
       diaCompleto: boolean;
       recordatorioMinutos: number | null;
+      lugar: string | null;
     },
   ): Promise<Evento> {
     const result = await tx.query<{ id: string }>(
-      `INSERT INTO eventos (titulo, descripcion, tipo, usuario_id, inicio_at, fin_at, dia_completo, recordatorio_minutos)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO eventos (titulo, descripcion, tipo, usuario_id, inicio_at, fin_at, dia_completo, recordatorio_minutos, lugar)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING id`,
       [
         input.titulo,
@@ -76,6 +79,7 @@ export class PostgresEventoRepository implements IEventoRepository {
         input.finAt,
         input.diaCompleto,
         input.recordatorioMinutos,
+        input.lugar,
       ],
     );
     const id = result.rows[0]?.id;
@@ -126,6 +130,7 @@ export class PostgresEventoRepository implements IEventoRepository {
       finAt?: string | null;
       diaCompleto?: boolean;
       recordatorioMinutos?: number | null;
+      lugar?: string | null;
       decanatoIds?: number[];
     },
   ): Promise<Evento | null> {
@@ -155,6 +160,10 @@ export class PostgresEventoRepository implements IEventoRepository {
     if (input.recordatorioMinutos !== undefined) {
       sets.push(`recordatorio_minutos = $${sets.length + 1}`);
       values.push(input.recordatorioMinutos);
+    }
+    if (input.lugar !== undefined) {
+      sets.push(`lugar = $${sets.length + 1}`);
+      values.push(input.lugar);
     }
 
     if (sets.length > 0) {

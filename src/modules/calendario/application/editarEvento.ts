@@ -42,6 +42,7 @@ export class EditarEvento {
         finAt: input.finAt,
         diaCompleto: input.diaCompleto,
         recordatorioMinutos: input.recordatorioMinutos,
+        lugar: input.lugar,
         decanatoIds: input.decanatoIds,
       });
 

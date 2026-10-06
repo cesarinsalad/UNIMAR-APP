@@ -4,15 +4,17 @@ import type { TipoEvento } from '../types';
 export interface ErroresEvento {
   titulo: string | null;
   descripcion: string | null;
+  lugar: string | null;
   rango: string | null;
 }
 
-const SIN_ERRORES: ErroresEvento = { titulo: null, descripcion: null, rango: null };
+const SIN_ERRORES: ErroresEvento = { titulo: null, descripcion: null, lugar: null, rango: null };
 
 /** Espeja crearEventoSchema del BFF (fail-fast antes del 400). */
 export function validarFormularioEvento(input: {
   titulo: string;
   descripcion: string | null;
+  lugar: string | null;
   inicio: Date;
   fin: Date | null;
 }): ErroresEvento {
@@ -25,6 +27,13 @@ export function validarFormularioEvento(input: {
   if (input.descripcion !== null && input.descripcion.length > 2000) {
     errores.descripcion = 'Máximo 2000 caracteres';
   }
+  if (input.lugar !== null) {
+    if (input.lugar.trim().length === 0) {
+      errores.lugar = 'El lugar no puede quedar vacío';
+    } else if (input.lugar.length > 120) {
+      errores.lugar = 'Máximo 120 caracteres';
+    }
+  }
   if (input.fin !== null && input.fin.getTime() < input.inicio.getTime()) {
     errores.rango = 'La fecha de fin debe ser posterior al inicio';
   }
@@ -32,7 +41,9 @@ export function validarFormularioEvento(input: {
 }
 
 export function tieneErroresEvento(e: ErroresEvento): boolean {
-  return e.titulo !== null || e.descripcion !== null || e.rango !== null;
+  return (
+    e.titulo !== null || e.descripcion !== null || e.lugar !== null || e.rango !== null
+  );
 }
 
 /**

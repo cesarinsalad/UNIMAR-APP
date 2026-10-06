@@ -67,6 +67,7 @@ export function eventosRoutes(deps: EventosRoutesDeps): Router {
         finAt: body.fin_at ?? null,
         diaCompleto: body.dia_completo ?? false,
         recordatorioMinutos: body.recordatorio_minutos ?? null,
+        lugar: body.lugar ?? null,
         decanatoIds: body.decanato_ids ?? [],
       });
       res.status(201).json({ data: result });
@@ -113,6 +114,7 @@ export function eventosRoutes(deps: EventosRoutesDeps): Router {
         finAt: body.fin_at,
         diaCompleto: body.dia_completo,
         recordatorioMinutos: body.recordatorio_minutos,
+        lugar: body.lugar,
         decanatoIds: body.decanato_ids,
       });
       res.json({ data: result });

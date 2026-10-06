@@ -207,7 +207,7 @@ envío real; `mock` lo loguea.
 
 | Método | Ruta | Rol | Descripción |
 |--------|------|-----|-------------|
-| POST | `/eventos` | todos (PERSONAL), ADMIN/COMUNICADOR (OFICIAL) | Body: `titulo`, `descripcion`?, `tipo` (`OFICIAL`\|`PERSONAL`), `inicio_at`, `fin_at`?, `dia_completo`?, `recordatorio_minutos`?, `decanato_ids`? |
+| POST | `/eventos` | todos (PERSONAL), ADMIN/COMUNICADOR (OFICIAL) | Body: `titulo`, `descripcion`?, `tipo` (`OFICIAL`\|`PERSONAL`), `inicio_at`, `fin_at`?, `dia_completo`?, `recordatorio_minutos`?, `lugar`?, `decanato_ids`? |
 | GET | `/eventos?desde=&hasta=&limit=&offset=` | todos | Listar en rango (máx. 90 días) |
 | GET | `/eventos/:id` | todos | Detalle |
 | PATCH | `/eventos/:id` | dueño/ADMIN | Editar (no cambia `tipo`) |
@@ -219,6 +219,9 @@ envío real; `mock` lo loguea.
   su decanato). Se ve por audiencia.
 - `recordatorio_minutos`: el job del BFF notifica a los involucrados N minutos
   antes del inicio.
+- `lugar` (opcional, ≤120 chars): ubicación del evento (aula, sala, edificio).
+  En PATCH, `lugar: null` la limpia. En la respuesta circula como camelCase
+  `lugar` junto al resto de la entidad.
 
 ---
 

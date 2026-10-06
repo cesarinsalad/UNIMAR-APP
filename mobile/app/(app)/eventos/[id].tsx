@@ -156,6 +156,12 @@ function Contenido({ evento, eventoId }: { evento: Evento; eventoId: string }) {
         {rangoLegible(evento)}
       </ThemedText>
 
+      {evento.lugar ? (
+        <ThemedText variant="body" tone="secondary">
+          {`Lugar: ${evento.lugar}`}
+        </ThemedText>
+      ) : null}
+
       {evento.descripcion ? (
         <ThemedText variant="bodyLg">{evento.descripcion}</ThemedText>
       ) : null}

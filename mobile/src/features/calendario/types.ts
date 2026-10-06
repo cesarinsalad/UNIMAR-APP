@@ -14,6 +14,8 @@ export interface Evento {
   finAt: string | null;
   diaCompleto: boolean;
   recordatorioMinutos: number | null;
+  /** Ubicación opcional (aula, sala, edificio). */
+  lugar: string | null;
   createdAt: string;
   /** Audiencia (solo OFICIAL); [] = GLOBAL. */
   decanatoIds: number[];

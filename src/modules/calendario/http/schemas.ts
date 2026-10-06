@@ -21,6 +21,7 @@ export const crearEventoSchema = z
     fin_at: isoDateTime.optional(),
     dia_completo: z.boolean().optional(),
     recordatorio_minutos: z.number().int().nonnegative().optional(),
+    lugar: z.string().trim().min(1, 'El lugar no puede quedar vacío').max(120, 'Máximo 120 caracteres').optional(),
     decanato_ids: z.array(z.number().int().positive()).optional(),
   })
   .refine(
@@ -37,6 +38,7 @@ export const editarEventoSchema = z
     fin_at: isoDateTime.nullable().optional(),
     dia_completo: z.boolean().optional(),
     recordatorio_minutos: z.number().int().nonnegative().nullable().optional(),
+    lugar: z.string().trim().min(1).max(120).nullable().optional(),
     decanato_ids: z.array(z.number().int().positive()).optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {

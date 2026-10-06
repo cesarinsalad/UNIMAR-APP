@@ -81,6 +81,7 @@ describe('agruparPorDia', () => {
     titulo: 't',
     tipo: 'PERSONAL' as const,
     diaCompleto: false,
+    lugar: null,
     decanatoIds: [],
   };
 

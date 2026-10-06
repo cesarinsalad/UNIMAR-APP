@@ -43,6 +43,7 @@ export default function FormularioEventoScreen() {
 
   const [titulo, setTitulo] = useState('');
   const [descripcion, setDescripcion] = useState('');
+  const [lugar, setLugar] = useState('');
   const [conFin, setConFin] = useState(true);
   const [diaCompleto, setDiaCompleto] = useState(false);
   const [recordatorio, setRecordatorio] = useState<number | null>(null);
@@ -69,6 +70,7 @@ export default function FormularioEventoScreen() {
     if (esEdicion && evento && titulo === '') {
       setTitulo(evento.titulo);
       setDescripcion(evento.descripcion ?? '');
+      setLugar(evento.lugar ?? '');
       setTipo(evento.tipo);
       setDiaCompleto(evento.diaCompleto);
       setInicio(new Date(evento.inicioAt));
@@ -88,6 +90,7 @@ export default function FormularioEventoScreen() {
   const errores = validarFormularioEvento({
     titulo,
     descripcion,
+    lugar: lugar.length > 0 ? lugar : null,
     inicio,
     fin: conFin ? fin : null,
   });
@@ -104,6 +107,7 @@ export default function FormularioEventoScreen() {
     const err = validarFormularioEvento({
       titulo,
       descripcion,
+      lugar: lugar.length > 0 ? lugar : null,
       inicio,
       fin: conFin ? fin : null,
     });
@@ -124,6 +128,7 @@ export default function FormularioEventoScreen() {
       finAt: conFin ? (fin ?? finPredeterminado(inicio)).toISOString() : null,
       diaCompleto,
       recordatorioMinutos: recordatorio,
+      lugar: lugar.trim().length > 0 ? lugar.trim() : null,
       decanatoIds: audiencia,
     };
 
@@ -229,6 +234,18 @@ export default function FormularioEventoScreen() {
               editable={!pendiente}
               style={[estilos.input, estilos.textarea]}
               placeholder="Detalles del evento (opcional)"
+              placeholderTextColor={colors.text.tertiary}
+            />
+          </Campo>
+
+          <Campo label={`Lugar — ${lugar.length}/120`} error={errores.lugar}>
+            <TextInput
+              value={lugar}
+              onChangeText={setLugar}
+              maxLength={120}
+              editable={!pendiente}
+              style={estilos.input}
+              placeholder="Ej. Aula 16, Laboratorio 2"
               placeholderTextColor={colors.text.tertiary}
             />
           </Campo>

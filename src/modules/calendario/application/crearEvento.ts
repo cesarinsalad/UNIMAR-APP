@@ -41,6 +41,7 @@ export class CrearEvento {
         finAt: input.finAt ?? null,
         diaCompleto: input.diaCompleto ?? false,
         recordatorioMinutos: input.recordatorioMinutos ?? null,
+        lugar: input.lugar ?? null,
       });
 
       if (input.tipo === 'OFICIAL' && input.decanatoIds && input.decanatoIds.length > 0) {

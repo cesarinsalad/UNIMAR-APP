@@ -51,6 +51,7 @@ function makeEvento(overrides: Partial<Evento> = {}): Evento {
     finAt: null,
     diaCompleto: false,
     recordatorioMinutos: null,
+    lugar: null,
     createdAt: new Date(),
     decanatoIds: [],
     ...overrides,
@@ -132,6 +133,29 @@ describe('CrearEvento', () => {
     expect(calls.some((c) => c.method === 'crear')).toBe(true);
     const crearArgs = calls.find((c) => c.method === 'crear')?.args[0] as { usuarioId: string };
     expect(crearArgs.usuarioId).toBe('uuid-est');
+  });
+
+  it('PERSONAL con lugar: pasa el lugar al repo (null si se omite)', async () => {
+    const { repo, calls } = makeRepo();
+    const uc = new CrearEvento(repo, makeUnitOfWork());
+    await uc.ejecutar(makeEstClaims(), {
+      titulo: 't',
+      tipo: 'PERSONAL',
+      inicioAt: '2030-01-01T10:00:00Z',
+      lugar: 'Aula 16',
+    });
+    const crearArgs = calls.find((c) => c.method === 'crear')?.args[0] as { lugar: string | null };
+    expect(crearArgs.lugar).toBe('Aula 16');
+
+    await uc.ejecutar(makeEstClaims(), {
+      titulo: 't',
+      tipo: 'PERSONAL',
+      inicioAt: '2030-01-01T10:00:00Z',
+    });
+    const crearArgs2 = calls.filter((c) => c.method === 'crear')[1]?.args[0] as {
+      lugar: string | null;
+    };
+    expect(crearArgs2.lugar).toBeNull();
   });
 
   it('OFICIAL: ESTUDIANTE -> ForbiddenError', async () => {
@@ -345,6 +369,30 @@ describe('EditarEvento', () => {
     await expect(
       uc.ejecutar(makeEstClaims(), 'evt-missing', { titulo: 'x' }),
     ).rejects.toThrow(NotFoundError);
+  });
+
+  it('lugar: se propaga al repo (null lo limpia)', async () => {
+    // Dos repos frescos: el mock de `actualizar` sobreescribe claves con
+    // undefined al hacer spread, así que cada edición usa su propio repo.
+    const conLugar = makeRepo(
+      makeEvento({ usuarioId: 'uuid-est', tipo: 'PERSONAL', lugar: 'Aula 16' }),
+    );
+    const uc = new EditarEvento(conLugar.repo, makeUnitOfWork());
+    await uc.ejecutar(makeEstClaims(), 'evt-id', { lugar: 'Sala de Conferencias II' });
+    const argsCon = conLugar.calls.find((c) => c.method === 'actualizar')?.args[1] as {
+      lugar?: string | null;
+    };
+    expect(argsCon.lugar).toBe('Sala de Conferencias II');
+
+    const sinLugar = makeRepo(
+      makeEvento({ usuarioId: 'uuid-est', tipo: 'PERSONAL', lugar: 'Aula 16' }),
+    );
+    const uc2 = new EditarEvento(sinLugar.repo, makeUnitOfWork());
+    await uc2.ejecutar(makeEstClaims(), 'evt-id', { lugar: null });
+    const argsSin = sinLugar.calls.find((c) => c.method === 'actualizar')?.args[1] as {
+      lugar?: string | null;
+    };
+    expect(argsSin.lugar).toBeNull();
   });
 });
 

@@ -14,25 +14,32 @@ describe('validarFormularioEvento', () => {
   it('formularío sano → sin errores', () => {
     expect(
       tieneErroresEvento(
-        validarFormularioEvento({ titulo: 't', descripcion: null, inicio: INICIO, fin: finPredeterminado(INICIO) }),
+        validarFormularioEvento({ titulo: 't', descripcion: null, lugar: null, inicio: INICIO, fin: finPredeterminado(INICIO) }),
       ),
     ).toBe(false);
   });
 
   it('título requerido y ≤200', () => {
-    expect(validarFormularioEvento({ titulo: '  ', descripcion: null, inicio: INICIO, fin: null }).titulo).toBe(
+    expect(validarFormularioEvento({ titulo: '  ', descripcion: null, lugar: null, inicio: INICIO, fin: null }).titulo).toBe(
       'El título es requerido',
     );
-    expect(validarFormularioEvento({ titulo: 'x'.repeat(201), descripcion: null, inicio: INICIO, fin: null }).titulo).toContain(
+    expect(validarFormularioEvento({ titulo: 'x'.repeat(201), descripcion: null, lugar: null, inicio: INICIO, fin: null }).titulo).toContain(
       '200',
     );
   });
 
   it('descripción ≤2000 (null permitido)', () => {
-    expect(validarFormularioEvento({ titulo: 't', descripcion: null, inicio: INICIO, fin: null }).descripcion).toBeNull();
-    expect(validarFormularioEvento({ titulo: 't', descripcion: 'd'.repeat(2001), inicio: INICIO, fin: null }).descripcion).toContain(
+    expect(validarFormularioEvento({ titulo: 't', descripcion: null, lugar: null, inicio: INICIO, fin: null }).descripcion).toBeNull();
+    expect(validarFormularioEvento({ titulo: 't', descripcion: 'd'.repeat(2001), lugar: null, inicio: INICIO, fin: null }).descripcion).toContain(
       '2000',
     );
+  });
+
+  it('lugar ≤120 y no vacío si está presente', () => {
+    expect(validarFormularioEvento({ titulo: 't', descripcion: null, lugar: null, inicio: INICIO, fin: null }).lugar).toBeNull();
+    expect(validarFormularioEvento({ titulo: 't', descripcion: null, lugar: 'Aula 16', inicio: INICIO, fin: null }).lugar).toBeNull();
+    expect(validarFormularioEvento({ titulo: 't', descripcion: null, lugar: '   ', inicio: INICIO, fin: null }).lugar).toContain('vacío');
+    expect(validarFormularioEvento({ titulo: 't', descripcion: null, lugar: 'x'.repeat(121), inicio: INICIO, fin: null }).lugar).toContain('120');
   });
 
   it('rango: fin antes que inicio → error', () => {
@@ -40,6 +47,7 @@ describe('validarFormularioEvento', () => {
       validarFormularioEvento({
         titulo: 't',
         descripcion: null,
+        lugar: null,
         inicio: INICIO,
         fin: new Date(INICIO.getTime() - 1),
       }).rango,
