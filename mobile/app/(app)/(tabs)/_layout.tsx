@@ -123,6 +123,7 @@ export default function TabsLayout() {
         name="academico"
         options={{
           title: 'Clases',
+          headerShown: false,
           tabBarIcon: ({ focused }) =>
             focused ? (
               <GraduationCapIcon size={26} color={focused ? colors.brand.primary : colors.text.primary} weight="duotone" />

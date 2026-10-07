@@ -1,42 +1,42 @@
 import { useMemo, useState } from 'react';
 import {
-  FlatList,
-  Pressable,
+  ActivityIndicator,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   View,
-  type ListRenderItemInfo,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 
-import { colors, layout, radius, spacing } from '@/shared/ui';
-import { ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
+import { colors, layout, spacing } from '@/shared/ui';
+import {
+  EmptyState,
+  SectionHeader,
+  ThemedText,
+  ThemedView,
+} from '@/shared/ui';
 import {
   filtrarPorPeriodo,
   particionarMaterias,
   periodosDisponibles,
 } from '@/features/academico/helpers';
-import type { MateriaDTO } from '@/features/academico/types';
 import { useMaterias } from '@/features/academico/hooks/useMaterias';
-import { usePerfil } from '@/features/academico/hooks/usePerfil';
 import { MateriaActualCard } from '@/features/academico/components/MateriaActualCard';
-import { MateriaHistoricaCard } from '@/features/academico/components/MateriaHistoricaCard';
-import { PerfilHeader } from '@/features/academico/components/PerfilHeader';
-
-type Vista = 'curso' | 'historial';
+import { SelectorPeriodo } from '@/features/academico/components/SelectorPeriodo';
+import { TarjetaHistorial } from '@/features/academico/components/TarjetaHistorial';
+import { CampanaConBadge } from '@/features/notificaciones/components/CampanaConBadge';
+import { useNoLeidas } from '@/features/notificaciones/hooks/useNoLeidas';
 
 /**
- * Tab académico: perfil arriba, vista En curso / Historial con chips y,
- * dentro del historial, selector de período institucional. El filtrado es
- * local (helpers puros): una sola query, sin refetch al cambiar de vista.
+ * Tab Clases: materias en curso con cortes evaluativos + historial
+ * académico filtrable por período. El filtrado es local (helpers puros):
+ * una sola query, sin refetch al cambiar de período.
  */
 export default function AcademicoScreen() {
-  const perfil = usePerfil();
-  const materias = useMaterias();
   const insets = useSafeAreaInsets();
-  const [vista, setVista] = useState<Vista>('curso');
-  const [periodo, setPeriodo] = useState<string | null>(null);
+  const noLeidas = useNoLeidas();
+  const materias = useMaterias();
+  const [periodoActivo, setPeriodoActivo] = useState<string | null>(null);
 
   const particion = useMemo(
     () => particionarMaterias(materias.data ?? []),
@@ -46,36 +46,31 @@ export default function AcademicoScreen() {
     () => periodosDisponibles(particion.historicas),
     [particion.historicas],
   );
-  const visibles: MateriaDTO[] = useMemo(() => {
-    if (vista === 'curso') return particion.actuales;
-    return filtrarPorPeriodo(particion.historicas, periodo);
-  }, [vista, periodo, particion]);
+  const historicasVisibles = useMemo(
+    () => filtrarPorPeriodo(particion.historicas, periodoActivo),
+    [periodoActivo, particion],
+  );
 
-  const cargando = perfil.isPending || materias.isPending;
-  const error = perfil.isError || materias.isError;
-
-  if (cargando) {
+  if (materias.isPending) {
     return (
       <EstadoCentrado>
-        <ThemedText tone="secondary">Cargando datos académicos...</ThemedText>
+        <ActivityIndicator color={colors.brand.primary} />
+        <ThemedText tone="secondary">Cargando clases...</ThemedText>
       </EstadoCentrado>
     );
   }
 
-  if (error || !perfil.data) {
+  if (materias.isError) {
     return (
       <EstadoCentrado gap>
         <ThemedText tone="secondary">
-          No se pudieron cargar los datos académicos.
+          No se pudieron cargar tus clases.
         </ThemedText>
         <ThemedText
           variant="body"
           weight="semibold"
           style={estilos.reintentar}
-          onPress={() => {
-            void perfil.refetch();
-            void materias.refetch();
-          }}>
+          onPress={() => void materias.refetch()}>
           Reintentar
         </ThemedText>
       </EstadoCentrado>
@@ -83,113 +78,70 @@ export default function AcademicoScreen() {
   }
 
   return (
-    <FlatList
-      data={visibles}
-      keyExtractor={(item) => item.id}
-      renderItem={({ item }: ListRenderItemInfo<MateriaDTO>) =>
-        item.es_actual ? (
-          <MateriaActualCard materia={item} />
-        ) : (
-          <MateriaHistoricaCard materia={item} />
-        )
-      }
+    <ScrollView
       contentContainerStyle={[
-        estilos.contenido,
-        { paddingBottom: insets.bottom + layout.bottomTabInset },
+        estilos.scroll,
+        {
+          paddingTop: insets.top + spacing.lg,
+          paddingBottom: insets.bottom + layout.bottomTabInset,
+        },
       ]}
-      ItemSeparatorComponent={Separador}
-      ListHeaderComponent={
-        <View style={estilos.cabecera}>
-          <PerfilHeader perfil={perfil.data} />
-          <View style={estilos.filaBotones}>
-            <ThemedButton
-              title="Ver plan de estudios"
-              variant="secondary"
-              size="sm"
-              onPress={() => router.push('/academico/pensum')}
-            />
-            <ThemedButton
-              title="Historial médico"
-              variant="secondary"
-              size="sm"
-              onPress={() => router.push('/academico/historial')}
-            />
-          </View>
-          <View style={estilos.filaChips}>
-            <ChipVista
-              etiqueta={`En curso (${particion.actuales.length})`}
-              activo={vista === 'curso'}
-              onPress={() => setVista('curso')}
-            />
-            <ChipVista
-              etiqueta={`Historial (${particion.historicas.length})`}
-              activo={vista === 'historial'}
-              onPress={() => setVista('historial')}
-            />
-          </View>
-          {vista === 'historial' && periodos.length > 0 ? (
-            <View style={estilos.filaChips}>
-              <ChipVista
-                etiqueta="Todos"
-                activo={periodo === null}
-                onPress={() => setPeriodo(null)}
-              />
-              {periodos.map((p) => (
-                <ChipVista
-                  key={p}
-                  etiqueta={p}
-                  activo={periodo === p}
-                  onPress={() => setPeriodo(p)}
-                />
-              ))}
-            </View>
-          ) : null}
-        </View>
-      }
-      ListEmptyComponent={
-        <EstadoCentrado>
-          <ThemedText variant="bodyLg" weight="semibold">
-            {vista === 'curso' ? 'Sin materias en curso' : 'Sin historial en este período'}
-          </ThemedText>
-          <ThemedText tone="secondary">
-            {vista === 'curso'
-              ? 'Cuando UNIMAR publique tu carga actual, aparecerá aquí.'
-              : 'Prueba con otro período académico.'}
-          </ThemedText>
-        </EstadoCentrado>
-      }
+      showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl
-          refreshing={perfil.isRefetching || materias.isRefetching}
+          refreshing={materias.isRefetching}
           onRefresh={() => {
-            void perfil.refetch();
             void materias.refetch();
           }}
-          colors={[colors.primary]}
-          tintColor={colors.primary}
+          colors={[colors.brand.primary]}
+          tintColor={colors.brand.primary}
         />
-      }
-    />
-  );
-}
-
-function ChipVista({
-  etiqueta,
-  activo,
-  onPress,
-}: {
-  etiqueta: string;
-  activo: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable onPress={onPress}>
-      <ThemedView variant={activo ? 'sunken' : 'elevated'} style={estilos.chip}>
-        <ThemedText variant="caption" weight={activo ? 'semibold' : 'regular'}>
-          {etiqueta}
+      }>
+      <View style={estilos.cabecera}>
+        <ThemedText variant="headline" weight="semibold">
+          Clases
         </ThemedText>
-      </ThemedView>
-    </Pressable>
+        <CampanaConBadge total={noLeidas.data?.total ?? 0} tono="claro" />
+      </View>
+
+      <SectionHeader title="Materias en curso" />
+      {particion.actuales.length > 0 ? (
+        <View style={estilos.tarjetasMaterias}>
+          {particion.actuales.map((materia) => (
+            <MateriaActualCard key={materia.id} materia={materia} />
+          ))}
+        </View>
+      ) : (
+        <EmptyState
+          title="Sin materias en curso"
+          message="Cuando UNIMAR publique tu carga actual, aparecerá aquí."
+        />
+      )}
+
+      <SectionHeader title="Historial académico" style={estilos.seccionHistorial} />
+      {particion.historicas.length > 0 ? (
+        <View style={estilos.tarjetasMaterias}>
+          <SelectorPeriodo
+            periodos={periodos}
+            activo={periodoActivo}
+            onSeleccionar={setPeriodoActivo}
+          />
+          {historicasVisibles.length > 0 ? (
+            <TarjetaHistorial historicas={historicasVisibles} />
+          ) : (
+            <EmptyState
+              title="Sin historial en este período"
+              message="Prueba con otro período académico."
+            />
+          )}
+        </View>
+      ) : (
+        <EmptyState
+          title="Sin historial académico"
+          message="Tus materias aprobadas y reprobadas aparecerán aquí."
+        />
+      )}
+    </ScrollView>
   );
 }
 
@@ -207,51 +159,36 @@ function EstadoCentrado({
   );
 }
 
-function Separador() {
-  return <View style={estilos.separador} />;
-}
-
 const estilos = StyleSheet.create({
-  contenido: {
-    padding: spacing.four,
-    gap: spacing.three,
-    backgroundColor: colors.background.base,
+  scroll: {
+    padding: spacing.lg,
   },
   cabecera: {
-    gap: spacing.three,
-    marginBottom: spacing.one,
-  },
-  filaChips: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.two,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.xl,
   },
-  filaBotones: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.two,
+  tarjetasMaterias: {
+    gap: spacing.lg,
+    marginTop: spacing.lg,
   },
-  chip: {
-    paddingHorizontal: spacing.three,
-    paddingVertical: spacing.two,
-    borderRadius: radius.pill,
-  },
-  separador: {
-    height: spacing.three,
+  seccionHistorial: {
+    marginTop: spacing.xl,
   },
   estado: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.six,
-    gap: spacing.two,
-    backgroundColor: colors.background.base,
+    padding: spacing.xl,
+    gap: spacing.sm,
+    backgroundColor: colors.bg.canvas,
   },
   estadoConGap: {
-    gap: spacing.four,
+    gap: spacing.lg,
   },
   reintentar: {
-    color: colors.primary,
+    color: colors.brand.primary,
     textDecorationLine: 'underline',
   },
 });

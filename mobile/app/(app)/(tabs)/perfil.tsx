@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { StyleSheet, View } from 'react-native';
 
-import { Badge, ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
+import { Badge, ListItem, ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
 import { colors, layout, radius, spacing } from '@/shared/ui';
+import { router } from 'expo-router';
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import { listarDecanatos } from '@/features/identidad/api/decanatos.api';
 
@@ -46,6 +47,23 @@ export default function PerfilScreen() {
       </ThemedView>
 
       <ThemedButton title="Cerrar sesión" variant="secondary" onPress={() => void logout()} />
+
+      {usuario?.rol === 'ESTUDIANTE' ? (
+        <ThemedView variant="card" style={styles.tarjetaAccesos}>
+          <ListItem
+            title="Ver plan de estudios"
+            subtitle="Materias y prerrequisitos por trimestre"
+            onPress={() => router.push('/academico/pensum')}
+            accessibilityRole="button"
+          />
+          <ListItem
+            title="Historial médico"
+            subtitle="Tipo de sangre, alergias y vacunas"
+            onPress={() => router.push('/academico/historial')}
+            accessibilityRole="button"
+          />
+        </ThemedView>
+      ) : null}
     </ThemedView>
   );
 }
@@ -73,4 +91,8 @@ const styles = StyleSheet.create({
   },
   nombre: { textAlign: 'center' },
   watermark: { textAlign: 'center' },
+  tarjetaAccesos: {
+    paddingVertical: spacing.xs,
+    gap: spacing.xs,
+  },
 });

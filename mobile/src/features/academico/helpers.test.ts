@@ -3,11 +3,14 @@ import {
   colorNota,
   etiquetaEstadoHistorica,
   filtrarPorPeriodo,
+  formatearPeriodo,
+  formatoNota2,
   marcarAprobadas,
+  notaAcumulada,
   particionarMaterias,
   periodosDisponibles,
 } from './helpers';
-import type { MateriaDTO, MateriaHistoricaDTO, PensumMateriaDTO } from './types';
+import type { CorteDTO, MateriaDTO, MateriaHistoricaDTO, PensumMateriaDTO } from './types';
 
 const EN_CURSO = {
   id: 'mat-1',
@@ -144,5 +147,61 @@ describe('agruparPorTrimestre', () => {
     const grupos = agruparPorTrimestre(items);
     expect(grupos.map((g) => g.trimestre)).toEqual([1, 2, 7]);
     expect(grupos[0]?.items.map((m) => m.codigo)).toEqual(['IS-101']);
+  });
+});
+
+const CORTE = (nota: number | null, ponderacion: number): CorteDTO => ({
+  nombre: 'Corte',
+  fecha: '2026-01-01',
+  nota,
+  ponderacion,
+});
+
+describe('notaAcumulada (promedio ponderado truncado)', () => {
+  it('20·40% + 15·60% → 17', () => {
+    expect(notaAcumulada([CORTE(20, 40), CORTE(15, 60)])).toBe(17);
+  });
+
+  it('14·40% + 16·60% = 15,2 → 15 (truncado)', () => {
+    expect(notaAcumulada([CORTE(14, 40), CORTE(16, 60)])).toBe(15);
+  });
+
+  it('solo promedia cortes calificados', () => {
+    expect(notaAcumulada([CORTE(10, 40), CORTE(null, 60)])).toBe(10);
+  });
+
+  it('sin cortes calificados → null', () => {
+    expect(notaAcumulada([CORTE(null, 40)])).toBeNull();
+    expect(notaAcumulada([])).toBeNull();
+  });
+
+  it('más de dos cortes se aceptan', () => {
+    expect(notaAcumulada([CORTE(10, 20), CORTE(20, 20), CORTE(0, 60)])).toBe(6);
+  });
+});
+
+describe('formatoNota2 (dos dígitos)', () => {
+  it.each([
+    [9, '09'],
+    [17, '17'],
+    [15.2, '15'],
+    [null, '—'],
+  ] as const)('%v → %s', (nota, esperado) => {
+    expect(formatoNota2(nota)).toBe(esperado);
+  });
+});
+
+describe('formatearPeriodo (tríada UNIMAR)', () => {
+  it.each([
+    ['2026-1', 'Trimestre Enero-Abril 2026'],
+    ['2026-2', 'Trimestre Abril-Julio 2026'],
+    ['2026-3', 'Trimestre Septiembre-Diciembre 2026'],
+  ])('%s → %s', (periodo, esperado) => {
+    expect(formatearPeriodo(periodo)).toBe(esperado);
+  });
+
+  it('formato ajeno → crudo', () => {
+    expect(formatearPeriodo('2025-4')).toBe('2025-4');
+    expect(formatearPeriodo('X')).toBe('X');
   });
 });

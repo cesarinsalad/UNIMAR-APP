@@ -1,4 +1,5 @@
 import type {
+  CorteDTO,
   EstadoHistorica,
   MateriaDTO,
   MateriaActualDTO,
@@ -61,6 +62,48 @@ export function particionarMaterias(materias: MateriaDTO[]): MateriasParticionad
 export function periodosDisponibles(historicas: MateriaHistoricaDTO[]): string[] {
   const unicos = new Set(historicas.map((m) => m.periodo));
   return [...unicos].sort().reverse();
+}
+
+/**
+ * "Acumulada" de una materia en curso: promedio ponderado de los cortes ya
+ * calificados (Σ nota·pond / Σ pond de los calificados), truncado a entero
+ * como acuerda la UI (15,2 → 15). Sin cortes calificados → null.
+ */
+export function notaAcumulada(cortes: CorteDTO[]): number | null {
+  let suma = 0;
+  let pond = 0;
+  for (const corte of cortes) {
+    if (corte.nota === null) continue;
+    suma += corte.nota * corte.ponderacion;
+    pond += corte.ponderacion;
+  }
+  if (pond <= 0) return null;
+  return Math.trunc(suma / pond);
+}
+
+/** Nota con 2 dígitos para la columna "Acumulada" (9 → "09"); null → "—". */
+export function formatoNota2(nota: number | null): string {
+  if (nota === null) return '—';
+  return Math.trunc(nota).toString().padStart(2, '0');
+}
+
+const TRIMESTRES: Record<string, string> = {
+  '1': 'Enero-Abril',
+  '2': 'Abril-Julio',
+  '3': 'Septiembre-Diciembre',
+};
+
+/**
+ * Etiqueta de período para la UI: "2026-2" → "Trimestre Abril-Julio 2026"
+ * (tríada UNIMAR). Formatos ajenos (p. ej. "2025-2" tras cambio futuro del
+ * contrato) se muestran crudos en vez de inventar.
+ */
+export function formatearPeriodo(periodo: string): string {
+  const anio = periodo.split('-')[0] ?? '';
+  const termino = periodo.split('-')[1] ?? '';
+  const etiqueta = TRIMESTRES[termino];
+  if (!etiqueta) return periodo;
+  return `Trimestre ${etiqueta} ${anio}`;
 }
 
 export function filtrarPorPeriodo(
