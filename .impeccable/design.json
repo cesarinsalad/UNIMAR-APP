@@ -1,0 +1,307 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-07T00:00:00.000Z",
+  "title": "Design System: UNIMARapp",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Azul Sello Institucional",
+        "canonical": "#0D4D98",
+        "tonalRamp": [
+          "#07264B",
+          "#0A3A73",
+          "#0D4D98",
+          "#2A66AE",
+          "#4D81C4",
+          "#7BA3D8",
+          "#AEC6E9",
+          "#EBF2FA"
+        ]
+      },
+      "surface-tint-blue": {
+        "role": "secondary",
+        "displayName": "Tinta Activa (Superficie Tinte)",
+        "canonical": "#EBF2FA",
+        "tonalRamp": [
+          "#5A7896",
+          "#7390AD",
+          "#8CA9C3",
+          "#A5C1D9",
+          "#BDD3EB",
+          "#D3E3F1",
+          "#DFEAf5",
+          "#EBF2FA"
+        ]
+      },
+      "neutral-bg": {
+        "role": "neutral",
+        "displayName": "Papel Bond (Canvas)",
+        "canonical": "#F8F9FA",
+        "tonalRamp": [
+          "#5C5F63",
+          "#74777B",
+          "#8D9094",
+          "#A5A8AC",
+          "#BEc1C5",
+          "#D6D9DD",
+          "#E7EAEE",
+          "#F8F9FA"
+        ]
+      },
+      "neutral-surface": {
+        "role": "neutral",
+        "displayName": "Blanco Documento (Surface)",
+        "canonical": "#FFFFFF",
+        "tonalRamp": [
+          "#C9CCCF",
+          "#D4D7DA",
+          "#DFE2E5",
+          "#E9ECEF",
+          "#EEF1F4",
+          "#F4F6F8",
+          "#F9FAFB",
+          "#FFFFFF"
+        ]
+      },
+      "neutral-text-primary": {
+        "role": "neutral",
+        "displayName": "Gris Institucional (Texto Primario)",
+        "canonical": "#413D3C",
+        "tonalRamp": [
+          "#1F1D1C",
+          "#2B2827",
+          "#343130",
+          "#3C3837",
+          "#413d3C",
+          "#5A5655",
+          "#7A7574",
+          "#A6A2A1"
+        ]
+      },
+      "neutral-text-secondary": {
+        "role": "neutral",
+        "displayName": "Gris Metadato (Texto Secundario)",
+        "canonical": "#7A7574",
+        "tonalRamp": [
+          "#3E3A39",
+          "#4E4A49",
+          "#5E5A59",
+          "#6A6564",
+          "#777372",
+          "#7A7574",
+          "#8E8A88",
+          "#A3A0A9"
+        ]
+      },
+      "accent-urgent": {
+        "role": "tertiary",
+        "displayName": "Naranja Veeduría (Solo badges/estado)",
+        "canonical": "#FF7A00",
+        "tonalRamp": [
+          "#8A4200",
+          "#A65100",
+          "#C36101",
+          "#DD7000",
+          "#FF7A00",
+          "#FF9635",
+          "#FFB370",
+          "#FFD3A8"
+        ]
+      },
+      "success": {
+        "role": "tertiary",
+        "displayName": "Verde Sistema (Éxito)",
+        "canonical": "#2E7D32",
+        "tonalRamp": [
+          "#15381B",
+          "#1D4D24",
+          "#25652C",
+          "#2E7D32",
+          "#48944C",
+          "#66AB69",
+          "#8BC48E",
+          "#B7DDBA"
+        ]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Rojo Reprobada (Peligro)",
+        "canonical": "#C62828",
+        "tonalRamp": [
+          "#571414",
+          "#6F1B1B",
+          "#881E1E",
+          "#A51F1F",
+          "#C62828",
+          "#D45A5A",
+          "#E38E8E",
+          "#EFC2C2"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Título de pantalla en header de contenido + cifras hero (con 700)."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Títulos de detalle y cifras grandes (acumulada, carnet)."
+      },
+      "subtitle": {
+        "displayName": "Subtitle",
+        "purpose": "Títulos de sección y selector de mes."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Datos principales y párrafos; medium (500) para nombres de materia."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Labels de input y texto denso secundario (14px)."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Metadatos: códigos, aulas, horarios, timestamps; piso absoluto 12px."
+      }
+    },
+    "shadows": [
+      {
+        "name": "elevation-sm",
+        "value": "0 2px 4px rgba(0,0,0,0.14)",
+        "purpose": "Tarjetas al reposo y botones circulares de back/share — estructura básica del documento."
+      },
+      {
+        "name": "elevation-md",
+        "value": "0 4px 8px rgba(0,0,0,0.18)",
+        "purpose": "Tab bar flotante y pills activos — elementos que flotan sobre el canvas."
+      },
+      {
+        "name": "elevation-lg",
+        "value": "0 6px 12px rgba(0,0,0,0.22)",
+        "purpose": "Modales (carnet) — la única escala que se autoriza dramática."
+      },
+      {
+        "name": "highlight-top",
+        "value": "border-top: 1px solid rgba(255,255,255,0.31)",
+        "purpose": "Resplandor superior simulado (luz institucional) — α 0.31=md, 0.19=sm, 0.65=lg según nivel."
+      }
+    ],
+    "motion": [
+      {
+        "name": "press-fade",
+        "value": "opacity 0.85 on press",
+        "purpose": "Respuesta estándar al toque en Pressables custom (únicas transiciones definidas hoy)."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "phone",
+        "value": "único target — móvil RN; web export solo dev-preview"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Acción primaria con sello azul (Guardar Evento, Confirmar Asistencia-like).",
+      "html": "<button class=\"ds-btn-primary\">Guardar Evento</button>",
+      "css": ".ds-btn-primary { background: #0D4D98; color: #FFFFFF; font-family: 'Montserrat', sans-serif; font-size: 16px; font-weight: 500; border: none; border-radius: 16px; padding: 12px 16px; min-height: 48px; box-shadow: 0 2px 4px rgba(0,0,0,0.14); cursor: pointer; transition: opacity 0.2s; } .ds-btn-primary:hover { opacity: 0.9; } .ds-btn-primary:focus-visible { outline: 2px solid #0D4D98; outline-offset: 2px; } .ds-btn-primary:active { opacity: 0.85; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Acción de apoyo sobre tarjeta blanca (Editar, Reintentar).",
+      "html": "<button class=\"ds-btn-secondary\">Editar</button>",
+      "css": ".ds-btn-secondary { background: #FFFFFF; color: #0D4D98; font-family: 'Montserrat', sans-serif; font-size: 16px; font-weight: 500; border: 1px solid #E8E8E8; border-radius: 16px; padding: 12px 16px; min-height: 48px; cursor: pointer; transition: border-color 0.2s, opacity 0.2s; } .ds-btn-secondary:hover { border-color: #0D4D98; } .ds-btn-secondary:focus-visible { outline: 2px solid #0D4D98; outline-offset: 2px; }"
+    },
+    {
+      "name": "Document Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "La tarjeta-documento: blanco, radius 20, sombra estructural + resplandor superior.",
+      "html": "<div class=\"ds-card\"> <div class=\"ds-card-title\">Matemática III</div> <div class=\"ds-card-meta\">Aula 16 · Prof. Manuel Silva</div> <div class=\"ds-card-divider\"></div> <div class=\"ds-card-data\">20</div> </div>",
+      "css": ".ds-card { background: #FFFFFF; border-radius: 20px; padding: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.14); border-top: 1px solid rgba(255,255,255,0.31); font-family: 'Montserrat', sans-serif; } .ds-card-title { color: #413D3C; font-size: 16px; font-weight: 500; } .ds-card-meta { color: #7A7574; font-size: 14px; } .ds-card-divider { height: 1px; background: #E8E8E8; margin: 8px 0; } .ds-card-data { color: #2E7D32; font-size: 22px; font-weight: 700; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Campo de texto blanco con borde hairline; focus = azul sello.",
+      "html": "<input class=\"ds-input\" placeholder=\"Ej. Examen Circuitos Eléctricos\" />",
+      "css": ".ds-input { background: #FFFFFF; color: #413D3C; font-family: 'Montserrat', sans-serif; font-size: 16px; border: 1px solid #E8E8E8; border-radius: 12px; padding: 12px 16px; min-height: 44px; width: 100%; box-sizing: border-box; transition: border-color 0.2s; } .ds-input::placeholder { color: #7A7574; } .ds-input:hover { border-color: #D1D1D4; } .ds-input:focus { border-color: #0D4D98; outline: none; } .ds-input.is-invalid { border-color: #C62828; }"
+    },
+    {
+      "name": "Chip (pill activa)",
+      "kind": "chip",
+      "refersTo": "chip-selected",
+      "description": "Pill de selección tonal: activa = tinta azul clara; inactiva = tarjeta blanca.",
+      "html": "<button class=\"ds-chip ds-chip-active\">En curso</button> <button class=\"ds-chip\">Historial</button>",
+      "css": ".ds-chip { background: #FFFFFF; color: #413D3C; font-family: 'Montserrat', sans-serif; font-size: 12px; font-weight: 400; border: none; border-radius: 999px; padding: 8px 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.14); cursor: pointer; transition: background 0.2s; } .ds-chip-active { background: #EBF2FA; color: #0D4D98; font-weight: 600; } .ds-chip:hover { opacity: 0.9; }"
+    },
+    {
+      "name": "Barra de estado (firma)",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "Firma visual de documento con estado: bloque de fecha + barra lateral vertical 3px color-estado.",
+      "html": "<div class=\"ds-status-row\"> <div class=\"ds-status-date\"><span class=\"day\">17</span><span class=\"month\">oct</span></div> <div class=\"ds-status-bar ds-official\"></div> <div class=\"ds-status-body\"><div class=\"title\">CumpLeaños del Admin</div><div class=\"meta\">9:30 AM - 12:30 PM</div></div> </div>",
+      "css": ".ds-status-row { display: flex; align-items: center; gap: 12px; background: #FFFFFF; border-radius: 20px; padding: 12px 16px 12px 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.14); font-family: 'Montserrat', sans-serif; } .ds-status-date { display: flex; flex-direction: column; align-items: center; } .ds-status-date .day { font-size: 22px; font-weight: 700; color: #413D3C; } .ds-status-date .month { font-size: 12px; color: #7A7574; } .ds-status-bar { width: 3px; align-self: stretch; border-radius: 999px; background: #D1D1D4; } .ds-status-bar.ds-official { background: #0D4D98; } .ds-status-body { flex: 1; display: flex; flex-direction: column; gap: 2px; } .ds-status-body .title { color: #413D3C; font-size: 16px; font-weight: 500; } .ds-status-body .meta { color: #7A7574; font-size: 12px; }"
+    },
+    {
+      "name": "Tab Bar Flotante (firma nav)",
+      "kind": "nav",
+      "refersTo": "badge",
+      "description": "Pill blanca flotante de 5 tabs con iconos duotone activos en azul sello.",
+      "html": "<nav class=\"ds-tabbar\"><span class=\"item active\"><svg width=\"26\" height=\"26\" viewBox=\"0 0 24 24\" fill=\"#0D4D98\"><path d=\"M4 11 12 4l8 7v9h-6v-5h-4v5H4z\"/></svg><span>Inicio</span></span><span class=\"item\"><span>Noticias</span></span><span class=\"item\"><span>Clases</span></span><span class=\"item\"><span>Agenda</span></span><span class=\"item\"><span>Perfil</span></span></nav>",
+      "css": ".ds-tabbar { position: absolute; left: 8px; right: 8px; bottom: 16px; display: flex; border-radius: 999px; background: #FFFFFF; padding: 0 16px; height: 72px; box-shadow: 0 4px 8px rgba(0,0,0,0.18); font-family: 'Montserrat', sans-serif; } .ds-tabbar .item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #413D3C; font-size: 12px; } .ds-tabbar .item.active { color: #0D4D98; font-weight: 600; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "El Registro Institucional",
+    "overview": "UNIMARapp se percibe como el escritorio de registro académico del estudiante: el fondo de pantalla es papel bond (#F8F9FA), cada bloque de información es un documento —tarjeta blanca con sombra estructural y un resplandor sutil en su borde superior— y toda acción que modifique o confirme lleva el sello institucional, el azul UNIMAR (#0D4D98). El sistema es Operate puro: la estudiante escanea, encuentra su clase y actúa; el diseño nunca compite por la atención.\n\nLa personalidad es institucional serena: transferible a notario más que a red social. La densidad es media (tarjetas con aire, listas de historial apretadas solo en datos), la tipografía sube la voz con peso, no con decoración, y el color es un semáforo — azul institucional solo identifica dónde interactuar.\n\nLos datos que se muestran vienen de la API institucional vía BFF; el diseño refleja estados reales (cortes sin nota en gris, nota reprobada en rojo) en vez de estados aspiracionales.",
+    "keyCharacteristics": [
+      "Tarjeta blanca 20px sobre canvas #F8F9FA con sombra compuesta + resplandor superior."
+    ],
+    "rules": [
+      {
+        "name": "La Regla del Sello Único",
+        "body": "El azul de acción aparece en ≤10% de cada pantalla: se usa para aquello sobre lo que la estudiante puede actuar o lo que confirma su identidad; su rareza es la que hace que se vea.",
+        "section": "colors"
+      },
+      {
+        "name": "La Regla Naranja Exclusiva",
+        "body": "#FF7A00 es solo para puntos de notificación, indicadores urgentes y puntos de estado del calendario — nunca tipografía, iconos de navegación ni rellenos decorativos.",
+        "section": "colors"
+      },
+      {
+        "name": "La Regla del Peso Reservado",
+        "body": "Montserrat Bold en mayúsculas sostenidas es del logotipo institucional y de nada más; los títulos se escriben en Title/Sentence Case para conservar la calma del registro.",
+        "section": "typography"
+      },
+      {
+        "name": "La Regla Sin Línea Negra",
+        "body": "Ninguna línea negra ni borde sólido delimita grupos: la separación es contraste tonal y sombra; los hairlines existen solo DENTRO de una tarjeta (divisor entre filas) y son #E8E8E8 de 1px lógico.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do dibujar headers de tab en contenido (headline + campana) con headerShown: false y paddingTop: insets.top + 16.",
+      "Do usar los tokens de theme.ts siempre; valor exacto → token → componente, en ese orden de reuso.",
+      "Do colorear notas de datos con el semáforo real: aprobada (azul sello en Clases/Historial) · reprobada/sin permiso (rojo) · sin calificar (gris metadato).",
+      "Do separar grupos con gap del sistema (12/16/24) y nunca apilar más de una tarjeta por fila de datos.",
+      "Do mantener targets ≥ 44pt (touchTarget.min) y accessibilityRole/accessibilityLabel en cada botón de icono."
+    ],
+    "donts": [
+      "Don't usar el naranja {colors.accent-urgent} fuera de badges de notificación y puntos de calendario (Regla Naranja Exclusiva).",
+      "Don't usar Montserrat Bold en mayúsculas sostenidas fuera del logo institucional.",
+      "Don't inventar datos visuales sin respaldo del API (asistentes/RSVP de eventos, feriados, fotos de perfil) — el producto es un proxy de verdad.",
+      "Don't construir sombras ad-hoc fuera del vocabulario elevation.sm/md/lg + highlight del theme.",
+      "Don't borrar los guards Platform.OS === 'web' ni diseñar pantallas que dependan de persistencia o push en la pestaña web.",
+      "Don't crear headers nativos azules en las tabs (el header claro del contenido es la convención aprobada)."
+    ]
+  }
+}
