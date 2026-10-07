@@ -149,6 +149,7 @@ export default function TabsLayout() {
         name="perfil"
         options={{
           title: 'Perfil',
+          headerShown: false,
           tabBarIcon: ({ focused }) =>
             focused ? (
               <UserCircleIcon size={26} color={focused ? colors.brand.primary : colors.text.primary} weight="duotone" />
