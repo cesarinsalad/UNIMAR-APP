@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { Bell } from 'phosphor-react-native';
+import { BellIcon } from 'phosphor-react-native';
 
 import { colors, radius, spacing } from '@/shared/ui';
 
@@ -28,7 +28,7 @@ export function CampanaConBadge({
       onPress={() => router.push('/notificaciones')}
       hitSlop={8}
       style={styles.zona}>
-      <Bell size={24} color={color} />
+      <BellIcon size={24} color={color} weight="bold" />
       {total > 0 ? (
         <View style={[styles.punto, { right: puntoDerecha, backgroundColor: colors.accent.urgent }]} />
       ) : null}
