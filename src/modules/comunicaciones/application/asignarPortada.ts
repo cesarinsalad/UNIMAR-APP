@@ -31,6 +31,7 @@ export class AsignarPortada {
     claims: Claims,
     comunicadoId: string,
     adjuntoId: string | null,
+    pie: string | null = null,
   ): Promise<Comunicado> {
     return this.uow.runAs(claims, async (tx) => {
       const comunicado = await this.comunicadoRepo.buscarPorId(tx, comunicadoId);
@@ -49,7 +50,7 @@ export class AsignarPortada {
       }
 
       if (adjuntoId === null) {
-        const limpio = await this.comunicadoRepo.asignarPortada(tx, comunicadoId, null);
+        const limpio = await this.comunicadoRepo.asignarPortada(tx, comunicadoId, null, null);
         if (!limpio) throw new NotFoundError('Comunicado no encontrado tras actualizar');
         return limpio;
       }
@@ -69,6 +70,7 @@ export class AsignarPortada {
         tx,
         comunicadoId,
         adjunto.storagePath,
+        pie,
       );
       if (!actualizado) throw new NotFoundError('Comunicado no encontrado tras actualizar');
       return actualizado;

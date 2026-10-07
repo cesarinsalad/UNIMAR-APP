@@ -53,6 +53,7 @@ export class EditarComunicado {
         cuerpo: input.cuerpo,
         programadoPara: input.programadoPara,
         expiraAt: input.expiraAt,
+        categoria: input.categoria,
         decanatoIds: input.decanatoIds,
       });
 

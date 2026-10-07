@@ -97,6 +97,7 @@ export default function TabsLayout() {
         name="comunicados"
         options={{
           title: 'Noticias',
+          headerShown: false,
           tabBarIcon: ({ focused }) =>
             focused ? (
               <MegaphoneIcon size={26} color={focused ? colors.brand.primary : colors.text.primary} weight="duotone" />

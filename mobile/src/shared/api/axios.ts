@@ -43,6 +43,24 @@ async function performAtomicLogout(): Promise<void> {
   }
 }
 
+/**
+ * 401 solo desloguea si la request iba AUTENTICADA: un 401 de un endpoint
+ * público (o de una request sin Authorization, p. ej. cache) no debe
+ * tirar la sesión. La expiración real (Bearer registrado) sí.
+ */
+export async function interceptorError(
+  error: AxiosError<{ error?: ApiErrorBody }>,
+): Promise<never> {
+  const status = error.response?.status;
+  const conAuth = Boolean(error.config?.headers.Authorization);
+  if (status === 401) {
+    if (conAuth) {
+      await performAtomicLogout();
+    }
+  }
+  return Promise.reject(unwrapError(error));
+}
+
 export const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 15_000,
@@ -65,11 +83,5 @@ api.interceptors.response.use(
     }
     return response;
   },
-  (error: AxiosError<{ error?: ApiErrorBody }>) => {
-    const status = error.response?.status;
-    if (status === 401) {
-      void performAtomicLogout();
-    }
-    return Promise.reject(unwrapError(error));
-  },
+  (error: AxiosError<{ error?: ApiErrorBody }>) => interceptorError(error),
 );

@@ -25,3 +25,24 @@ export function chipEstado(estado: EstadoComunicado): string | null {
       return null;
   }
 }
+
+/** Etiquetas de categoría editorial (wire snake, muestra Title Case). */
+const ETIQUETAS_CATEGORIA: Record<string, string> = {
+  ACADEMICO: 'Académico',
+  EVENTO: 'Eventos',
+  INSTITUCIONAL: 'Institucional',
+};
+
+/**
+ * Etiqueta del chip de categoría de una noticia: su `categoria` si tiene;
+ * si no, la etiqueta de audiencia (Decanato N / Toda la universidad).
+ */
+import { etiquetaAudiencia } from '@/shared/lib/etiquetas';
+
+export function etiquetaCategoria(comunicado: {
+  categoria: string | null;
+  decanatoIds: number[];
+}): string {
+  if (!comunicado.categoria) return etiquetaAudiencia(comunicado.decanatoIds);
+  return ETIQUETAS_CATEGORIA[comunicado.categoria] ?? 'Comunicado';
+}

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ESTADOS } from '../domain/comunicado';
+import { CATEGORIAS, ESTADOS } from '../domain/comunicado';
 
 // Rechaza enlaces Markdown con schemes peligrosos (javascript:, data:, vbscript:).
 // El cliente renderiza Markdown a componentes nativos, pero un link malicioso
@@ -22,6 +22,7 @@ export const crearComunicadoSchema = z.object({
   decanato_ids: z.array(z.number().int().positive()).default([]),
   programado_para: isoDateTime.optional(),
   expira_at: isoDateTime.optional(),
+  categoria: z.enum(CATEGORIAS).optional(),
 });
 
 export const editarComunicadoSchema = z
@@ -31,6 +32,7 @@ export const editarComunicadoSchema = z
     decanato_ids: z.array(z.number().int().positive()).optional(),
     programado_para: isoDateTime.optional(),
     expira_at: isoDateTime.optional(),
+    categoria: z.enum(CATEGORIAS).nullable().optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: 'Se requiere al menos un campo para editar',
@@ -49,10 +51,12 @@ export const publicarComunicadoSchema = aprobarComunicadoSchema;
 
 export const asignarPortadaSchema = z.object({
   adjunto_id: z.string().uuid('ID de adjunto inválido'),
+  pie: z.string().trim().min(1).max(200, 'Máximo 200 caracteres').optional(),
 });
 
 export const listarComunicadosQuerySchema = z.object({
   estado: z.enum(ESTADOS).optional(),
+  categoria: z.enum(CATEGORIAS).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   offset: z.coerce.number().int().min(0).default(0),
 });

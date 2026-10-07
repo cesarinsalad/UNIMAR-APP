@@ -11,13 +11,14 @@ export const PAGE_SIZE_COMUNICADOS = 20;
  * (ventana programado/expira + audiencia/GLOBAL) la decide RLS en el BFF;
  * los borradores y pendientes viven en la pantalla de gestión (3c).
  */
-export function useComunicadosFeed() {
+export function useComunicadosFeed(categoria: string | null = null) {
   return useInfiniteQuery({
-    queryKey: ['comunicados', 'feed'],
+    queryKey: ['comunicados', 'feed', categoria ?? 'todas'],
     initialPageParam: 0,
     queryFn: ({ pageParam }) =>
       listarComunicados({
         estado: 'PUBLICADO',
+        categoria: categoria ?? undefined,
         limit: PAGE_SIZE_COMUNICADOS,
         offset: pageParam as number,
       }),

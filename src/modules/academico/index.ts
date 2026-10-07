@@ -65,7 +65,12 @@ export function createAcademicoModule(deps: AcademicoModuleDeps): AcademicoModul
   );
 
   const router = Router();
+  // Prefijo obligatorio (regla de composición): sin él las rutas quedan
+  // colgando en /api/v1/materias y los requests /api/v1/academico/* del
+  // cliente caen en cascada hasta el sistemaRouter (401 "API Key") —
+  // bug del rebote post-login detectado el 06 oct 2026.
   router.use(
+    '/academico',
     academicoRoutes({
       jwtService: deps.jwtService,
       obtenerPerfil,
@@ -77,7 +82,7 @@ export function createAcademicoModule(deps: AcademicoModuleDeps): AcademicoModul
   );
 
   const sistemaRouter = Router();
-  sistemaRouter.use(sistemaRoutes({ publicarNota }, deps.sistemaApiKey));
+  sistemaRouter.use('/sistema', sistemaRoutes({ publicarNota }, deps.sistemaApiKey));
 
   return { router, sistemaRouter };
 }

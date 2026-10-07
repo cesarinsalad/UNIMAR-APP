@@ -82,6 +82,7 @@ export function comunicadosRoutes(deps: ComunicadosRoutesDeps): Router {
         decanatoIds: body.decanato_ids,
         programadoPara: body.programado_para,
         expiraAt: body.expira_at,
+        categoria: body.categoria,
       });
       res.status(201).json({ data: result });
     }),
@@ -93,6 +94,7 @@ export function comunicadosRoutes(deps: ComunicadosRoutesDeps): Router {
       const query = parseBody(listarComunicadosQuerySchema, req.query);
       const result = await deps.listar.ejecutar(requireAuth(req)!, {
         estado: query.estado,
+        categoria: query.categoria,
         limit: query.limit,
         offset: query.offset,
       });
@@ -121,6 +123,7 @@ export function comunicadosRoutes(deps: ComunicadosRoutesDeps): Router {
         decanatoIds: body.decanato_ids,
         programadoPara: body.programado_para,
         expiraAt: body.expira_at,
+        categoria: body.categoria,
       });
       res.json({ data: result });
     }),
@@ -191,7 +194,12 @@ export function comunicadosRoutes(deps: ComunicadosRoutesDeps): Router {
     asyncHandler(async (req, res) => {
       const id = parseId(getParamId(req.params.id));
       const body = parseBody(asignarPortadaSchema, req.body);
-      const result = await deps.asignarPortada.ejecutar(requireAuth(req)!, id, body.adjunto_id);
+      const result = await deps.asignarPortada.ejecutar(
+        requireAuth(req)!,
+        id,
+        body.adjunto_id,
+        body.pie,
+      );
       res.json({ data: result });
     }),
   );

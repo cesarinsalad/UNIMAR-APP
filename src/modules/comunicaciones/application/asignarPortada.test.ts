@@ -53,6 +53,9 @@ function makeComunicado(overrides: Partial<Comunicado> = {}): Comunicado {
     programadoPara: null,
     expiraAt: null,
     imagenPath: null,
+    imagenPie: null,
+    categoria: null,
+    autorNombre: 'Autor',
     createdAt: new Date(),
     updatedAt: new Date(),
     decanatoIds: [5],
@@ -83,9 +86,9 @@ function makeRepos(store: Store) {
     },
     registrarLectura: async () => undefined,
     contarLecturas: async () => 0,
-    asignarPortada: async (_tx, id, imagenPath) => {
+    asignarPortada: async (_tx, id, imagenPath, imagenPie) => {
       if (store.comunicado.id !== id) return null;
-      store.comunicado = { ...store.comunicado, imagenPath };
+      store.comunicado = { ...store.comunicado, imagenPath, imagenPie };
       return store.comunicado;
     },
   };
@@ -109,6 +112,23 @@ describe('AsignarPortada', () => {
     const uc = new AsignarPortada(comRepo, adjRepo, makeUnitOfWork());
     const result = await uc.ejecutar(makeComunicador(), 'com-id', 'adj-1');
     expect(result.imagenPath).toBe('com-id/foto.png');
+    expect(result.imagenPie).toBeNull();
+  });
+
+  it('asigna con pie (caption) la portada' , async () => {
+    const store: Store = {
+      comunicado: makeComunicado(),
+      adjuntos: [makeAdjunto()],
+    };
+    const { comRepo, adjRepo } = makeRepos(store);
+    const uc = new AsignarPortada(comRepo, adjRepo, makeUnitOfWork());
+    const result = await uc.ejecutar(
+      makeComunicador(),
+      'com-id',
+      'adj-1',
+      'Campus central durante el inicio del periodo académico',
+    );
+    expect(result.imagenPie).toBe('Campus central durante el inicio del periodo académico');
   });
 
   it('ADMIN también puede asignar', async () => {

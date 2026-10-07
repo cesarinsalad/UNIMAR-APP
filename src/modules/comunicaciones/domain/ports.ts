@@ -18,6 +18,7 @@ export interface IComunicadoRepository {
       autorId: string;
       programadoPara: string | null;
       expiraAt: string | null;
+      categoria: string | null;
     },
   ): Promise<Comunicado>;
 
@@ -38,6 +39,7 @@ export interface IComunicadoRepository {
       cuerpo?: string;
       programadoPara?: string | null;
       expiraAt?: string | null;
+      categoria?: string | null;
       decanatoIds?: number[];
     },
   ): Promise<Comunicado | null>;
@@ -59,8 +61,13 @@ export interface IComunicadoRepository {
 
   contarLecturas(tx: DbTx, comunicadoId: string): Promise<number>;
 
-  /** Asigna la portada (ruta en storage) o la quita (null) y devuelve el comunicado. */
-  asignarPortada(tx: DbTx, id: string, imagenPath: string | null): Promise<Comunicado | null>;
+  /** Asigna la portada (ruta+pie en storage) o la quita (null) y devuelve el comunicado. */
+  asignarPortada(
+    tx: DbTx,
+    id: string,
+    imagenPath: string | null,
+    imagenPie: string | null,
+  ): Promise<Comunicado | null>;
 }
 
 /**

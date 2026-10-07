@@ -2,13 +2,18 @@ import {
   ActivityIndicator,
   Image,
   Modal,
+  Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   TextInput,
   View,
 } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
+import { ArrowLeft, Share as ShareIcon } from 'phosphor-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import {
   aprobarComunicado,
@@ -19,7 +24,7 @@ import {
 } from '@/features/comunicaciones/api/comunicados.api';
 import { CuerpoMarkdown } from '@/features/comunicaciones/components/CuerpoMarkdown';
 import { SeccionAdjuntos } from '@/features/comunicaciones/components/SeccionAdjuntos';
-import { chipEstado, etiquetaAudiencia } from '@/features/comunicaciones/helpers';
+import { etiquetaCategoria } from '@/features/comunicaciones/helpers';
 import { accionesPermitidas } from '@/features/comunicaciones/hooks/accionesPermitidas';
 import {
   etiquetaLecturas,
@@ -32,8 +37,10 @@ import { useMutacionComunicado } from '@/features/comunicaciones/hooks/useMutaci
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import type { Comunicado } from '@/features/comunicaciones/types';
 import { ApiError } from '@/shared/api/axios';
-import { colors, radius, spacing } from '@/shared/ui';
-import { ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
+import { haceRelativo, minutosLectura } from '@/shared/lib/tiempo';
+import { excerpt } from '@/shared/lib/markdown';
+import { colors, elevation, layout, radius, spacing } from '@/shared/ui';
+import { Badge, ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
 
 const FORMATO_FECHA_LARGA = new Intl.DateTimeFormat('es-VE', {
   dateStyle: 'long',
@@ -46,36 +53,51 @@ export default function ComunicadoDetalleScreen() {
 
   return (
     <ThemedView variant="base" style={estilos.container}>
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: query.data?.titulo ?? 'Comunicado',
-          headerStyle: { backgroundColor: colors.primary },
-          headerTintColor: colors.text.onPrimary,
-          headerTitleStyle: { fontWeight: '600' },
-        }}
-      />
+      {/* Header propio tipo lector (back + share flotantes); título en contenido. */}
+      <Stack.Screen options={{ headerShown: false }} />
 
       {query.isPending ? (
         <Centrado>
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator color={colors.brand.primary} />
         </Centrado>
       ) : query.isError ? (
         <Centrado gap>
           <ThemedText variant="subtitle" weight="semibold">
             {query.error instanceof ApiError && query.error.status === 404
-              ? 'Este comunicado ya no está disponible.'
-              : 'No se pudo cargar el comunicado.'}
+              ? 'Esta noticia ya no está disponible.'
+              : 'No se pudo cargar la noticia.'}
           </ThemedText>
         </Centrado>
       ) : query.data ? (
-        <Contenido comunicado={query.data} comunicadoId={id} />
+        <DetalleLector comunicado={query.data} comunicadoId={id} />
       ) : null}
     </ThemedView>
   );
 }
 
-/** Chip "N lecturas" — visible solo para autor o ADMIN. */
+/** Botón circular blanco (back/share) flotante sobre el contenido. */
+function BotonCircular({
+  onPress,
+  label,
+  children,
+}: {
+  onPress: () => void;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      hitSlop={8}
+      style={({ pressed }) => [estilos.circulo, pressed && { opacity: 0.85 }]}>
+      {children}
+    </Pressable>
+  );
+}
+
+/** Chip "N lecturas" — texto gris; solo autor o ADMIN. */
 function VerLecturas({
   comunicado,
   comunicadoId,
@@ -92,21 +114,27 @@ function VerLecturas({
   if (!stats.data) return null;
 
   return (
-    <ThemedView variant="sunken" style={estilos.chip}>
-      <ThemedText variant="caption" weight="semibold">
-        {etiquetaLecturas(stats.data.lecturas)}
-      </ThemedText>
-    </ThemedView>
+    <ThemedText variant="caption" tone="tertiary">
+      {etiquetaLecturas(stats.data.lecturas)}
+    </ThemedText>
   );
 }
 
-function Contenido({
+/**
+ * Detalle tipo lector (Figma): portada 3:2 con pie opcional sobre
+ * gradiente; badge de categoría; título headline + lead (excerpt);
+ * tarjeta de autor con lecturas; divisor sutil; cuerpo Markdown; adjuntos;
+ * footer de publicación. Las acciones de gestión viven en una fila compacta
+ * (visible solo con permisos); rechazo con modal confirmatorio intacto.
+ */
+function DetalleLector({
   comunicado,
   comunicadoId,
 }: {
   comunicado: Comunicado;
   comunicadoId: string;
 }) {
+  const insets = useSafeAreaInsets();
   const usuario = useSesionStore((s) => s.usuario);
   const acciones = accionesPermitidas({
     rol: usuario?.rol ?? null,
@@ -130,7 +158,11 @@ function Contenido({
   const [errorMutacion, setErrorMutacion] = useState<string | null>(null);
 
   const algunaPendiente =
-    rechazar.isPending || solicitar.isPending || aprobar.isPending || publicar.isPending || archivar.isPending;
+    rechazar.isPending ||
+    solicitar.isPending ||
+    aprobar.isPending ||
+    publicar.isPending ||
+    archivar.isPending;
 
   async function ejecutarAccion(accion: () => Promise<unknown>) {
     setErrorMutacion(null);
@@ -145,119 +177,140 @@ function Contenido({
     }
   }
 
+  // El motivo del rechazo lo ven autor y ADMIN (quiénes producen).
+  const veGestion = acciones.puedeEditar || usuario?.rol === 'ADMIN';
+
   return (
-    <ScrollView
-      contentContainerStyle={estilos.scroll}
-      showsVerticalScrollIndicator={false}>
-      {hayAcciones ? (
-        <View style={estilos.acciones}>
-          {acciones.puedeSolicitarRevision ? (
-            <ThemedButton
-              title="Solicitar revisión"
-              variant="secondary"
-              size="sm"
-              disabled={algunaPendiente}
-              onPress={() => void ejecutarAccion(() => solicitar.mutateAsync())}
-            />
-          ) : null}
-          {acciones.puedeAprobar ? (
-            <ThemedButton
-              title="Aprobar"
-              size="sm"
-              disabled={algunaPendiente}
-              onPress={() => void ejecutarAccion(() => aprobar.mutateAsync())}
-            />
-          ) : null}
-          {acciones.puedeRechazar ? (
-            <ThemedButton
-              title="Rechazar"
-              variant="secondary"
-              size="sm"
-              disabled={algunaPendiente}
-              onPress={() => setModalAbierto(true)}
-            />
-          ) : null}
-          {acciones.puedePublicar ? (
-            <ThemedButton
-              title="Publicar ahora"
-              size="sm"
-              disabled={algunaPendiente}
-              onPress={() => void ejecutarAccion(() => publicar.mutateAsync())}
-            />
-          ) : null}
-          {acciones.puedeArchivar ? (
-            <ThemedButton
-              title="Archivar"
-              variant="secondary"
-              size="sm"
-              disabled={algunaPendiente}
-              onPress={() => void ejecutarAccion(() => archivar.mutateAsync())}
-            />
-          ) : null}
-          {acciones.puedeEditar ? (
-            <ThemedButton
-              title="Editar"
-              variant="ghost"
-              size="sm"
-              disabled={algunaPendiente}
-              onPress={() => router.push(`/comunicados/nuevo?id=${comunicado.id}` as never)}
-            />
-          ) : null}
-        </View>
-      ) : null}
+    <View style={estilos.flex}>
+      <View style={[estilos.filaBotones, { top: insets.top + spacing.md }]}>
+        <BotonCircular label="Volver" onPress={() => router.back()}>
+          <ArrowLeft size={20} color={colors.brand.primary} weight="bold" />
+        </BotonCircular>
+        <BotonCircular
+          label={`Compartir: ${comunicado.titulo}`}
+          onPress={() => {
+            void Share.share({
+              message: `${comunicado.titulo} — unimarapp://comunicados/${comunicadoId}`,
+            });
+          }}>
+          <ShareIcon size={20} color={colors.brand.primary} weight="duotone" />
+        </BotonCircular>
+      </View>
 
-      {errorMutacion ? (
-        <ThemedText variant="caption" style={estilos.errorTexto}>
-          {errorMutacion}
-        </ThemedText>
-      ) : null}
-
-      {comunicado.imagenPath ? <PortadaDetalle comunicadoId={comunicado.id} /> : null}
-
-      <ThemedText variant="headline" weight="bold">
-        {comunicado.titulo}
-      </ThemedText>
-
-      <View style={estilos.metaFila}>
-        {chipEstado(comunicado.estado) ? (
-          <ThemedView variant="sunken" style={estilos.chip}>
-            <ThemedText variant="caption" weight="semibold">
-              {chipEstado(comunicado.estado)}
-            </ThemedText>
-          </ThemedView>
+      <ScrollView
+        contentContainerStyle={estilos.scroll}
+        showsVerticalScrollIndicator={false}>
+        {hayAcciones ? (
+          <View style={estilos.acciones}>
+            {acciones.puedeSolicitarRevision ? (
+              <ThemedButton
+                title="Solicitar revisión"
+                variant="ghost"
+                size="sm"
+                disabled={algunaPendiente}
+                onPress={() => void ejecutarAccion(() => solicitar.mutateAsync())}
+              />
+            ) : null}
+            {acciones.puedeAprobar ? (
+              <ThemedButton
+                title="Aprobar"
+                variant="ghost"
+                size="sm"
+                disabled={algunaPendiente}
+                onPress={() => void ejecutarAccion(() => aprobar.mutateAsync())}
+              />
+            ) : null}
+            {acciones.puedeRechazar ? (
+              <ThemedButton
+                title="Rechazar"
+                variant="ghost"
+                size="sm"
+                disabled={algunaPendiente}
+                onPress={() => setModalAbierto(true)}
+              />
+            ) : null}
+            {acciones.puedePublicar ? (
+              <ThemedButton
+                title="Publicar ahora"
+                variant="ghost"
+                size="sm"
+                disabled={algunaPendiente}
+                onPress={() => void ejecutarAccion(() => publicar.mutateAsync())}
+              />
+            ) : null}
+            {acciones.puedeArchivar ? (
+              <ThemedButton
+                title="Archivar"
+                variant="ghost"
+                size="sm"
+                disabled={algunaPendiente}
+                onPress={() => void ejecutarAccion(() => archivar.mutateAsync())}
+              />
+            ) : null}
+            {acciones.puedeEditar ? (
+              <ThemedButton
+                title="Editar"
+                variant="ghost"
+                size="sm"
+                disabled={algunaPendiente}
+                onPress={() => router.push(`/comunicados/nuevo?id=${comunicado.id}` as never)}
+              />
+            ) : null}
+          </View>
         ) : null}
-        <ThemedText variant="caption" tone="secondary">
-          {etiquetaAudiencia(comunicado.decanatoIds)}
-        </ThemedText>
-        <VerLecturas comunicado={comunicado} comunicadoId={comunicadoId} />
-      </View>
 
-      {comunicado.motivoRechazo ? (
-        <ThemedView variant="card" style={[estilos.motivoBox]}>
-          <ThemedText variant="caption" weight="semibold">
-            Motivo del rechazo
+        {errorMutacion ? (
+          <ThemedText variant="caption" style={estilos.errorTexto}>
+            {errorMutacion}
           </ThemedText>
-          <ThemedText variant="body" tone="secondary">
-            {comunicado.motivoRechazo}
+        ) : null}
+
+        {/* ── Portada con pie sobre gradiente ── */}
+        {comunicado.imagenPath ? (
+          <PortadaDetalle comunicadoId={comunicadoId} pie={comunicado.imagenPie} />
+        ) : null}
+
+        <View style={estilos.contenido}>
+          <Badge label={etiquetaCategoria(comunicado)} tone="info" />
+
+          <ThemedText variant="headline" weight="bold">
+            {comunicado.titulo}
           </ThemedText>
-        </ThemedView>
-      ) : null}
+          <ThemedText variant="bodyLg" tone="secondary">
+            {excerpt(comunicado.cuerpo)}
+          </ThemedText>
 
-      <CuerpoMarkdown cuerpo={comunicado.cuerpo} />
+          <TarjetaAutor comunicado={comunicado} comunicadoId={comunicadoId} />
 
-      <SeccionAdjuntos comunicadoId={comunicado.id} puedeEditar={acciones.puedeEditar} />
+          {veGestion && comunicado.motivoRechazo ? (
+            <ThemedView variant="card" style={estilos.motivoBox}>
+              <ThemedText variant="caption" weight="semibold" style={estilos.motivoTitulo}>
+                Motivo del rechazo
+              </ThemedText>
+              <ThemedText variant="body" tone="secondary">
+                {comunicado.motivoRechazo}
+              </ThemedText>
+            </ThemedView>
+          ) : null}
 
-      <View style={estilos.footer}>
-        <ThemedText variant="caption" tone="tertiary">
-          {comunicado.publicadoAt
-            ? `Publicado el ${FORMATO_FECHA_LARGA.format(new Date(comunicado.publicadoAt))}`
-            : null}
-          {comunicado.expiraAt && comunicado.estado !== 'ARCHIVADO'
-            ? ` · Vigente hasta ${FORMATO_FECHA_LARGA.format(new Date(comunicado.expiraAt))}`
-            : null}
-        </ThemedText>
-      </View>
+          <Divisor />
+          <CuerpoMarkdown cuerpo={comunicado.cuerpo} />
+          <SeccionAdjuntos comunicadoId={comunicado.id} puedeEditar={acciones.puedeEditar} />
 
+          <View style={estilos.footer}>
+            <ThemedText variant="caption" tone="tertiary">
+              {comunicado.publicadoAt
+                ? `Publicado el ${FORMATO_FECHA_LARGA.format(new Date(comunicado.publicadoAt))}`
+                : null}
+              {comunicado.expiraAt && comunicado.estado !== 'ARCHIVADO'
+                ? ` · Vigente hasta ${FORMATO_FECHA_LARGA.format(new Date(comunicado.expiraAt))}`
+                : null}
+            </ThemedText>
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* ── Modal del rechazo (gestión) ── */}
       <Modal
         visible={modalAbierto}
         transparent
@@ -279,7 +332,7 @@ function Contenido({
               textAlignVertical="top"
               style={[estilos.input, estilos.textarea]}
               placeholder="Explica por qué se devuelve al autor..."
-              placeholderTextColor={colors.text.tertiary}
+              placeholderTextColor={colors.text.secondary}
               editable={!rechazar.isPending}
             />
             <View style={estilos.modalBotones}>
@@ -291,7 +344,6 @@ function Contenido({
               />
               <ThemedButton
                 title="Rechazar"
-                variant="primary"
                 size="sm"
                 loading={rechazar.isPending}
                 disabled={motivo.trim().length === 0 || rechazar.isPending}
@@ -305,20 +357,70 @@ function Contenido({
           </ThemedView>
         </View>
       </Modal>
-    </ScrollView>
+    </View>
   );
 }
 
-/** Portada 3:2 en el detalle (URL firmada con cache por id). */
-function PortadaDetalle({ comunicadoId }: { comunicadoId: string }) {
+/** Avatar azul con inicial, nombre autor, hace + lectura + lecturas. */
+function TarjetaAutor({
+  comunicado,
+  comunicadoId,
+}: {
+  comunicado: Comunicado;
+  comunicadoId: string;
+}) {
+  const inicial = (comunicado.autorNombre.charAt(0) ?? '?').toUpperCase();
+
+  return (
+    <View style={estilos.autor}>
+      <ThemedView style={estilos.avatar}>
+        <ThemedText variant="body" weight="bold" tone="onPrimary">
+          {inicial === '' ? '?' : inicial}
+        </ThemedText>
+      </ThemedView>
+      <View style={estilos.autorTextos}>
+        <ThemedText variant="bodySm" weight="semibold" numberOfLines={1}>
+          {comunicado.autorNombre}
+        </ThemedText>
+        <View style={estilos.autorMeta}>
+          <ThemedText variant="caption" tone="tertiary" numberOfLines={1}>
+            {`${haceRelativo(comunicado.publicadoAt ?? comunicado.createdAt)} · ${minutosLectura(comunicado.cuerpo)} min de lectura`}
+          </ThemedText>
+          <VerLecturas comunicado={comunicado} comunicadoId={comunicadoId} />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/** Línea sutil de separación (nunca dura: royal). */
+function Divisor() {
+  return <View style={estilos.divisor} />;
+}
+
+/** Portada 3:2 en el detalle (URL firmada cache id; pie sobre gradiente). */
+function PortadaDetalle({ comunicadoId, pie }: { comunicadoId: string; pie: string | null }) {
   const portada = usePortada(comunicadoId, true);
   if (!portada.url) return null;
   return (
-    <Image
-      source={{ uri: portada.url }}
-      style={estilos.portadaDetalle}
-      resizeMode="cover"
-    />
+    <View style={estilos.portadaWrap}>
+      <Image
+        source={{ uri: portada.url }}
+        style={estilos.portadaDetalle}
+        resizeMode="cover"
+      />
+      {pie ? (
+        <>
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.65)']}
+            style={estilos.pieGradiente}
+          />
+          <ThemedText variant="caption" style={estilos.pieTexto} numberOfLines={2}>
+            {pie}
+          </ThemedText>
+        </>
+      ) : null}
+    </View>
   );
 }
 
@@ -337,14 +439,46 @@ function Centrado({
 }
 
 const estilos = StyleSheet.create({
-  portadaDetalle: {
-    width: '100%',
-    aspectRatio: 3 / 2,
-    borderRadius: radius.md,
+  portadaWrap: { position: 'relative' },
+  portadaDetalle: { width: '100%', aspectRatio: 4 / 3, borderRadius: radius.card },
+  pieGradiente: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '30%',
+    borderBottomLeftRadius: radius.card,
+    borderBottomRightRadius: radius.card,
+  },
+  pieTexto: {
+    position: 'absolute',
+    left: spacing.md,
+    right: spacing.md,
+    bottom: spacing.sm,
+    color: colors.bg.surface,
+    opacity: 0.9,
   },
   container: {
     flex: 1,
-    backgroundColor: colors.background.base,
+    backgroundColor: colors.bg.canvas,
+  },
+  flex: { flex: 1 },
+  filaBotones: {
+    position: 'absolute',
+    left: spacing.md,
+    right: spacing.md,
+    zIndex: 2,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  circulo: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.pill,
+    backgroundColor: colors.bg.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...elevation.md,
   },
   centro: {
     flex: 1,
@@ -353,13 +487,14 @@ const estilos = StyleSheet.create({
     padding: spacing.six,
     gap: spacing.two,
   },
-  centroConGap: {
-    gap: spacing.four,
-  },
+  centroConGap: { gap: spacing.four },
   scroll: {
-    padding: spacing.four,
-    gap: spacing.three,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
+    paddingBottom: layout.bottomTabInset,
+    gap: spacing.lg,
   },
+  contenido: { gap: spacing.lg },
   metaFila: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -381,10 +516,34 @@ const estilos = StyleSheet.create({
     borderColor: colors.status.danger,
     borderWidth: 1,
     backgroundColor: colors.background.elevated,
+    gap: spacing.xs,
   },
-  footer: {
-    marginTop: spacing.four,
+  motivoTitulo: { color: colors.status.danger },
+  divisor: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.border.subtle,
   },
+  autor: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.pill,
+    backgroundColor: colors.brand.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  autorTextos: { flex: 1, gap: spacing.half },
+  autorMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flexWrap: 'wrap',
+  },
+  footer: { marginTop: spacing.xs },
   modalFondo: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.45)',
@@ -392,10 +551,7 @@ const estilos = StyleSheet.create({
     justifyContent: 'center',
     padding: spacing.four,
   },
-  modalTarjeta: {
-    width: '100%',
-    gap: spacing.two,
-  },
+  modalTarjeta: { width: '100%', gap: spacing.two },
   modalBotones: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
@@ -412,10 +568,6 @@ const estilos = StyleSheet.create({
     color: colors.text.primary,
     backgroundColor: colors.background.base,
   },
-  textarea: {
-    minHeight: 100,
-  },
-  errorTexto: {
-    color: colors.status.danger,
-  },
+  textarea: { minHeight: 100 },
+  errorTexto: { color: colors.status.danger },
 });

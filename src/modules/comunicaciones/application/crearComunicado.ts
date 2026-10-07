@@ -40,6 +40,7 @@ export class CrearComunicado {
         autorId: claims.sub,
         programadoPara: input.programadoPara ?? null,
         expiraAt: input.expiraAt ?? null,
+        categoria: input.categoria ?? null,
       });
 
       await this.repo.agregarAudiencias(tx, creado.id, input.decanatoIds);

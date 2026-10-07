@@ -3,6 +3,7 @@ import type { Comunicado, EstadoComunicado } from '../types';
 
 export interface FiltroComunicados {
   estado?: EstadoComunicado;
+  categoria?: string;
   limit: number;
   offset: number;
 }
@@ -15,6 +16,7 @@ export async function listarComunicados(filtro: FiltroComunicados): Promise<Comu
   const { data } = await api.get<Comunicado[]>('/comunicados', {
     params: {
       estado: filtro.estado,
+      categoria: filtro.categoria,
       limit: filtro.limit,
       offset: filtro.offset,
     },
@@ -86,9 +88,14 @@ export async function archivarComunicado(id: string): Promise<Comunicado> {
 }
 
 /** PUT /comunicados/:id/portada — asigna portada (adjunto imagen ya registrado). */
-export async function asignarPortada(id: string, adjuntoId: string): Promise<Comunicado> {
+export async function asignarPortada(
+  id: string,
+  adjuntoId: string,
+  pie?: string,
+): Promise<Comunicado> {
   const { data } = await api.put<Comunicado>(`/comunicados/${id}/portada`, {
     adjunto_id: adjuntoId,
+    pie,
   });
   return data;
 }

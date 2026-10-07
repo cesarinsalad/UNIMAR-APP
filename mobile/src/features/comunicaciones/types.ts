@@ -25,6 +25,12 @@ export interface Comunicado {
   expiraAt: string | null;
   /** Ruta storage de la portada (adjunto imagen del propio comunicado). */
   imagenPath: string | null;
+  /** Pie/caption de la portada (≤200 chars) — detalle. */
+  imagenPie: string | null;
+  /** Categoría editorial; null = sin categoría (chips del feed). */
+  categoria: string | null;
+  /** Nombre para mostrar del autor (el BFF junta con usuarios). */
+  autorNombre: string;
   createdAt: string;
   updatedAt: string;
   /** Audiencia; [] = GLOBAL (toda la universidad). */

@@ -113,7 +113,10 @@ export const useSesionStore = create<SesionStore>((set, get) => ({
     if (!claims) {
       throw new Error('Token inválido: claims no decodificables');
     }
-    await persistToken(token);
+    // El estado se actualiza ANTES de persistir: las queries del (app) que
+    // arrancan tras el login nunca ven el token viejo de SecureStore (ventana
+    // que causaba 401 + rebote a login). Si la app muere antes de persistir,
+    // la sesión solo no queda recordada; sin efecto negativo.
     set({
       token,
       usuario: usuarioFromClaims(claims),
@@ -121,6 +124,7 @@ export const useSesionStore = create<SesionStore>((set, get) => ({
       pushDeshabilitado: false,
       hidratado: true,
     });
+    await persistToken(token);
   },
 
   setDispositivo: (id: string | null) => {
