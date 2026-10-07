@@ -2,12 +2,16 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { BellIcon } from 'phosphor-react-native';
 
-import { colors, radius, spacing } from '@/shared/ui';
+import { colors, radius, spacing, typography, fontFamily } from '@/shared/ui';
+import { ThemedText } from '@/shared/ui';
+import { formatearBadge } from '../hooks/badge';
 
 /**
- * Campana con punto naranja (accent/urgent) si hay no leídas; navega a la
- * bandeja (/notificaciones). Componente del módulo Notificaciones: lo
- * consumen el header de Perfil (vía tabs/_layout) y el Home.
+ * Campana con badge naranja si hay no leídas; navega a la bandeja
+ * (/notificaciones). Componente del módulo Notificaciones: lo consumen
+ * los headers de las tabs (vía HeaderTab action) y el header nativo.
+ * Badge = cifra en pill ("9+"/"99+") — triage real. El naranja es SU
+ * territorio único en la app (Regla Naranja Exclusiva de DESIGN.md).
  */
 export function CampanaConBadge({
   total,
@@ -18,7 +22,6 @@ export function CampanaConBadge({
   tono?: 'azul' | 'claro';
 }) {
   const color = tono === 'azul' ? colors.text.onPrimary : colors.brand.primary;
-  const puntoDerecha = tono === 'azul' ? spacing.lg : spacing.lg;
   return (
     <Pressable
       accessibilityRole="button"
@@ -27,22 +30,43 @@ export function CampanaConBadge({
       }
       onPress={() => router.push('/notificaciones')}
       hitSlop={8}
-      style={styles.zona}>
+      style={estilos.zona}>
       <BellIcon size={24} color={color} weight="bold" />
       {total > 0 ? (
-        <View style={[styles.punto, { right: puntoDerecha, backgroundColor: colors.accent.urgent }]} />
+        <View style={estilos.pill}>
+          <ThemedText
+            variant="caption"
+            weight="bold"
+            style={estilos.cifraBadge}>
+            {formatearBadge(total)}
+          </ThemedText>
+        </View>
       ) : null}
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+const estilos = StyleSheet.create({
   zona: { paddingHorizontal: spacing.lg, paddingVertical: spacing.xs },
-  punto: {
+  pill: {
     position: 'absolute',
-    top: spacing.half,
-    width: 8,
-    height: 8,
+    top: 0,
+    right: spacing.xs,
+    backgroundColor: colors.accent.urgent,
     borderRadius: radius.pill,
+    minWidth: 17,
+    height: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xs / 2,
+    borderWidth: 2,
+    borderColor: colors.bg.canvas,
+  },
+  cifraBadge: {
+    color: colors.text.onPrimary,
+    fontFamily: fontFamily.bold,
+    fontSize: 10,
+    lineHeight: typography.size.caption,
   },
 });
+

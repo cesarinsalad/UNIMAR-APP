@@ -31,6 +31,7 @@ import { colors, layout, spacing } from '@/shared/ui';
 import {
   Card,
   EmptyState,
+  HeaderTab,
   SectionHeader,
   ThemedButton,
   ThemedText,
@@ -97,12 +98,10 @@ export default function CalendarioScreen() {
             tintColor={colors.brand.primary}
           />
         }>
-        <View style={estilos.cabecera}>
-          <ThemedText variant="headline" weight="semibold">
-            Agenda
-          </ThemedText>
-          <CampanaConBadge total={noLeidas.data?.total ?? 0} tono="claro" />
-        </View>
+        <HeaderTab
+          titulo="Agenda"
+          action={<CampanaConBadge total={noLeidas.data?.total ?? 0} tono="claro" />}
+        />
 
         <View style={estilos.filaMes}>
           <View style={estilos.espacioSimetrico} />
@@ -172,12 +171,12 @@ export default function CalendarioScreen() {
           />
         )}
 
-        <ThemedView variant="base" style={estilos.seccionDia}>
-          <ThemedText variant="bodyLg" weight="semibold">
+        <Card style={estilos.seccionDia} paddingV="md">
+          <ThemedText variant="body" weight="semibold">
             {tituloDia(seleccion)}
           </ThemedText>
           <EventosDelDia eventos={eventosDelDia(grupos, seleccion)} />
-        </ThemedView>
+        </Card>
 
         {agenda.isFetchingNextPage ? (
           <ThemedText variant="caption" tone="tertiary" style={estilos.footer}>
@@ -247,12 +246,6 @@ const estilos = StyleSheet.create({
     paddingHorizontal: layout.screenPadding,
     paddingBottom: layout.bottomTabInset * 1.5,
   },
-  cabecera: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.lg,
-  },
   filaMes: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -296,11 +289,7 @@ const estilos = StyleSheet.create({
   },
   seccionDia: {
     marginTop: spacing.xl,
-    padding: spacing.lg,
     gap: spacing.md,
-    borderRadius: 20,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border.subtle,
   },
   centro: {
     alignItems: 'center',

@@ -14,13 +14,14 @@ interface TonosCodigo {
 
 /**
  * Tono del badge de código, determinístico por el código mismo: la API no
- * manda color, pero el diseño exige variedad estable por materia (azul
- * corporativo, naranja acento, verde de éxito — fondos tintados al 12%).
+ * manda color, pero el diseño exige variedad estable por materia. Paleta
+ * 100% institucional — el accent naranja queda reservado a notificaciones
+ * (Regla Naranja Exclusiva de DESIGN.md).
  */
 const PALETA_CODIGO: TonosCodigo[] = [
   { fondo: colors.brand.surfaceBlue, texto: colors.brand.primary },
-  { fondo: `${colors.accent.urgent}1F`, texto: colors.accent.urgent },
-  { fondo: `${colors.status.success}1F`, texto: colors.status.success },
+  { fondo: `${colors.status.success}1A`, texto: colors.status.success },
+  { fondo: `${colors.text.secondary}14`, texto: colors.text.secondary },
 ];
 
 export function tonalidadesCodigo(codigo: string): TonosCodigo {

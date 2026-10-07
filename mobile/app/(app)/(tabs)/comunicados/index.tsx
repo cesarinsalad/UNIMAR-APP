@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -11,13 +10,17 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { aplanarPaginas } from '@/shared/lib/paginar';
-import { colors, layout, radius, spacing } from '@/shared/ui';
+import { colors, layout, spacing } from '@/shared/ui';
 import {
+  CargandoSeccion,
+  Chip,
   EmptyState,
+  HeaderTab,
   SectionHeader,
   ThemedText,
   ThemedView,
 } from '@/shared/ui';
+import { usePermisos } from '@/features/identidad/hooks/usePermisos';
 import { useComunicadosFeed } from '@/features/comunicaciones/hooks/useComunicadosFeed';
 import { NoticiaCompacta } from '@/features/comunicaciones/components/NoticiaCompacta';
 import { NoticiaDestacada } from '@/features/comunicaciones/components/NoticiaDestacada';
@@ -45,6 +48,7 @@ const DIAS_EVENTOS = 7;
 export default function ComunicadosScreen() {
   const insets = useSafeAreaInsets();
   const noLeidas = useNoLeidas();
+  const permisos = usePermisos();
   const [chipActivo, setChipActivo] = useState<string | null>(null);
   const feed = useComunicadosFeed(chipActivo);
 
@@ -88,40 +92,37 @@ export default function ComunicadosScreen() {
             colors={[colors.brand.primary]}
           />
         }>
-        {/* ── Encabezado: título + campana ── */}
-        <View style={estilos.encabezado}>
-          <ThemedText variant="headline" weight="semibold" numberOfLines={1}>
-            Noticias y Eventos
-          </ThemedText>
-          <CampanaConBadge total={noLeidas.data?.total ?? 0} tono="claro" />
-        </View>
+        {/* ── Encabezado: título + campana (+ Gestionar para staff) ── */}
+        <HeaderTab
+          titulo="Noticias"
+          action={<CampanaConBadge total={noLeidas.data?.total ?? 0} tono="claro" />}
+        />
+
+        {/* ── Gestionar (COMUNICADOR/ADMIN): la puerta del flujo de staff ── */}
+        {permisos.puedeCrearComunicado ? (
+          <Chip
+            etiqueta="Gestionar mis comunicados"
+            activa={false}
+            onPress={() => router.push('/comunicados/mis')}
+            style={{ alignSelf: 'flex-start' }}
+          />
+        ) : null}
 
         {/* ── Chips de categoría ── */}
         <View style={estilos.chips}>
-          {CHIPS.map((chip) => {
-            const activo = chip.valor === chipActivo;
-            return (
-              <Pressable
-                key={chip.etiqueta}
-                onPress={() => setChipActivo(chip.valor)}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: activo }}>
-                <ThemedView variant={activo ? 'sunken' : 'elevated'} style={estilos.chip}>
-                  <ThemedText
-                    variant="bodySm"
-                    weight={activo ? 'semibold' : 'medium'}
-                    style={{ color: activo ? colors.text.onPrimary : colors.text.primary }}>
-                    {chip.etiqueta}
-                  </ThemedText>
-                </ThemedView>
-              </Pressable>
-            );
-          })}
+          {CHIPS.map((chip) => (
+            <Chip
+              key={chip.etiqueta}
+              etiqueta={chip.etiqueta}
+              activa={chip.valor === chipActivo}
+              onPress={() => setChipActivo(chip.valor)}
+            />
+          ))}
         </View>
 
         {/* ── Destacada ── */}
         {feed.isPending ? (
-          <Esperando />
+          <CargandoSeccion />
         ) : destacada ? (
           <NoticiaDestacada comunicado={destacada} />
         ) : (
@@ -146,11 +147,11 @@ export default function ComunicadosScreen() {
         {/* ── Eventos del campus ── */}
         <View style={estilos.seccion}>
           <SectionHeader
-            title="Eventos del Campus"
+            title="Eventos del campus"
             action={
               <Pressable onPress={() => router.navigate('/calendario')} hitSlop={8}>
                 <ThemedText variant="bodySm" weight="semibold" style={estilos.enlace}>
-                  Ver más
+                  Ver agenda →
                 </ThemedText>
               </Pressable>
             }
@@ -175,14 +176,6 @@ export default function ComunicadosScreen() {
 }
 
 /** Spinner del feed. */
-function Esperando() {
-  return (
-    <View style={estilos.esperando}>
-      <ActivityIndicator color={colors.brand.primary} />
-    </View>
-  );
-}
-
 const estilos = StyleSheet.create({
   pantalla: { flex: 1, backgroundColor: colors.bg.canvas },
   scroll: {
@@ -190,20 +183,9 @@ const estilos = StyleSheet.create({
     paddingBottom: layout.bottomTabInset + spacing.lg,
     gap: spacing.lg,
   },
-  encabezado: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.two },
-  chip: {
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xs,
-  },
   seccion: { gap: spacing.md },
   lista: { gap: spacing.md },
   enlace: { color: colors.brand.primary },
   vacio: { paddingVertical: spacing.xs },
-  esperando: { padding: spacing.xl, alignItems: 'center' },
 });

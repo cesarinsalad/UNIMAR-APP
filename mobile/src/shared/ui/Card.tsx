@@ -11,6 +11,11 @@ export interface CardProps {
   /** Padding vertical; si se omite usa `padding` (regla: ≤ horizontal). */
   paddingV?: keyof typeof spacing;
   elevationKey?: keyof typeof elevation;
+  /**
+   * File-rule institucional: barra superior 3px color-estado que convierte
+   * la tarjeta en "expediente" (firma del sistema). null = sin barra.
+   */
+  fileRule?: string | null;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -25,6 +30,7 @@ export function Card({
   paddingH,
   paddingV,
   elevationKey = 'sm',
+  fileRule,
   style,
 }: CardProps) {
   const elev = elevation[elevationKey];
@@ -41,6 +47,7 @@ export function Card({
         },
         style,
       ]}>
+      {fileRule ? <View style={[styles.fileRule, { backgroundColor: fileRule }]} /> : null}
       {children}
     </View>
   );
@@ -82,6 +89,15 @@ const styles = StyleSheet.create({
   base: {
     backgroundColor: colors.bg.surface,
     borderRadius: radius.card,
+  },
+  fileRule: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    borderTopLeftRadius: radius.card,
+    borderTopRightRadius: radius.card,
   },
   pressed: {
     opacity: 0.85,

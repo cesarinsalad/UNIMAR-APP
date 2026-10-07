@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { MapPin, User } from 'phosphor-react-native';
 
 import { colors, elevation, radius, spacing } from '@/shared/ui';
-import { ThemedText, ThemedView } from '@/shared/ui';
+import { ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
 import type { ProximaClase } from '../proxima-clase';
 
 const FORMATO_HORA = new Intl.DateTimeFormat('es-VE', { timeStyle: 'short' });
@@ -12,10 +12,13 @@ const FORMATO_HORA = new Intl.DateTimeFormat('es-VE', { timeStyle: 'short' });
 export function ProximaClaseCard({
   clase,
   mensajeVacio = 'Sin clases próximas',
+  accionVacio,
 }: {
   clase: ProximaClase | null;
   /** Texto de la variante informativa (roles sin horario o agenda vacía). */
   mensajeVacio?: string;
+  /** Acción opcional del estado vacío (ej. ir a la Agenda). */
+  accionVacio?: { etiqueta: string; onPress: () => void };
 }) {
   if (!clase) {
     return (
@@ -26,12 +29,20 @@ export function ProximaClaseCard({
         <ThemedText variant="body" tone="tertiary">
           Tu horario no registra clases en los próximos días.
         </ThemedText>
+        {accionVacio ? (
+          <ThemedButton
+            title={accionVacio.etiqueta}
+            variant="secondary"
+            size="sm"
+            onPress={accionVacio.onPress}
+          />
+        ) : null}
       </ThemedView>
     );
   }
 
   const { materia, minutosRestantes, enCurso } = clase;
-  const pill = enCurso ? 'CLASE EN CURSO' : `PRÓXIMA CLASE · EN ${minutosRestantes} MIN`;
+  const pill = enCurso ? 'Clase en curso' : `Próxima clase · en ${minutosRestantes} min`;
 
   function abrirMateria() {
     router.push(`/academico/materias/${materia.id}` as Parameters<typeof router.push>[0]);
@@ -92,7 +103,7 @@ const estilos = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
   },
-  textoPill: { color: colors.brand.primary },
+  textoPill: { color: colors.brand.primary, letterSpacing: 0.4 },
   hora: { opacity: 0.85 },
   datoInsensible: { opacity: 0.75 },
   filaMeta: {
@@ -105,7 +116,7 @@ const estilos = StyleSheet.create({
   texto: { opacity: 0.92 },
   vacia: {
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: spacing.sm,
     padding: spacing.lg,
   },
 });

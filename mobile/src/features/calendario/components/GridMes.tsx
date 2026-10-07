@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { colors, radius, spacing, fontFamily, typography } from '@/shared/ui';
+import { colors, radius, spacing, typography } from '@/shared/ui';
 import { ThemedText } from '@/shared/ui';
 import type { CeldaDia, TipoPunto } from '../calendario-calculo';
 
@@ -81,7 +81,7 @@ function Celda({
   return (
     <Pressable style={estilos.celda} onPress={() => onSeleccionar(celda.clave)}>
       <View style={[estilos.contenidoCelda, fondo]}>
-        <ThemedText variant="body" style={{ color: colorTexto, fontFamily: fontFamily.bold }}>
+        <ThemedText variant="body" style={{ color: colorTexto }}>
           {String(celda.dia).padStart(2, '0')}
         </ThemedText>
         {punto ? <View style={[estilos.punto, { backgroundColor: colorPunto(punto) }]} /> : null}
@@ -116,9 +116,8 @@ const estilos = StyleSheet.create({
   },
   etiquetaSemana: {
     color: colors.text.primary,
-    fontWeight: '600',
-    fontFamily: fontFamily.semibold,
     fontSize: typography.size.caption,
+    lineHeight: typography.lineHeight.caption,
   },
   celdaHoy: {
     backgroundColor: colors.brand.surfaceBlue,

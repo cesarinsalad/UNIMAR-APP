@@ -17,7 +17,7 @@ import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import { usePerfil } from '@/features/academico/hooks/usePerfil';
 import { CarnetDigital, inicialesDe } from '@/features/identidad/components/CarnetDigital';
 import { colors, layout, radius, spacing } from '@/shared/ui';
-import { ThemedText, ThemedView } from '@/shared/ui';
+import { HeaderTab, ThemedText, ThemedView } from '@/shared/ui';
 import { CampanaConBadge } from '@/features/notificaciones/components/CampanaConBadge';
 import { useNoLeidas } from '@/features/notificaciones/hooks/useNoLeidas';
 
@@ -41,12 +41,10 @@ export default function PerfilScreen() {
           },
         ]}
         showsVerticalScrollIndicator={false}>
-        <View style={estilos.cabecera}>
-          <ThemedText variant="headline" weight="semibold">
-            Perfil
-          </ThemedText>
-          <CampanaConBadge total={noLeidas.data?.total ?? 0} tono="claro" />
-        </View>
+        <HeaderTab
+          titulo="Perfil"
+          action={<CampanaConBadge total={noLeidas.data?.total ?? 0} tono="claro" />}
+        />
 
         <TarjetaIdentidad abreCarnet={() => setCarnetAbierto(true)} perfil={perfil} />
         <TarjetaPensum />
@@ -90,6 +88,7 @@ function TarjetaIdentidad({
 
   return (
     <ThemedView variant="card" style={estilos.tarjetaIdentidad}>
+      <View style={estilos.fileRule} />
       <View style={estilos.filaIdentidad}>
         <View style={estilos.avatar}>
           <ThemedText variant="title" weight="semibold" style={estilos.avatarTexto}>
@@ -285,18 +284,22 @@ const estilos = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg.canvas,
   },
+  fileRule: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    backgroundColor: colors.brand.primary,
+    borderTopLeftRadius: radius.card,
+    borderTopRightRadius: radius.card,
+  },
   scroll: {
     paddingVertical: spacing.md,
     paddingHorizontal: layout.screenPadding,
     gap: spacing.lg,
   },
-  cabecera: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.md,
-  },
-  tarjetaIdentidad: { gap: spacing.md },
+  tarjetaIdentidad: { gap: spacing.md, overflow: 'hidden' },
   filaIdentidad: {
     flexDirection: 'row',
     alignItems: 'center',

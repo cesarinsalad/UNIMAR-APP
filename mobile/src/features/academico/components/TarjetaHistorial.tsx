@@ -15,6 +15,7 @@ import { colorNotaClases } from './MateriaActualCard';
 export function TarjetaHistorial({ historicas }: { historicas: MateriaHistoricaDTO[] }) {
   return (
     <ThemedView variant="card" style={estilos.tarjeta}>
+      <View style={estilos.fileRule} />
       {historicas.map((materia, indice) => (
         <Fragment key={materia.id}>
           {indice > 0 ? <View style={estilos.divisor} /> : null}
@@ -35,7 +36,7 @@ export function TarjetaHistorial({ historicas }: { historicas: MateriaHistoricaD
               variant="title"
               weight="bold"
               style={{ color: colorNotaClases(materia.nota_final) }}>
-              {materia.nota_final === null ? '—' : Math.trunc(materia.nota_final).toString()}
+              {materia.nota_final === null ? '—' : Math.round(materia.nota_final).toString()}
             </ThemedText>
           </Pressable>
         </Fragment>
@@ -53,6 +54,17 @@ function navegar(id: string) {
 const estilos = StyleSheet.create({
   tarjeta: {
     paddingVertical: spacing.xs,
+    overflow: 'hidden',
+  },
+  fileRule: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    backgroundColor: colors.brand.primary,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
   fila: {
     flexDirection: 'row',

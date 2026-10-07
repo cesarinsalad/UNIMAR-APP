@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 
 import { colors, spacing, radius } from '@/shared/ui';
 import { ThemedText, ThemedView } from '@/shared/ui';
+import { etiquetaAudiencia } from '@/shared/lib/etiquetas';
 
 export interface EventoResumen {
   id: string;
@@ -13,6 +14,9 @@ export interface EventoResumen {
   finAt?: string | null;
   diaCompleto: boolean;
   lugar: string | null;
+  decanatoIds?: number[];
+  /** compacto: filas de una sola línea (listas del día), sin caption tipo. */
+  compacta?: boolean;
 }
 
 /** Barra lateral de la tarjeta: azul corporativo (OFICIAL) o gris (PERSONAL). */
@@ -23,8 +27,10 @@ export function colorBarra(tipo: 'OFICIAL' | 'PERSONAL'): string {
 const FORMATO_MES_CORTO = new Intl.DateTimeFormat('es-VE', { month: 'short' });
 
 /**
- * Tarjeta de "Próximos eventos" estilo mock: bloque de fecha (día grande +
- * mes corto), barra lateral de color por tipo y fila hora/lugar.
+ * LA receta de evento del sistema (motivo "bloque de fecha"): día grande +
+ * mes en tinta azul, barra lateral de color por tipo, hora y lugar. Única
+ * forma para la entidad — la repetición entre Inicio/Noticias/Agenda es la
+ * firma. `compacta` la reduce a una fila para listas densas.
  */
 export function TarjetaProximoEvento({ evento }: { evento: EventoResumen }) {
   const inicio = new Date(evento.inicioAt);
@@ -44,6 +50,13 @@ export function TarjetaProximoEvento({ evento }: { evento: EventoResumen }) {
         </View>
         <View style={[estilos.barra, { backgroundColor: colorBarra(evento.tipo) }]} />
         <View style={estilos.cuerpo}>
+          {evento.decanatoIds && !evento.compacta ? (
+            <ThemedText variant="caption" tone="tertiary" numberOfLines={1}>
+              {evento.tipo === 'OFICIAL'
+                ? `Evento oficial · ${etiquetaAudiencia(evento.decanatoIds)}`
+                : 'Evento personal'}
+            </ThemedText>
+          ) : null}
           <ThemedText variant="body" weight="medium" numberOfLines={1}>
             {evento.titulo}
           </ThemedText>
