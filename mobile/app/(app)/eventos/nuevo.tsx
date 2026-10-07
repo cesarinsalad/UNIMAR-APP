@@ -6,12 +6,12 @@ import {
   ScrollView,
   StyleSheet,
   Switch,
-  TextInput,
   View,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ArrowLeftIcon, CalendarBlankIcon, ClockIcon } from 'phosphor-react-native';
 
 import {
   crearEvento,
@@ -32,8 +32,18 @@ import { useDecanatos } from '@/features/identidad/hooks/useDecanatos';
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import { ApiError } from '@/shared/api/axios';
 import { colors, radius, spacing } from '@/shared/ui';
-import { ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
+import {
+  BotonCircular,
+  Select,
+  TextField,
+  ThemedButton,
+  ThemedText,
+  ThemedView,
+} from '@/shared/ui';
 
+/** Formulario crear/editar evento (estilo mock): back circular + campos en
+ *  cajas blancas con pickers nativos. El mismo screen sirve de editor via
+ *  `?id=`; en edición el tipo se congela (el contrato no deja cambiarlo). */
 export default function FormularioEventoScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const esEdicion = Boolean(id);
@@ -55,10 +65,7 @@ export default function FormularioEventoScreen() {
   const [tipo, setTipo] = useState<'OFICIAL' | 'PERSONAL'>('PERSONAL');
 
   const [inicio, setInicio] = useState<Date>(() => nuevaFechaSana());
-  const [fin, setFin] = useState<Date | null>(() => finPredeterminado(proxima()));
-  function proxima(): Date {
-    return nuevaFechaSana();
-  }
+  const [fin, setFin] = useState<Date | null>(() => finPredeterminado(nuevaFechaSana()));
 
   const crear = useMutacionEvento(crearEvento);
   const editar = useMutacionEvento((patch: Omit<Partial<InputEvento>, 'tipo'>) =>
@@ -180,18 +187,21 @@ export default function FormularioEventoScreen() {
 
   return (
     <SafeAreaView style={estilos.safe}>
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: esEdicion ? 'Editar evento' : 'Nuevo evento',
-          headerStyle: { backgroundColor: colors.primary },
-          headerTintColor: colors.text.onPrimary,
-        }}
-      />
+      <Stack.Screen options={{ headerShown: false }} />
       <KeyboardAvoidingView
         style={estilos.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={estilos.scroll}>
+        <ScrollView contentContainerStyle={estilos.scroll} showsVerticalScrollIndicator={false}>
+          <View style={estilos.cabecera}>
+            <BotonCircular label="Volver" onPress={() => router.back()}>
+              <ArrowLeftIcon size={20} color={colors.brand.primary} weight="bold" />
+            </BotonCircular>
+            <ThemedText variant="subtitle" weight="semibold" style={estilos.tituloFecha}>
+              {tituloFecha(inicio)}
+            </ThemedText>
+            <View style={estilos.espacioSimetrico} />
+          </View>
+
           {puedeElegirTipo ? (
             <View style={estilos.filaChips}>
               {(['PERSONAL', 'OFICIAL'] as const).map((t) => (
@@ -212,103 +222,98 @@ export default function FormularioEventoScreen() {
             </ThemedText>
           ) : null}
 
-          <Campo label={`Título — ${titulo.length}/200`} error={errores.titulo}>
-            <TextInput
-              value={titulo}
-              onChangeText={setTitulo}
-              maxLength={200}
-              editable={!pendiente}
-              style={estilos.input}
-              placeholder="Ej. Examen de Bases de Datos II"
-              placeholderTextColor={colors.text.tertiary}
-            />
-          </Campo>
+          <TextField
+            label="Título"
+            value={titulo}
+            onChangeText={setTitulo}
+            maxLength={200}
+            editable={!pendiente}
+            placeholder="Ej. Examen Circuitos Eléctricos"
+            error={errores.titulo ?? undefined}
+          />
 
-          <Campo label={`Descripción — ${descripcion.length}/2000`} error={errores.descripcion}>
-            <TextInput
-              value={descripcion}
-              onChangeText={setDescripcion}
-              multiline
-              maxLength={2000}
-              textAlignVertical="top"
-              editable={!pendiente}
-              style={[estilos.input, estilos.textarea]}
-              placeholder="Detalles del evento (opcional)"
-              placeholderTextColor={colors.text.tertiary}
-            />
-          </Campo>
+          <BloqueFecha
+            etiqueta="Fecha"
+            fecha={inicio}
+            onChange={(d) => {
+              setInicio(d);
+              if (conFin) setFin(finPredeterminado(d));
+            }}
+          />
 
-          <Campo label={`Lugar — ${lugar.length}/120`} error={errores.lugar}>
-            <TextInput
-              value={lugar}
-              onChangeText={setLugar}
-              maxLength={120}
-              editable={!pendiente}
-              style={estilos.input}
-              placeholder="Ej. Aula 16, Laboratorio 2"
-              placeholderTextColor={colors.text.tertiary}
+          <ThemedText variant="bodySm" tone="primary">
+            Hora
+          </ThemedText>
+          <View style={estilos.filaHoras}>
+            <ColumnaHora
+              etiqueta="Empieza"
+              valor={inicio}
+              disabled={pendiente || diaCompleto}
+              idPrueba="hora-inicio"
+              onChange={(d) => setInicio(d)}
             />
-          </Campo>
-
-          <View style={estilos.filaSwitch}>
-            <ThemedText variant="body">Todo el día</ThemedText>
+            {conFin ? (
+              <ColumnaHora
+                etiqueta="Termina"
+                valor={fin ?? finPredeterminado(inicio)}
+                disabled={pendiente || diaCompleto}
+                idPrueba="hora-fin"
+                onChange={(d) => setFin(d)}
+              />
+            ) : null}
+          </View>
+          <View style={estilos.filaTodoDia}>
+            <ThemedText variant="bodySm" tone="secondary">
+              ¿Todo el día?
+            </ThemedText>
             <Switch
               value={diaCompleto}
               onValueChange={aplicarDiaCompleto}
               disabled={pendiente}
-              trackColor={{ true: colors.primary as string, false: colors.border.subtle }}
+              trackColor={{ true: colors.brand.primary as string, false: colors.border.subtle }}
             />
           </View>
-
-          {diaCompleto ? (
-            <ThemedText variant="caption" tone="secondary">
-              {inicio.toLocaleDateString('es-VE', { dateStyle: 'long' })} — todos el día
-            </ThemedText>
-          ) : (
-            <>
-              <BloqueFecha
-                clave="inicio"
-                etiqueta="Inicio"
-                fecha={inicio}
-                conHora
-                onChange={(d) => {
-                  setInicio(d);
-                  if (conFin) setFin(finPredeterminado(d));
-                }}
-              />
-              {conFin ? (
-                <BloqueFecha
-                  clave="fin"
-                  etiqueta="Fin"
-                  fecha={fin ?? finPredeterminado(inicio)}
-                  conHora
-                  onChange={(d) => setFin(d)}
-                />
-              ) : null}
-              <Pressable onPress={() => setConFin((v) => !v)}>
-                <ThemedText variant="caption" weight="semibold" style={estilos.accionTextual}>
-                  {conFin ? 'Quitar hora de fin' : 'Añadir hora de fin'}
-                </ThemedText>
-              </Pressable>
-            </>
+          {diaCompleto ? null : (
+            <Pressable onPress={() => setConFin((v) => !v)}>
+              <ThemedText variant="caption" weight="semibold" style={estilos.accionTextual}>
+                {conFin ? 'Quitar hora de fin' : 'Añadir hora de fin'}
+              </ThemedText>
+            </Pressable>
           )}
 
-          <Campo label="Recordatorio">
-            <View style={estilos.filaChips}>
-              {PRESETS_RECORDATORIO.map((preset) => (
-                <Pressable key={preset.etiqueta} onPress={() => setRecordatorio(preset.minutos)}>
-                  <ThemedView
-                    variant={recordatorio === preset.minutos ? 'sunken' : 'elevated'}
-                    style={estilos.chip}>
-                    <ThemedText
-                      variant="caption"
-                      weight={recordatorio === preset.minutos ? 'semibold' : 'regular'}>
-                      {preset.etiqueta}
-                    </ThemedText>
-                  </ThemedView>
-                </Pressable>
-              ))}
-            </View>
+          <TextField
+            label="Ubicación"
+            value={lugar}
+            onChangeText={setLugar}
+            maxLength={120}
+            editable={!pendiente}
+            placeholder="Ej. Aula 16"
+            error={errores.lugar ?? undefined}
+          />
+
+          <TextField
+            label="Descripción"
+            value={descripcion}
+            onChangeText={setDescripcion}
+            multiline
+            maxLength={2000}
+            textAlignVertical="top"
+            editable={!pendiente}
+            placeholder="Detalles del evento (opcional)"
+            style={estilos.textarea}
+            error={errores.descripcion ?? undefined}
+          />
+
+          <Campo label="Alerta">
+            <Select<number | null>
+              valor={recordatorio}
+              opciones={PRESETS_RECORDATORIO.map((p) => ({
+                valor: p.minutos,
+                etiqueta: p.minutos === null ? 'Sin alerta' : p.etiqueta,
+              }))}
+              onChange={setRecordatorio}
+              placeholder="Sin alerta"
+            />
           </Campo>
 
           {tipo === 'OFICIAL' ? (
@@ -366,10 +371,11 @@ export default function FormularioEventoScreen() {
           ) : null}
 
           <ThemedButton
-            title={esEdicion ? 'Guardar cambios' : 'Crear evento'}
+            title={esEdicion ? 'Guardar Evento' : 'Guardar Evento'}
             onPress={guardar}
             loading={pendiente}
             disabled={pendiente}
+            variant="primary"
           />
         </ScrollView>
       </KeyboardAvoidingView>
@@ -377,48 +383,44 @@ export default function FormularioEventoScreen() {
   );
 }
 
-/** Par de fecha/hora nativo (decisión 4b: pickers del sistema). */
+/** "Jueves, 15 de octubre" (sin año, estilo mock) con mayúscula inicial. */
+function tituloFecha(fecha: Date): string {
+  const texto = fecha.toLocaleDateString('es-VE', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
+/** Campo de fecha único con picker nativo. */
 function BloqueFecha({
-  clave,
   etiqueta,
   fecha,
-  conHora,
   onChange,
 }: {
-  clave: string;
   etiqueta: string;
   fecha: Date;
-  conHora: boolean;
   onChange: (d: Date) => void;
 }) {
   const [verFecha, setVerFecha] = useState(false);
-  const [verHora, setVerHora] = useState(false);
   const esIos = Platform.OS === 'ios';
 
   return (
     <View style={estilos.campo}>
-      <ThemedText variant="caption" tone="secondary">
+      <ThemedText variant="bodySm" tone="primary">
         {etiqueta}
       </ThemedText>
-      <View style={estilos.filaFechas}>
-        <Pressable onPress={() => setVerFecha(true)}>
-          <ThemedView variant="elevated" style={estilos.chip}>
-            <ThemedText variant="body">
-              {fecha.toLocaleDateString('es-VE', { dateStyle: 'medium' })}
-            </ThemedText>
-          </ThemedView>
-        </Pressable>
-        {conHora ? (
-          <Pressable onPress={() => setVerHora(true)}>
-            <ThemedView variant="elevated" style={estilos.chip}>
-              <ThemedText variant="body">
-                {fecha.toLocaleTimeString('es-VE', { timeStyle: 'short' })}
-              </ThemedText>
-            </ThemedView>
-          </Pressable>
-        ) : null}
-      </View>
-
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={etiqueta}
+        onPress={() => setVerFecha(true)}
+        style={({ pressed }) => [estilos.cajaHora, pressed && { opacity: 0.85 }]}>
+        <CalendarBlankIcon size={18} color={colors.text.secondary} />
+        <ThemedText variant="body">
+          {fecha.toLocaleDateString('es-VE', { dateStyle: 'medium' })}
+        </ThemedText>
+      </Pressable>
       {verFecha ? (
         <DateTimePicker
           value={fecha}
@@ -435,24 +437,61 @@ function BloqueFecha({
               onChange(conservada);
             }
           }}
-          testID={`fecha-${clave}`}
+          testID="fecha-inicio"
         />
       ) : null}
-      {verHora && conHora ? (
+    </View>
+  );
+}
+
+/** Columna de hora con caja blanca + picker nativo. */
+function ColumnaHora({
+  etiqueta,
+  valor,
+  disabled,
+  idPrueba,
+  onChange,
+}: {
+  etiqueta: string;
+  valor: Date;
+  disabled: boolean;
+  idPrueba: string;
+  onChange: (d: Date) => void;
+}) {
+  const [verHora, setVerHora] = useState(false);
+  const esIos = Platform.OS === 'ios';
+
+  return (
+    <View style={estilos.columnaHora}>
+      <ThemedText variant="bodySm" tone="secondary">
+        {etiqueta}
+      </ThemedText>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={etiqueta}
+        disabled={disabled}
+        onPress={() => setVerHora(true)}
+        style={({ pressed }) => [estilos.cajaHora, pressed && { opacity: 0.85 }]}>
+        <ClockIcon size={18} color={colors.text.secondary} />
+        <ThemedText variant="body">
+          {valor.toLocaleTimeString('es-VE', { timeStyle: 'short' })}
+        </ThemedText>
+      </Pressable>
+      {verHora ? (
         <DateTimePicker
-          value={fecha}
+          value={valor}
           mode="time"
           display={esIos ? 'spinner' : 'default'}
           onChange={(e, nueva) => {
             if (!esIos) setVerHora(false);
             if (nueva) {
-              const conservada = new Date(fecha);
+              const conservada = new Date(valor);
               conservada.setHours(nueva.getHours());
               conservada.setMinutes(nueva.getMinutes());
               onChange(conservada);
             }
           }}
-          testID={`hora-${clave}`}
+          testID={idPrueba}
         />
       ) : null}
     </View>
@@ -469,8 +508,8 @@ function Campo({
   children: React.ReactNode;
 }) {
   return (
-    <ThemedView variant="base" style={estilos.campo}>
-      <ThemedText variant="caption" tone="secondary">
+    <View style={estilos.campo}>
+      <ThemedText variant="bodySm" tone="primary">
         {label}
       </ThemedText>
       {children}
@@ -479,7 +518,7 @@ function Campo({
           {error}
         </ThemedText>
       ) : null}
-    </ThemedView>
+    </View>
   );
 }
 
@@ -492,59 +531,75 @@ function nuevaFechaSana(): Date {
 const estilos = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: colors.background.base,
+    backgroundColor: colors.bg.canvas,
   },
   flex: { flex: 1 },
   centro: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.six,
+    padding: spacing.xl,
   },
   scroll: {
-    padding: spacing.four,
-    gap: spacing.four,
+    padding: spacing.lg,
+    gap: spacing.lg,
+  },
+  cabecera: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  tituloFecha: {
+    flex: 1,
+    textAlign: 'center',
+  },
+  espacioSimetrico: {
+    width: 40,
   },
   campo: {
-    gap: spacing.one,
+    gap: spacing.xs,
   },
-  input: {
+  filaHoras: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  columnaHora: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+  cajaHora: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.bg.surface,
+    borderRadius: radius.input,
     borderWidth: 1,
     borderColor: colors.border.subtle,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.three,
-    paddingVertical: spacing.three,
-    fontSize: 16,
-    color: colors.text.primary,
-    backgroundColor: colors.background.base,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    minHeight: 44,
   },
-  textarea: {
-    minHeight: 100,
+  filaTodoDia: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   filaChips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.two,
-    marginTop: spacing.one,
+    gap: spacing.sm,
   },
   chip: {
-    paddingHorizontal: spacing.three,
-    paddingVertical: spacing.two,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     borderRadius: radius.pill,
   },
-  filaFechas: {
-    flexDirection: 'row',
-    gap: spacing.two,
-    marginTop: spacing.one,
-  },
-  filaSwitch: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingRight: spacing.two,
+  textarea: {
+    minHeight: 110,
   },
   accionTextual: {
-    color: colors.primary,
+    color: colors.brand.primary,
     textDecorationLine: 'underline',
   },
   errorTexto: {

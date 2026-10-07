@@ -4,7 +4,7 @@ import { StyleSheet, TextInput, View, type TextInputProps, type ViewStyle } from
 import { colors, fontFamily, radius, spacing } from './theme';
 import { ThemedText } from './ThemedText';
 
-export interface TextFieldProps extends Omit<TextInputProps, 'numberOfLines' | 'multiline'> {
+export interface TextFieldProps extends Omit<TextInputProps, 'numberOfLines'> {
   label?: string;
   hint?: string;
   error?: string;

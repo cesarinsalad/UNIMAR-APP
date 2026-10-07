@@ -86,9 +86,9 @@ describe('ajustarDiaCompleto', () => {
 });
 
 describe('PRESETS_RECORDATORIO', () => {
-  it('los 4 presets pactados y el primero es "sin recordatorio"', () => {
-    expect(PRESETS_RECORDATORIO).toHaveLength(4);
-    expect(PRESETS_RECORDATORIO.map((p) => p.minutos)).toEqual([null, 15, 60, 1440]);
+  it('los 5 presets pactados y el primero es "sin recordatorio"', () => {
+    expect(PRESETS_RECORDATORIO).toHaveLength(5);
+    expect(PRESETS_RECORDATORIO.map((p) => p.minutos)).toEqual([null, 15, 30, 60, 1440]);
   });
 });
 
@@ -120,7 +120,8 @@ describe('etiquetaRecordatorioMinutos', () => {
   });
 
   it.each([
-    [15, 'Avisa 15 min antes'],
+    [15, 'Avisa 15 minutos antes'],
+    [30, 'Avisa 30 minutos antes'],
     [60, 'Avisa 1 hora antes'],
     [1440, 'Avisa 1 día antes'],
   ])('preset %v → %s', (minutos, esperado) => {

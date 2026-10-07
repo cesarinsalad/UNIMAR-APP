@@ -89,9 +89,10 @@ export interface PresetRecordatorio {
 
 export const PRESETS_RECORDATORIO: PresetRecordatorio[] = [
   { etiqueta: 'Sin recordatorio', minutos: null },
-  { etiqueta: '15 min', minutos: 15 },
-  { etiqueta: '1 hora', minutos: 60 },
-  { etiqueta: '1 día', minutos: 1440 },
+  { etiqueta: '15 minutos antes', minutos: 15 },
+  { etiqueta: '30 minutos antes', minutos: 30 },
+  { etiqueta: '1 hora antes', minutos: 60 },
+  { etiqueta: '1 día antes', minutos: 1440 },
 ];
 
 /**
@@ -102,7 +103,7 @@ export const PRESETS_RECORDATORIO: PresetRecordatorio[] = [
 export function etiquetaRecordatorioMinutos(minutos: number | null): string | null {
   if (minutos === null) return null;
   const preset = PRESETS_RECORDATORIO.find((p) => p.minutos === minutos);
-  if (preset) return `Avisa ${preset.etiqueta.toLowerCase()} antes`;
+  if (preset) return `Avisa ${preset.etiqueta.replace(/ antes$/, '').toLowerCase()} antes`;
   if (minutos < 60) return `Avisa ${minutos} min antes`;
   if (minutos % 60 === 0) {
     const horas = minutos / 60;

@@ -1,26 +1,29 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { colors, radius, typography } from '@/shared/ui';
-import type { CeldaDia } from '../calendario-calculo';
+import { colors, radius, spacing, fontFamily, typography } from '@/shared/ui';
+import { ThemedText } from '@/shared/ui';
+import type { CeldaDia, TipoPunto } from '../calendario-calculo';
 
-const DIAS_SEMANA = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+const DIAS_SEMANA = ['LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB', 'DOM'];
 
 interface Props {
   semanas: CeldaDia[][];
-  /** Claves de día que tienen eventos (celdas con punto). */
-  conEventos: ReadonlySet<string>;
+  /** Tipo de punto por día (OFICIAL azul / PERSONAL naranja). */
+  puntos: ReadonlyMap<string, TipoPunto>;
   seleccionado: string | null;
   onSeleccionar: (clave: string) => void;
 }
 
 /** Grid mensual de celdas (FlexWrap de 7 columnas), lunes primero. */
-export function GridMes({ semanas, conEventos, seleccionado, onSeleccionar }: Props) {
+export function GridMes({ semanas, puntos, seleccionado, onSeleccionar }: Props) {
   return (
     <View>
       <View style={estilos.fila}>
         {DIAS_SEMANA.map((letra) => (
-          <View key={letra} style={estilos.celda}>
-            <Text style={estilos.etiquetaSemana}>{letra}</Text>
+          <View key={letra} style={[estilos.celda, estilos.centro]}>
+            <ThemedText variant="caption" style={estilos.etiquetaSemana}>
+              {letra}
+            </ThemedText>
           </View>
         ))}
       </View>
@@ -30,7 +33,7 @@ export function GridMes({ semanas, conEventos, seleccionado, onSeleccionar }: Pr
             <Celda
               key={celda.clave}
               celda={celda}
-              conEventos={conEventos}
+              puntos={puntos}
               seleccionado={seleccionado}
               onSeleccionar={onSeleccionar}
             />
@@ -43,35 +46,53 @@ export function GridMes({ semanas, conEventos, seleccionado, onSeleccionar }: Pr
 
 function Celda({
   celda,
-  conEventos,
+  puntos,
   seleccionado,
   onSeleccionar,
 }: {
   celda: CeldaDia;
-  conEventos: ReadonlySet<string>;
+  puntos: ReadonlyMap<string, TipoPunto>;
   seleccionado: string | null;
   onSeleccionar: (clave: string) => void;
 }) {
+  if (!celda.delMes) {
+    // Día de otro mes (altura fija del grid 6x7): visible pero atenuado,
+    // no interactivo (no selecciona, no muestra puntos).
+    return (
+      <View style={estilos.celda}>
+        <View style={estilos.contenidoCelda}>
+          <ThemedText variant="body" style={{ color: colors.text.secondary }}>
+            {String(celda.dia).padStart(2, '0')}
+          </ThemedText>
+        </View>
+      </View>
+    );
+  }
   const esSeleccionado = celda.clave === seleccionado;
-  const fondo = celda.esHoy
-    ? estilos.celdaHoy
-    : esSeleccionado
-      ? estilos.celdaSeleccionada
+  // La selección gana sobre "hoy": nunca mezclar fondo claro con texto blanco.
+  const fondo = esSeleccionado
+    ? estilos.celdaSeleccionada
+    : celda.esHoy
+      ? estilos.celdaHoy
       : null;
-  const colorTexto = esSeleccionado
-    ? colors.text.onPrimary
-    : celda.delMes
-      ? colors.text.primary
-      : colors.text.tertiary;
+  const colorTexto = esSeleccionado ? colors.text.onPrimary : colors.text.primary;
+  const punto = puntos.get(celda.clave);
 
   return (
-    <Pressable onPress={() => onSeleccionar(celda.clave)}>
-      <View style={[estilos.celda, fondo]}>
-        <Text style={[estilos.cifra, { color: colorTexto }]}>{celda.dia}</Text>
-        {conEventos.has(celda.clave) ? <View style={estilos.punto} /> : null}
+    <Pressable style={estilos.celda} onPress={() => onSeleccionar(celda.clave)}>
+      <View style={[estilos.contenidoCelda, fondo]}>
+        <ThemedText variant="body" style={{ color: colorTexto, fontFamily: fontFamily.bold }}>
+          {String(celda.dia).padStart(2, '0')}
+        </ThemedText>
+        {punto ? <View style={[estilos.punto, { backgroundColor: colorPunto(punto) }]} /> : null}
       </View>
     </Pressable>
   );
+}
+
+/** Azul corporativo = evento UNIMAR (OFICIAL); naranja = personal. */
+export function colorPunto(tipo: TipoPunto): string {
+  return tipo === 'OFICIAL' ? colors.brand.primary : colors.accent.urgent;
 }
 
 const estilos = StyleSheet.create({
@@ -81,34 +102,35 @@ const estilos = StyleSheet.create({
   celda: {
     flex: 1,
     aspectRatio: 1,
+    margin: 1,
+  },
+  contenidoCelda: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radius.sm,
+    borderRadius: radius.pill,
+  },
+  centro: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   etiquetaSemana: {
-    color: colors.text.tertiary,
-    fontSize: typography.size.caption,
+    color: colors.text.primary,
     fontWeight: '600',
-  },
-  cifra: {
-    fontSize: typography.size.body,
+    fontFamily: fontFamily.semibold,
+    fontSize: typography.size.caption,
   },
   celdaHoy: {
-    backgroundColor: colors.background.sunken,
-    borderWidth: 1,
-    borderColor: colors.accent.urgent,
+    backgroundColor: colors.brand.surfaceBlue,
   },
   celdaSeleccionada: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.brand.primary,
   },
   punto: {
     width: 5,
     height: 5,
-    borderRadius: 3,
-    // STYLE.md §1: el naranja es el acento designado para "puntos de estado
-    // en el calendario" — sobre selección azul y sobre celda neutra contrasta.
-    backgroundColor: colors.accent.urgent,
+    borderRadius: spacing.xs,
     position: 'absolute',
-    bottom: 4,
+    bottom: spacing.xs,
   },
 });

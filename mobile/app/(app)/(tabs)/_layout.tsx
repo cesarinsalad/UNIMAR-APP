@@ -136,23 +136,13 @@ export default function TabsLayout() {
         name="calendario"
         options={{
           title: 'Agenda',
+          headerShown: false,
           tabBarIcon: ({ focused }) =>
             focused ? (
               <CalendarBlankIcon size={26} color={focused ? colors.brand.primary : colors.text.primary} weight="duotone" />
             ) : (
               <CalendarBlankIcon size={26} color={focused ? colors.brand.primary : colors.text.primary} weight="duotone" />
             ),
-          headerRight: () => (
-            <Pressable onPress={() => router.push('/eventos/nuevo')}>
-              <ThemedText
-                variant="body"
-                weight="semibold"
-                tone="onPrimary"
-                style={{ paddingHorizontal: spacing.lg }}>
-                + Evento
-              </ThemedText>
-            </Pressable>
-          ),
         }}
       />
       <Tabs.Screen

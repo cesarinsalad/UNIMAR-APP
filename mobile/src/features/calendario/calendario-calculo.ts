@@ -39,6 +39,9 @@ export interface CeldaDia {
   esHoy: boolean;
 }
 
+/** Categoría del punto del grid: azul (Oficial UNIMAR) o naranja (Personal). */
+export type TipoPunto = 'OFICIAL' | 'PERSONAL';
+
 export interface MatrizMes {
   semanas: CeldaDia[][];
   /** Claves con al menos un evento (para los puntos del grid). */
@@ -111,7 +114,7 @@ export function matrizMes(year: number, mesLocal: number, hoy: Date = new Date()
 
 export interface GrupoDia {
   clave: string;
-  eventos: Array<{ id: string; titulo: string; tipo: 'OFICIAL' | 'PERSONAL'; inicioAt: string; diaCompleto: boolean; lugar: string | null; decanatoIds: number[] }>;
+  eventos: Array<{ id: string; titulo: string; tipo: 'OFICIAL' | 'PERSONAL'; inicioAt: string; finAt?: string | null; diaCompleto: boolean; lugar: string | null; decanatoIds: number[] }>;
 }
 
 /**
@@ -124,6 +127,7 @@ export function agruparPorDia(
     titulo: string;
     tipo: 'OFICIAL' | 'PERSONAL';
     inicioAt: string;
+    finAt?: string | null;
     diaCompleto: boolean;
     lugar: string | null;
     decanatoIds: number[];

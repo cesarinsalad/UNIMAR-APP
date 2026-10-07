@@ -78,7 +78,8 @@ export default function AcademicoScreen() {
   }
 
   return (
-    <ScrollView
+    <ThemedView variant="base" style={estilos.pantalla}>
+      <ScrollView
       contentContainerStyle={[
         estilos.scroll,
         {
@@ -141,7 +142,8 @@ export default function AcademicoScreen() {
           message="Tus materias aprobadas y reprobadas aparecerán aquí."
         />
       )}
-    </ScrollView>
+      </ScrollView>
+    </ThemedView>
   );
 }
 
@@ -160,6 +162,10 @@ function EstadoCentrado({
 }
 
 const estilos = StyleSheet.create({
+  pantalla: {
+    flex: 1,
+    backgroundColor: colors.bg.canvas,
+  },
   scroll: {
     padding: spacing.lg,
   },

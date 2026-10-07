@@ -18,6 +18,8 @@ export { Header, type HeaderProps } from './Header';
 export { Card, PressableCard, type CardProps, type PressableCardProps } from './Card';
 export { Badge, type BadgeProps } from './Badge';
 export { TextField, type TextFieldProps } from './TextField';
+export { Select, type SelectProps, type OpcionSelect } from './Select';
+export { BotonCircular } from './BotonCircular';
 export { SectionHeader, type SectionHeaderProps } from './SectionHeader';
 export { ListItem, type ListItemProps } from './ListItem';
 export { EmptyState, type EmptyStateProps } from './EmptyState';
