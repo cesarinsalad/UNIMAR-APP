@@ -7,6 +7,7 @@ interface ComunicadoRow {
   titulo: string;
   cuerpo: string;
   autor_id: string;
+  autor_nombre: string;
   estado: Estado;
   aprobado_por: string | null;
   motivo_rechazo: string | null;
@@ -14,6 +15,8 @@ interface ComunicadoRow {
   programado_para: Date | null;
   expira_at: Date | null;
   imagen_path: string | null;
+  imagen_pie: string | null;
+  categoria: string | null;
   created_at: Date;
   updated_at: Date;
   decanato_ids: number[];
@@ -31,16 +34,26 @@ function mapRow(row: ComunicadoRow): Comunicado {
     publicadoAt: row.publicado_at,
     programadoPara: row.programado_para,
     expiraAt: row.expira_at,
-    imagenPath: row.imagen_path,
+    // ?? null: tolera DB sin migrar (columnas nuevas ausentes en c.*) —
+    // undefined rompería el gate `!== null` del cliente y las puertas lógicas.
+    imagenPath: row.imagen_path ?? null,
+    imagenPie: row.imagen_pie ?? null,
+    categoria: (row.categoria as Comunicado['categoria']) ?? null,
+    autorNombre: row.autor_nombre,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     decanatoIds: row.decanato_ids ?? [],
   };
 }
 
+// `autor_nombre` viene de una subquery escalar contra `usuarios`
+// (tabla del módulo Identidad — misma DB, JOIN de lectura puro: sin cruce
+// de código entre módulos). Subquery en vez de JOIN para notene tocar el
+// GROUP BY c.id (el JOIN forzaría agrupar por u.nombre: error 42803).
 const BASE_SELECT = `
   SELECT
     c.*,
+    (SELECT u.nombre FROM usuarios u WHERE u.id = c.autor_id) AS autor_nombre,
     COALESCE(array_agg(ca.decanato_id) FILTER (WHERE ca.decanato_id IS NOT NULL), '{}') AS decanato_ids
   FROM comunicados c
   LEFT JOIN comunicado_audiencias ca ON ca.comunicado_id = c.id
@@ -64,13 +77,14 @@ export class PostgresComunicadoRepository implements IComunicadoRepository {
       autorId: string;
       programadoPara: string | null;
       expiraAt: string | null;
+      categoria: string | null;
     },
   ): Promise<Comunicado> {
     const insert = await tx.query<{ id: string }>(
-      `INSERT INTO comunicados (titulo, cuerpo, autor_id, programado_para, expira_at)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO comunicados (titulo, cuerpo, autor_id, programado_para, expira_at, categoria)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING id`,
-      [input.titulo, input.cuerpo, input.autorId, input.programadoPara, input.expiraAt],
+      [input.titulo, input.cuerpo, input.autorId, input.programadoPara, input.expiraAt, input.categoria],
     );
     const id = insert.rows[0]?.id;
     if (!id) {
@@ -109,7 +123,7 @@ export class PostgresComunicadoRepository implements IComunicadoRepository {
 
   async listar(
     tx: DbTx,
-    filtro: { estado?: Estado; limit: number; offset: number },
+    filtro: { estado?: Estado; categoria?: string; limit: number; offset: number },
   ): Promise<Comunicado[]> {
     const params: (string | number)[] = [];
     const where: string[] = [];
@@ -117,6 +131,10 @@ export class PostgresComunicadoRepository implements IComunicadoRepository {
     if (filtro.estado) {
       params.push(filtro.estado);
       where.push(`c.estado = $${params.length}`);
+    }
+    if (filtro.categoria) {
+      params.push(filtro.categoria);
+      where.push(`c.categoria = $${params.length}`);
     }
 
     const whereSql = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
@@ -137,11 +155,12 @@ export class PostgresComunicadoRepository implements IComunicadoRepository {
       cuerpo?: string;
       programadoPara?: string | null;
       expiraAt?: string | null;
+      categoria?: string | null;
       decanatoIds?: number[];
     },
   ): Promise<Comunicado | null> {
     const sets: string[] = [];
-    const values: (string | null)[] = [];
+    const values: (string | Date | null)[] = [];
 
     if (input.titulo !== undefined) {
       sets.push(`titulo = $${sets.length + 1}`);
@@ -158,6 +177,10 @@ export class PostgresComunicadoRepository implements IComunicadoRepository {
     if (input.expiraAt !== undefined) {
       sets.push(`expira_at = $${sets.length + 1}`);
       values.push(input.expiraAt);
+    }
+    if (input.categoria !== undefined) {
+      sets.push(`categoria = $${sets.length + 1}`);
+      values.push(input.categoria);
     }
 
     if (sets.length > 0) {
@@ -247,11 +270,12 @@ export class PostgresComunicadoRepository implements IComunicadoRepository {
     tx: DbTx,
     id: string,
     imagenPath: string | null,
+    imagenPie: string | null,
   ): Promise<Comunicado | null> {
-    await tx.query('UPDATE comunicados SET imagen_path = $1 WHERE id = $2', [
-      imagenPath,
-      id,
-    ]);
+    await tx.query(
+      'UPDATE comunicados SET imagen_path = $1, imagen_pie = $2 WHERE id = $3',
+      [imagenPath, imagenPie, id],
+    );
     return this.buscarPorId(tx, id);
   }
 }
