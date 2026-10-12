@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Tabs, router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   CalendarBlankIcon,
   GraduationCapIcon,
@@ -28,7 +29,6 @@ interface TabBarProps {
     }
   >;
   navigation: { dispatch: (action: { type: string; payload?: object }) => void };
-  insets: { bottom: number };
 }
 
 /** Tab bar flotante estilo Figma, 100% propia:
@@ -37,8 +37,14 @@ interface TabBarProps {
  *  Los iconos viven en el `tabBarIcon` de cada Tabs.Screen; el texto, en su
  *  `title`, de modo que el bar no depende del naming de rutas anidadas. */
 function TabBarFlotante({ state, descriptors, navigation }: TabBarProps) {
-  // Knob de posición vertical: `+ spacing.xs` es el aire sobre el home indicator.
-  const bottom = Platform.OS === 'ios' ? spacing.xl : spacing.lg;
+  const insets = useSafeAreaInsets();
+  // Posición vertical: iOS conserva su aire aprobado (24px fijos; el
+  // home-indicator ya vive con su aire). Android consume el inset REAL:
+  // gesture-nav ≈ 24px de aire, 3-button nav ≈ 48px — la pill SIEMPRE
+  // flota encima de los botones del sistema, nunca compite por su zona.
+  const bottom = Platform.OS === 'ios'
+    ? spacing.xl
+    : Math.max(insets.bottom, spacing.lg) + spacing.xs;
 
   return (
     <View style={[styles.tabBar, { bottom }]}>
@@ -57,7 +63,12 @@ function TabBarFlotante({ state, descriptors, navigation }: TabBarProps) {
             onPress={() => navigation.dispatch({ type: 'JUMP_TO', payload: { name: route.name } })}
             style={styles.item}>
             {options?.tabBarIcon?.({ focused: activo, color, size: 26 })}
-            <ThemedText variant="caption" weight={activo ? 'semibold' : 'medium'} style={{ color }}>
+            <ThemedText
+              variant="caption"
+              weight={activo ? 'semibold' : 'medium'}
+              numberOfLines={1}
+              maxFontSizeMultiplier={1.2}
+              style={{ color }}>
               {titulo}
             </ThemedText>
           </Pressable>
@@ -169,7 +180,7 @@ const styles = StyleSheet.create({
     left: spacing.sm,
     right: spacing.sm,
     height: 72,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     flexDirection: 'row',
     borderRadius: radius.pill,
     backgroundColor: colors.bg.surface,

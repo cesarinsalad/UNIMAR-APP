@@ -74,7 +74,13 @@ export default function HomeScreen() {
   return (
     <ThemedView variant="base" style={estilos.pantalla}>
       <ScrollView
-        contentContainerStyle={[estilos.scroll, { paddingTop: insets.top + spacing.lg }]}
+        contentContainerStyle={[
+          estilos.scroll,
+          {
+            paddingTop: insets.top + spacing.lg,
+            paddingBottom: insets.bottom + layout.bottomTabInset + spacing.lg,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -176,7 +182,6 @@ const estilos = StyleSheet.create({
   pantalla: { flex: 1, backgroundColor: colors.bg.canvas },
   scroll: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: layout.bottomTabInset + spacing.lg,
     gap: spacing.xl,
   },
   seccion: { gap: spacing.md },

@@ -7,7 +7,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { CaretLeftIcon, CaretRightIcon, PlusIcon } from 'phosphor-react-native';
 
@@ -47,6 +47,7 @@ import { useNoLeidas } from '@/features/notificaciones/hooks/useNoLeidas';
  * OFICIAL/PERSONAL la decide RLS en el BFF.
  */
 export default function CalendarioScreen() {
+  const insets = useSafeAreaInsets();
   const hoy = useMemo(() => new Date(), []);
   const noLeidas = useNoLeidas();
   const [posicion, setPosicion] = useState<[number, number]>([hoy.getFullYear(), hoy.getMonth()]);
@@ -86,7 +87,13 @@ export default function CalendarioScreen() {
   return (
     <SafeAreaView style={estilos.safe}>
       <ScrollView
-        contentContainerStyle={estilos.scroll}
+        contentContainerStyle={[
+          estilos.scroll,
+          {
+            paddingTop: spacing.lg,
+            paddingBottom: insets.bottom + layout.bottomTabInset + spacing.lg,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -244,7 +251,6 @@ const estilos = StyleSheet.create({
   scroll: {
     paddingVertical: spacing.lg,
     paddingHorizontal: layout.screenPadding,
-    paddingBottom: layout.bottomTabInset * 1.5,
   },
   filaMes: {
     flexDirection: 'row',
