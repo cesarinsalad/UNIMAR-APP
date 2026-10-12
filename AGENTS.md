@@ -12,6 +12,7 @@ Tesis de Ingeniería de Sistemas. Backend completado; mobile completo (5 pasos).
 ### Backend (raíz)
 ```bash
 npm run dev          # BFF en http://localhost:3000 (requiere Supabase arriba)
+npm run dev:all      # Un comando: supabase start + BFF + Metro (dev build Android) con prefijos [supa,bff,metro]
 npm test             # Unit tests (sin DB)
 npm run test:db      # Integration RLS (requiere Supabase, RUN_DB_TESTS=1 interno)
 npm run typecheck

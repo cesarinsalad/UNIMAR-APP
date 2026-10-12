@@ -105,9 +105,19 @@ Aplica a ambas variantes: solo si cambian **dependencias nativas** (`package.jso
 
 ## 📡 Parte B — Rutina de arranque (cada sesión)
 
-> Con el APK ya instalado (Parte A), la sesión diaria solo levanta backend + Metro. Si prefieres compilar/instalar todo en un paso: `npx expo run:android --device` ya arranca Metro al final.
+> Con el APK ya instalado (Parte A), la sesión diaria solo levanta backend + Metro.
 
-### Paso B1 — Backend (Terminal 1, raíz del repo)
+### ⚡ Paso B0 — Todo en un comando (recomendado)
+```bash
+npm run dev:all
+```
+- Un solo comando desde la raíz: **Supabase (idempotente) + BFF + Metro** con prefijos coloreados `[supa]`, `[bff]`, `[metro]` en la misma terminal.
+- `Ctrl+C` termina todo el grupo (flag `-k`), sin procesos huérfanos.
+- Si algo falla: verificar Docker Desktop abierto (ver troubleshooting: `ECONNREFUSED 127.0.0.1:54322`).
+- Si prefieres compilar/instalar todo en un paso: `npx expo run:android --device` también arranca Metro al final.
+- **Idempotente:** ✅ Sí.
+
+### Paso B1 — Backend (Terminal 1, raíz del repo) — ruta granular manual
 ```bash
 npx supabase start
 npx supabase migration up
@@ -117,7 +127,7 @@ npm run dev
 - **Para push real:** en `.env` poner `PUSH_PROVIDER=expo` (hoy el default es `mock`, que solo loguea en consola del BFF).
 - **Idempotente:** ✅ Sí.
 
-### Paso B2 — Metro con dev client (Terminal 2, `mobile/`)
+### Paso B2 — Metro con dev client (Terminal 2, `mobile/`) — ruta granular manual
 ```bash
 cd mobile
 npx expo start --dev-client
