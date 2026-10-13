@@ -84,9 +84,11 @@ export async function prepararRutaInicial(): Promise<void> {
 export async function ensureCanalAndroid(): Promise<void> {
   // Los channels son concepto Android; en el resto de plataformas no hay nada que crear.
   if (Platform.OS !== 'android') return;
+  // Sin key `sound`: el nativo aplica el sonido por defecto del sistema
+  // (pasar 'default' dispara la validación customSoundExists y falla,
+  // porque no es un archivo en el bundle).
   await Notifications.setNotificationChannelAsync('default', {
     name: 'UNIMARapp',
     importance: Notifications.AndroidImportance.HIGH,
-    sound: 'default',
   });
 }

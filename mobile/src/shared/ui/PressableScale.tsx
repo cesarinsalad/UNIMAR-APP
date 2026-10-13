@@ -8,8 +8,6 @@ import {
 } from 'react-native';
 import Animated, { useReducedMotion } from 'react-native-reanimated';
 
-const CURVA = 'cubic-bezier(0.23, 1, 0.32, 1)';
-
 export interface PressableScaleProps extends Omit<PressableProps, 'style'> {
   children?: ReactNode;
   /** Estilo del contenido animado (la tarjeta/fila que respira al presionar). */
@@ -56,7 +54,9 @@ const estilos = StyleSheet.create({
   transicion: {
     transitionProperty: 'transform',
     transitionDuration: '120ms',
-    transitionTimingFunction: CURVA,
+    // Reanimated CSS solo acepta funciones predefinidas en nativo
+    // (no cubic-bezier): ease-out es la equivalente para este micro-momento.
+    transitionTimingFunction: 'ease-out',
   },
   presionado: { transform: [{ scale: 0.97 }] },
   presionReducido: { opacity: 0.85 },
