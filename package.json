@@ -6,7 +6,8 @@
   "license": "UNLICENSED",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "dev:all": "concurrently -k -n supa,bff,metro -c cyan,green,magenta \"npx supabase start\" \"npm run dev\" \"npm --prefix mobile run start -- --dev-client\"",
+    "predev:all": "npx supabase start",
+    "dev:all": "concurrently -k -n bff,metro -c green,magenta \"npm run dev\" \"npm --prefix mobile run start -- --dev-client\"",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "test": "vitest run",
