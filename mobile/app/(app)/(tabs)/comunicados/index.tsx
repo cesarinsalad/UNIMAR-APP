@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import {
   RefreshControl,
   ScrollView,
@@ -31,27 +31,18 @@ import { useAgenda } from '@/features/calendario/hooks/useAgenda';
 import { CampanaConBadge } from '@/features/notificaciones/components/CampanaConBadge';
 import { useNoLeidas } from '@/features/notificaciones/hooks/useNoLeidas';
 
-/** Chips de categoría (valor = wire snake_case; null = 'Todas'). */
-const CHIPS: { valor: string | null; etiqueta: string }[] = [
-  { valor: null, etiqueta: 'Todas' },
-  { valor: 'ACADEMICO', etiqueta: 'Académico' },
-  { valor: 'EVENTO', etiqueta: 'Eventos' },
-  { valor: 'INSTITUCIONAL', etiqueta: 'Institucional' },
-];
-
 const DIAS_EVENTOS = 7;
 
 /**
- * Tab de Noticias: encabezado claro con campana, chips de categoría,
- * tarjeta destacada, "últimas noticias" en filas compactas y eventos del
- * campus de la semana. La visibilidad de datos la decide RLS en el BFF.
+ * Tab de Noticias: encabezado claro con campana, tarjeta destacada,
+ * "últimas noticias" en filas compactas y eventos del campus de la
+ * semana. La visibilidad de datos la decide RLS en el BFF.
  */
 export default function ComunicadosScreen() {
   const insets = useSafeAreaInsets();
   const noLeidas = useNoLeidas();
   const permisos = usePermisos();
-  const [chipActivo, setChipActivo] = useState<string | null>(null);
-  const feed = useComunicadosFeed(chipActivo);
+  const feed = useComunicadosFeed();
 
   const eventos = useAgenda(useMemo(() => ventanaDias(new Date(), DIAS_EVENTOS), []));
 
@@ -114,18 +105,6 @@ export default function ComunicadosScreen() {
             style={{ alignSelf: 'flex-start' }}
           />
         ) : null}
-
-        {/* ── Chips de categoría ── */}
-        <View style={estilos.chips}>
-          {CHIPS.map((chip) => (
-            <Chip
-              key={chip.etiqueta}
-              etiqueta={chip.etiqueta}
-              activa={chip.valor === chipActivo}
-              onPress={() => setChipActivo(chip.valor)}
-            />
-          ))}
-        </View>
 
         {/* ── Destacada ── */}
         {feed.isPending ? (
@@ -196,7 +175,6 @@ const estilos = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     gap: spacing.lg,
   },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.two },
   seccion: { gap: spacing.md },
   lista: { gap: spacing.md },
   enlace: { color: colors.brand.primary },
