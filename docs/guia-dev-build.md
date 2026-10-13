@@ -111,9 +111,11 @@ Aplica a ambas variantes: solo si cambian **dependencias nativas** (`package.jso
 ```bash
 npm run dev:all
 ```
-- Un solo comando desde la raíz: **Supabase (idempotente) + BFF + Metro** con prefijos coloreados `[supa]`, `[bff]`, `[metro]` en la misma terminal.
-- `Ctrl+C` termina todo el grupo (flag `-k`), sin procesos huérfanos.
-- Si algo falla: verificar Docker Desktop abierto (ver troubleshooting: `ECONNREFUSED 127.0.0.1:54322`).
+- Un solo comando desde la raíz, en dos fases de npm lifecycle:
+  1. `predev:all` corre **`npx supabase start`** secuencialmente (idempotente: no-op de ~2 s si el stack ya está arriba; levanta los contenedores si no).
+  2. `dev:all` entonces arranca en paralelo **BFF + Metro** con prefijos coloreados `[bff]`, `[metro]`.
+- `Ctrl+C` termina el dúo BFF/Metro completo (flag `-k`), sin procesos huérfanos.
+- Si algo falla: verificar Docker Desktop abierto (ver troubleshooting: `ECONNREFUSED 127.0.0.1:54322`); los contenedores **no** arrancan solos ni al abrir Docker Desktop.
 - Si prefieres compilar/instalar todo en un paso: `npx expo run:android --device` también arranca Metro al final.
 - **Idempotente:** ✅ Sí.
 
