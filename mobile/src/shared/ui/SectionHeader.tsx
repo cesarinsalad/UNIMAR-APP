@@ -10,7 +10,7 @@ export interface SectionHeaderProps {
   style?: ViewStyle;
 }
 
-/** Título de sección (subtitle/SemiBold) con acción opcional. */
+/** Título de sección (subtitle/SemiBold) con acción opcional (texto o nodo). */
 export function SectionHeader({ title, action, style }: SectionHeaderProps) {
   return (
     <View style={[styles.container, style]}>
@@ -18,9 +18,13 @@ export function SectionHeader({ title, action, style }: SectionHeaderProps) {
         {title}
       </ThemedText>
       {action ? (
-        <ThemedText variant="bodySm" weight="medium" style={styles.action}>
-          {action}
-        </ThemedText>
+        typeof action === 'string' ? (
+          <ThemedText variant="bodySm" weight="medium" style={styles.action}>
+            {action}
+          </ThemedText>
+        ) : (
+          action
+        )
       ) : null}
     </View>
   );

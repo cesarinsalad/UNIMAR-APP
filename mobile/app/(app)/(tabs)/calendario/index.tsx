@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -25,13 +24,14 @@ import {
 import { aplanarPaginas } from '@/shared/lib/paginar';
 import { useAgenda } from '@/features/calendario/hooks/useAgenda';
 import { EventosDelDia } from '@/features/calendario/components/EventosDelDia';
-import { GridMes } from '@/features/calendario/components/GridMes';
+import { GridMes, type InfoDia } from '@/features/calendario/components/GridMes';
 import { TarjetaProximoEvento } from '@/features/calendario/components/TarjetaProximoEvento';
 import { colors, layout, spacing } from '@/shared/ui';
 import {
   Card,
   EmptyState,
   HeaderTab,
+  PressableScale,
   SectionHeader,
   ThemedButton,
   ThemedText,
@@ -62,10 +62,10 @@ export default function CalendarioScreen() {
   const grupos = useMemo(() => agruparPorDia(eventosMes), [eventosMes]);
 
   const puntos = useMemo(() => {
-    const mapa = new Map<string, TipoPunto>();
+    const mapa = new Map<string, InfoDia>();
     for (const grupo of grupos) {
       const tipo: TipoPunto = todosOficial(grupo) ? 'OFICIAL' : 'PERSONAL';
-      mapa.set(grupo.clave, tipo);
+      mapa.set(grupo.clave, { tipo, cantidad: grupo.eventos.length });
     }
     return mapa;
   }, [grupos]);
@@ -112,27 +112,30 @@ export default function CalendarioScreen() {
 
         <View style={estilos.filaMes}>
           <View style={estilos.espacioSimetrico} />
-          <Pressable
+          <PressableScale
             accessibilityRole="button"
             accessibilityLabel="Mes anterior"
+            hitSlop={12}
             onPress={() => navegar(-1)}>
             <CaretLeftIcon size={22} color={colors.brand.primary} />
-          </Pressable>
+          </PressableScale>
           <ThemedText variant="subtitle" weight="semibold" style={estilos.etiquetaMes}>
             {etiquetaMes(ventana.etiqueta)}
           </ThemedText>
-          <Pressable
+          <PressableScale
             accessibilityRole="button"
             accessibilityLabel="Siguiente mes"
+            hitSlop={12}
             onPress={() => navegar(1)}>
             <CaretRightIcon size={22} color={colors.brand.primary} />
-          </Pressable>
-          <Pressable
+          </PressableScale>
+          <PressableScale
             accessibilityRole="button"
             accessibilityLabel="Agregar evento"
+            hitSlop={12}
             onPress={() => router.push('/eventos/nuevo')}>
             <PlusIcon size={24} color={colors.brand.primary} weight="bold" />
-          </Pressable>
+          </PressableScale>
         </View>
 
         <Card style={estilos.tarjetaCalendario} paddingV="md">
@@ -219,8 +222,12 @@ function eventosDelDia(grupos: GrupoDia[], clave: string) {
 }
 
 function ItemLeyenda({ color, etiqueta }: { color: string; etiqueta: string }) {
+  const tinta = color === colors.brand.primary ? 'azul' : 'naranja';
   return (
-    <View style={estilos.itemLeyenda}>
+    <View
+      style={estilos.itemLeyenda}
+      accessible
+      accessibilityLabel={`${etiqueta}: punto ${tinta}`}>
       <View style={[estilos.puntoLeyenda, { backgroundColor: color }]} />
       <ThemedText variant="caption" tone="secondary">
         {etiqueta}

@@ -1,10 +1,11 @@
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 
-import { colors, radius, spacing } from '@/shared/ui';
-import { Badge, ThemedText, ThemedView } from '@/shared/ui';
+import { radius, spacing } from '@/shared/ui';
+import { Badge, PressableScale, ThemedText, ThemedView } from '@/shared/ui';
 import { haceRelativo, minutosLectura } from '@/shared/lib/tiempo';
 import { etiquetaCategoria } from '../helpers';
+import { PortadaPlaceholder } from './PortadaPlaceholder';
 import { usePortada } from '../hooks/usePortada';
 import type { Comunicado } from '../types';
 
@@ -20,12 +21,15 @@ export function NoticiaCompacta({ comunicado }: { comunicado: Comunicado }) {
   }
 
   return (
-    <Pressable onPress={abrir} accessibilityRole="button">
+    <PressableScale
+      onPress={abrir}
+      accessibilityRole="button"
+      accessibilityLabel={comunicado.titulo}>
       <ThemedView variant="card" style={estilos.fila}>
         {portada.url ? (
           <Image source={{ uri: portada.url }} style={estilos.thumb} resizeMode="cover" />
         ) : (
-          <View style={[estilos.thumb, estilos.thumbPlaceholder]} />
+          <PortadaPlaceholder style={estilos.thumb} tamanoIcono={20} />
         )}
         <View style={estilos.textos}>
           <Badge label={etiquetaCategoria(comunicado)} tone="info" />
@@ -37,7 +41,7 @@ export function NoticiaCompacta({ comunicado }: { comunicado: Comunicado }) {
           </ThemedText>
         </View>
       </ThemedView>
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -54,7 +58,6 @@ const estilos = StyleSheet.create({
     height: TAM_THUMB,
     borderRadius: radius.md,
   },
-  thumbPlaceholder: { backgroundColor: colors.brand.surfaceBlue },
   textos: {
     flex: 1,
     gap: spacing.xs,

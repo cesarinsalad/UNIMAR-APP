@@ -1,9 +1,9 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { MapPinIcon, UserIcon } from 'phosphor-react-native';
 
 import { colors, radius, spacing } from '@/shared/ui';
-import { ThemedText, ThemedView } from '@/shared/ui';
+import { PressableScale, ThemedText, ThemedView } from '@/shared/ui';
 import { colorNota, formatoNota2, notaAcumulada } from '../helpers';
 import type { CorteDTO, MateriaActualDTO } from '../types';
 
@@ -69,8 +69,9 @@ function ColumnaCorte({ corte }: { corte: CorteDTO | undefined }) {
 export function MateriaActualCard({ materia }: { materia: MateriaActualDTO }) {
   const tonos = tonalidadesCodigo(materia.codigo);
   return (
-    <Pressable onPress={navegar(materia.id)} accessibilityRole="button">
+    <PressableScale onPress={navegar(materia.id)} accessibilityRole="button">
       <ThemedView variant="card" style={estilos.tarjeta}>
+        <View style={estilos.fileRule} />
         <View style={estilos.cabecera}>
           <View style={[estilos.badge, { backgroundColor: tonos.fondo }]}>
             <ThemedText
@@ -111,7 +112,7 @@ export function MateriaActualCard({ materia }: { materia: MateriaActualDTO }) {
               Acumulada
             </ThemedText>
             <ThemedText
-              variant="title"
+              variant="headline"
               weight="bold"
               style={{ color: colorNotaClases(notaAcumulada(materia.cortes)) }}>
               {formatoNota2(notaAcumulada(materia.cortes))}
@@ -119,7 +120,7 @@ export function MateriaActualCard({ materia }: { materia: MateriaActualDTO }) {
           </View>
         </View>
       </ThemedView>
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -132,6 +133,17 @@ function navegar(id: string) {
 const estilos = StyleSheet.create({
   tarjeta: {
     gap: spacing.sm,
+    overflow: 'hidden',
+  },
+  fileRule: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    backgroundColor: colors.brand.primary,
+    borderTopLeftRadius: radius.card,
+    borderTopRightRadius: radius.card,
   },
   cabecera: {
     flexDirection: 'row',

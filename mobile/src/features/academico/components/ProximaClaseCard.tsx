@@ -1,9 +1,9 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { MapPin, User } from 'phosphor-react-native';
 
 import { colors, elevation, radius, spacing } from '@/shared/ui';
-import { ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
+import { PressableScale, ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
 import type { ProximaClase } from '../proxima-clase';
 
 const FORMATO_HORA = new Intl.DateTimeFormat('es-VE', { timeStyle: 'short' });
@@ -22,7 +22,7 @@ export function ProximaClaseCard({
 }) {
   if (!clase) {
     return (
-      <ThemedView variant="elevated" style={estilos.vacia}>
+      <ThemedView variant="card" style={estilos.vacia}>
         <ThemedText variant="subtitle" weight="semibold" tone="secondary">
           {mensajeVacio}
         </ThemedText>
@@ -49,7 +49,7 @@ export function ProximaClaseCard({
   }
 
   return (
-    <Pressable onPress={abrirMateria} accessibilityRole="button">
+    <PressableScale onPress={abrirMateria} accessibilityRole="button">
       <ThemedView style={estilos.card}>
         <View style={estilos.filaPill}>
           <View style={estilos.pill}>
@@ -80,7 +80,7 @@ export function ProximaClaseCard({
           </ThemedText>
         </View>
       </ThemedView>
-    </Pressable>
+    </PressableScale>
   );
 }
 

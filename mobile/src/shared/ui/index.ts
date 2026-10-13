@@ -16,6 +16,7 @@ export { ThemedButton } from './ThemedButton';
 export { ThemedView } from './ThemedView';
 export { Header, type HeaderProps } from './Header';
 export { Card, PressableCard, type CardProps, type PressableCardProps } from './Card';
+export { PressableScale, type PressableScaleProps } from './PressableScale';
 export { Badge, type BadgeProps } from './Badge';
 export { TextField, type TextFieldProps } from './TextField';
 export { Select, type SelectProps, type OpcionSelect } from './Select';

@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import {
-  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -8,6 +7,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ArrowRightIcon } from 'phosphor-react-native';
 
 import { aplanarPaginas } from '@/shared/lib/paginar';
 import { useRefrescarQueries } from '@/shared/lib/useRefrescarQueries';
@@ -16,6 +16,7 @@ import {
   CargandoSeccion,
   EmptyState,
   HeaderTab,
+  PressableScale,
   SectionHeader,
   ThemedText,
   ThemedView,
@@ -118,11 +119,11 @@ export default function HomeScreen() {
           <SectionHeader
             title="Tus noticias"
             action={
-              <Pressable onPress={() => router.navigate('/comunicados')} hitSlop={8}>
-                <ThemedText variant="bodySm" weight="semibold" style={estilos.enlace}>
-                  Ver más →
-                </ThemedText>
-              </Pressable>
+              <EnlaceSeccion
+                etiqueta="Ver más"
+                descripcion="Ver todas las noticias"
+                onPress={() => router.navigate('/comunicados')}
+              />
             }
           />
           {feed.isPending ? (
@@ -150,11 +151,11 @@ export default function HomeScreen() {
           <SectionHeader
             title="Tus próximos eventos"
             action={
-              <Pressable onPress={() => router.navigate('/calendario')} hitSlop={8}>
-                <ThemedText variant="bodySm" weight="semibold" style={estilos.enlace}>
-                  Ver agenda →
-                </ThemedText>
-              </Pressable>
+              <EnlaceSeccion
+                etiqueta="Ver agenda"
+                descripcion="Ver la agenda completa"
+                onPress={() => router.navigate('/calendario')}
+              />
             }
           />
           {agenda.isPending ? (
@@ -178,6 +179,32 @@ export default function HomeScreen() {
   );
 }
 
+/** Enlace de acción de sección: texto azul + flecha Phosphor (adiós "→" tipográfica). */
+function EnlaceSeccion({
+  etiqueta,
+  descripcion,
+  onPress,
+}: {
+  etiqueta: string;
+  descripcion: string;
+  onPress: () => void;
+}) {
+  return (
+    <PressableScale
+      accessibilityRole="link"
+      accessibilityLabel={descripcion}
+      hitSlop={12}
+      onPress={onPress}>
+      <View style={estilos.enlaceFila}>
+        <ThemedText variant="bodySm" weight="semibold" style={estilos.enlace}>
+          {etiqueta}
+        </ThemedText>
+        <ArrowRightIcon size={14} color={colors.brand.primary} weight="bold" />
+      </View>
+    </PressableScale>
+  );
+}
+
 const estilos = StyleSheet.create({
   pantalla: { flex: 1, backgroundColor: colors.bg.canvas },
   scroll: {
@@ -191,5 +218,10 @@ const estilos = StyleSheet.create({
   },
   listaEventos: { gap: spacing.md },
   enlace: { color: colors.brand.primary },
+  enlaceFila: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
   vacio: { paddingVertical: spacing.md },
 });

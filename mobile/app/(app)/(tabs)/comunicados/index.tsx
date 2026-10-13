@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import {
-  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -8,6 +7,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ArrowRightIcon } from 'phosphor-react-native';
 
 import { aplanarPaginas } from '@/shared/lib/paginar';
 import { colors, layout, spacing } from '@/shared/ui';
@@ -16,6 +16,7 @@ import {
   Chip,
   EmptyState,
   HeaderTab,
+  PressableScale,
   SectionHeader,
   ThemedText,
   ThemedView,
@@ -155,11 +156,18 @@ export default function ComunicadosScreen() {
           <SectionHeader
             title="Eventos del campus"
             action={
-              <Pressable onPress={() => router.navigate('/calendario')} hitSlop={8}>
-                <ThemedText variant="bodySm" weight="semibold" style={estilos.enlace}>
-                  Ver agenda →
-                </ThemedText>
-              </Pressable>
+              <PressableScale
+                accessibilityRole="link"
+                accessibilityLabel="Ver la agenda completa"
+                hitSlop={12}
+                onPress={() => router.navigate('/calendario')}>
+                <View style={estilos.enlaceFila}>
+                  <ThemedText variant="bodySm" weight="semibold" style={estilos.enlace}>
+                    Ver agenda
+                  </ThemedText>
+                  <ArrowRightIcon size={14} color={colors.brand.primary} weight="bold" />
+                </View>
+              </PressableScale>
             }
           />
           {proximos.length === 0 ? (
@@ -192,5 +200,10 @@ const estilos = StyleSheet.create({
   seccion: { gap: spacing.md },
   lista: { gap: spacing.md },
   enlace: { color: colors.brand.primary },
+  enlaceFila: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
   vacio: { paddingVertical: spacing.xs },
 });

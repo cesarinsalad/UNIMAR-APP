@@ -1,11 +1,12 @@
-import { Image, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Image, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 
-import { colors, radius, spacing } from '@/shared/ui';
-import { Badge, ThemedText, ThemedView } from '@/shared/ui';
+import { radius, spacing } from '@/shared/ui';
+import { Badge, PressableScale, ThemedText, ThemedView } from '@/shared/ui';
 import { haceRelativo, minutosLectura } from '@/shared/lib/tiempo';
 import { etiquetaCategoria } from '../helpers';
+import { PortadaPlaceholder } from './PortadaPlaceholder';
 import { usePortada } from '../hooks/usePortada';
 import type { Comunicado } from '../types';
 
@@ -23,7 +24,10 @@ export function NoticiaDestacada({ comunicado }: { comunicado: Comunicado }) {
   }
 
   return (
-    <Pressable onPress={abrir} accessibilityRole="button">
+    <PressableScale
+      onPress={abrir}
+      accessibilityRole="button"
+      accessibilityLabel={comunicado.titulo}>
       <ThemedView variant="card" style={estilos.card}>
         {portada.url ? (
           <Image
@@ -32,7 +36,10 @@ export function NoticiaDestacada({ comunicado }: { comunicado: Comunicado }) {
             resizeMode="cover"
           />
         ) : (
-          <View style={[estilos.imagen, estilos.placeholder, { height: width * 0.6 }]} />
+          <PortadaPlaceholder
+            style={[estilos.imagen, { height: width * 0.6 }]}
+            tamanoIcono={44}
+          />
         )}
         <View style={estilos.badge}>
           <Badge label={etiquetaCategoria(comunicado)} tone="info" />
@@ -50,7 +57,7 @@ export function NoticiaDestacada({ comunicado }: { comunicado: Comunicado }) {
           </ThemedText>
         </View>
       </ThemedView>
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -62,7 +69,6 @@ const estilos = StyleSheet.create({
     borderRadius: radius.card,
   },
   imagen: { width: '100%' },
-  placeholder: { backgroundColor: colors.brand.surfaceBlue },
   badge: { position: 'absolute', left: spacing.lg, top: spacing.lg, zIndex: 2 },
   gradiente: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '55%' },
   contenido: {

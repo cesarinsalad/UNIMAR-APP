@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -17,7 +17,7 @@ import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import { usePerfil } from '@/features/academico/hooks/usePerfil';
 import { CarnetDigital, inicialesDe } from '@/features/identidad/components/CarnetDigital';
 import { colors, layout, radius, spacing } from '@/shared/ui';
-import { HeaderTab, ThemedText, ThemedView } from '@/shared/ui';
+import { HeaderTab, PressableScale, ThemedText, ThemedView } from '@/shared/ui';
 import { CampanaConBadge } from '@/features/notificaciones/components/CampanaConBadge';
 import { useNoLeidas } from '@/features/notificaciones/hooks/useNoLeidas';
 
@@ -122,16 +122,16 @@ function TarjetaIdentidad({
         </ThemedView>
       ) : null}
 
-      <Pressable
+      <PressableScale
         accessibilityRole="button"
         accessibilityLabel="Ver carnet digital"
-        onPress={abreCarnet}
-        style={({ pressed }) => [estilos.botonCarnet, pressed && { opacity: 0.85 }]}>
+        style={estilos.botonCarnet}
+        onPress={abreCarnet}>
         <QrCodeIcon size={18} color={colors.brand.primary} weight="bold" />
         <ThemedText variant="bodySm" weight="semibold" style={estilos.botonCarnetTexto}>
           Ver Carnet Digital
         </ThemedText>
-      </Pressable>
+      </PressableScale>
     </ThemedView>
   );
 }
@@ -240,16 +240,16 @@ function TarjetaCerrarSesion() {
 
   return (
     <ThemedView variant="card" style={estilos.tarjetaFilas}>
-      <Pressable
+      <PressableScale
         accessibilityRole="button"
         accessibilityLabel="Cerrar sesión"
-        onPress={confirmar}
-        style={({ pressed }) => [estilos.filaSalir, pressed && { opacity: 0.85 }]}>
+        style={estilos.filaSalir}
+        onPress={confirmar}>
         <SignOutIcon size={20} color={colors.status.danger} weight="bold" />
         <ThemedText variant="body" weight="semibold" style={estilos.salirTexto}>
           Cerrar Sesión
         </ThemedText>
-      </Pressable>
+      </PressableScale>
     </ThemedView>
   );
 }
@@ -265,17 +265,17 @@ function FilaIcono({
   onPress: () => void;
 }) {
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={titulo}
-      onPress={onPress}
-      style={({ pressed }) => [estilos.fila, pressed && { opacity: 0.85 }]}>
+      style={estilos.fila}
+      onPress={onPress}>
       <View style={estilos.leading}>{icono}</View>
       <ThemedText variant="body" weight="medium" style={estilos.textoFila}>
         {titulo}
       </ThemedText>
       <CaretRightIcon size={18} color={colors.text.secondary} />
-    </Pressable>
+    </PressableScale>
   );
 }
 

@@ -2,14 +2,20 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { colors, radius, spacing, typography } from '@/shared/ui';
 import { ThemedText } from '@/shared/ui';
-import type { CeldaDia, TipoPunto } from '../calendario-calculo';
+import { type CeldaDia, type TipoPunto, desdeClave } from '../calendario-calculo';
 
 const DIAS_SEMANA = ['LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB', 'DOM'];
 
+/** Info del día para el punto y el label de accesibilidad. */
+export interface InfoDia {
+  tipo: TipoPunto;
+  cantidad: number;
+}
+
 interface Props {
   semanas: CeldaDia[][];
-  /** Tipo de punto por día (OFICIAL azul / PERSONAL naranja). */
-  puntos: ReadonlyMap<string, TipoPunto>;
+  /** Info por día (OFICIAL azul / PERSONAL naranja + cantidad de eventos). */
+  puntos: ReadonlyMap<string, InfoDia>;
   seleccionado: string | null;
   onSeleccionar: (clave: string) => void;
 }
@@ -44,6 +50,19 @@ export function GridMes({ semanas, puntos, seleccionado, onSeleccionar }: Props)
   );
 }
 
+/** "14 de octubre de 2026" (+ ", hoy" / ", 2 eventos") para VoiceOver. */
+function etiquetaDia(celda: CeldaDia, info: InfoDia | undefined): string {
+  const fecha = desdeClave(celda.clave).toLocaleDateString('es-VE', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+  const partes = [fecha];
+  if (celda.esHoy) partes.push('hoy');
+  if (info) partes.push(info.cantidad === 1 ? '1 evento' : `${info.cantidad} eventos`);
+  return partes.join(', ');
+}
+
 function Celda({
   celda,
   puntos,
@@ -51,7 +70,7 @@ function Celda({
   onSeleccionar,
 }: {
   celda: CeldaDia;
-  puntos: ReadonlyMap<string, TipoPunto>;
+  puntos: ReadonlyMap<string, InfoDia>;
   seleccionado: string | null;
   onSeleccionar: (clave: string) => void;
 }) {
@@ -69,22 +88,27 @@ function Celda({
     );
   }
   const esSeleccionado = celda.clave === seleccionado;
-  // La selección gana sobre "hoy": nunca mezclar fondo claro con texto blanco.
+  const info = puntos.get(celda.clave);
+  // La selección gana sobre "hoy" en relleno, pero "hoy" conserva su anillo.
   const fondo = esSeleccionado
     ? estilos.celdaSeleccionada
     : celda.esHoy
       ? estilos.celdaHoy
       : null;
   const colorTexto = esSeleccionado ? colors.text.onPrimary : colors.text.primary;
-  const punto = puntos.get(celda.clave);
 
   return (
-    <Pressable style={estilos.celda} onPress={() => onSeleccionar(celda.clave)}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected: esSeleccionado }}
+      accessibilityLabel={etiquetaDia(celda, info)}
+      style={estilos.celda}
+      onPress={() => onSeleccionar(celda.clave)}>
       <View style={[estilos.contenidoCelda, fondo]}>
         <ThemedText variant="body" style={{ color: colorTexto }}>
           {String(celda.dia).padStart(2, '0')}
         </ThemedText>
-        {punto ? <View style={[estilos.punto, { backgroundColor: colorPunto(punto) }]} /> : null}
+        {info ? <View style={[estilos.punto, { backgroundColor: colorPunto(info.tipo) }]} /> : null}
       </View>
     </Pressable>
   );
@@ -109,6 +133,7 @@ const estilos = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.pill,
+    padding: 2,
   },
   centro: {
     alignItems: 'center',
@@ -119,11 +144,17 @@ const estilos = StyleSheet.create({
     fontSize: typography.size.caption,
     lineHeight: typography.lineHeight.caption,
   },
+  // Hoy: tinte azul + anillo — identificable incluso con otro día seleccionado.
   celdaHoy: {
     backgroundColor: colors.brand.surfaceBlue,
+    borderWidth: 1.5,
+    borderColor: colors.brand.primary,
   },
+  // Selección: relleno sólido y CRECE (el padding se anula) — la convicción
+  // del sistema en el grid: el día elegido pesa más que sus vecinos.
   celdaSeleccionada: {
     backgroundColor: colors.brand.primary,
+    padding: 0,
   },
   punto: {
     width: 5,

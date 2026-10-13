@@ -1,9 +1,10 @@
-import { Image, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Image, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { router } from 'expo-router';
 
-import { colors, spacing } from '@/shared/ui';
-import { Badge, ThemedText, ThemedView } from '@/shared/ui';
+import { spacing } from '@/shared/ui';
+import { Badge, PressableScale, ThemedText, ThemedView } from '@/shared/ui';
 import { etiquetaAudiencia } from '@/shared/lib/etiquetas';
+import { PortadaPlaceholder } from './PortadaPlaceholder';
 import { usePortada } from '../hooks/usePortada';
 import type { Comunicado } from '../types';
 
@@ -29,13 +30,17 @@ export function NoticiaCard({
   }
 
   return (
-    <Pressable onPress={abrir} accessibilityRole="button" style={style}>
+    <PressableScale
+      onPress={abrir}
+      accessibilityRole="button"
+      accessibilityLabel={comunicado.titulo}
+      style={style}>
       <ThemedView variant="card" style={estilos.card}>
         <View style={estilos.banner}>
           {portada.url ? (
             <Image source={{ uri: portada.url }} style={estilos.imagen} resizeMode="cover" />
           ) : (
-            <View style={[estilos.imagen, estilos.placeholder]} />
+            <PortadaPlaceholder style={estilos.imagen} tamanoIcono={28} />
           )}
           <View style={estilos.audiencia}>
             <Badge label={etiquetaAudiencia(comunicado.decanatoIds)} tone="info" />
@@ -52,7 +57,7 @@ export function NoticiaCard({
           ) : null}
         </View>
       </ThemedView>
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -65,7 +70,6 @@ const estilos = StyleSheet.create({
   },
   banner: { position: 'relative' },
   imagen: { width: '100%', aspectRatio: 2 / 1 },
-  placeholder: { backgroundColor: colors.brand.surfaceBlue },
   audiencia: {
     position: 'absolute',
     left: spacing.sm,

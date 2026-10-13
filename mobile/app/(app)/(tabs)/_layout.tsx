@@ -96,12 +96,13 @@ export default function TabsLayout() {
         options={{
           title: 'Inicio',
           headerShown: false,
-          tabBarIcon: ({ focused }) =>
-            focused ? (
-              <HouseIcon size={26} color={focused ? colors.brand.primary : colors.text.primary} weight="duotone" />
-            ) : (
-              <HouseIcon size={26} color={focused ? colors.brand.primary : colors.text.primary} weight="duotone" />
-            ),
+          tabBarIcon: ({ focused }) => (
+            <HouseIcon
+              size={26}
+              color={focused ? colors.brand.primary : colors.text.primary}
+              weight={focused ? 'fill' : 'regular'}
+            />
+          ),
         }}
       />
       <Tabs.Screen
@@ -109,12 +110,13 @@ export default function TabsLayout() {
         options={{
           title: 'Noticias',
           headerShown: false,
-          tabBarIcon: ({ focused }) =>
-            focused ? (
-              <MegaphoneIcon size={26} color={focused ? colors.brand.primary : colors.text.primary} weight="duotone" />
-            ) : (
-              <MegaphoneIcon size={26} color={focused ? colors.brand.primary : colors.text.primary} weight="duotone" />
-            ),
+          tabBarIcon: ({ focused }) => (
+            <MegaphoneIcon
+              size={26}
+              color={focused ? colors.brand.primary : colors.text.primary}
+              weight={focused ? 'fill' : 'regular'}
+            />
+          ),
           headerRight: permisos.puedeCrearComunicado
             ? () => (
                 <Pressable onPress={() => router.push('/comunicados/mis')}>
@@ -135,12 +137,13 @@ export default function TabsLayout() {
         options={{
           title: 'Clases',
           headerShown: false,
-          tabBarIcon: ({ focused }) =>
-            focused ? (
-              <GraduationCapIcon size={26} color={focused ? colors.brand.primary : colors.text.primary} weight="duotone" />
-            ) : (
-              <GraduationCapIcon size={26} color={focused ? colors.brand.primary : colors.text.primary} weight="duotone" />
-            ),
+          tabBarIcon: ({ focused }) => (
+            <GraduationCapIcon
+              size={26}
+              color={focused ? colors.brand.primary : colors.text.primary}
+              weight={focused ? 'fill' : 'regular'}
+            />
+          ),
         }}
       />
       <Tabs.Screen
@@ -148,12 +151,13 @@ export default function TabsLayout() {
         options={{
           title: 'Agenda',
           headerShown: false,
-          tabBarIcon: ({ focused }) =>
-            focused ? (
-              <CalendarBlankIcon size={26} color={focused ? colors.brand.primary : colors.text.primary} weight="duotone" />
-            ) : (
-              <CalendarBlankIcon size={26} color={focused ? colors.brand.primary : colors.text.primary} weight="duotone" />
-            ),
+          tabBarIcon: ({ focused }) => (
+            <CalendarBlankIcon
+              size={26}
+              color={focused ? colors.brand.primary : colors.text.primary}
+              weight={focused ? 'fill' : 'regular'}
+            />
+          ),
         }}
       />
       <Tabs.Screen
@@ -161,12 +165,13 @@ export default function TabsLayout() {
         options={{
           title: 'Perfil',
           headerShown: false,
-          tabBarIcon: ({ focused }) =>
-            focused ? (
-              <UserCircleIcon size={26} color={focused ? colors.brand.primary : colors.text.primary} weight="duotone" />
-            ) : (
-              <UserCircleIcon size={26} color={focused ? colors.brand.primary : colors.text.primary} weight="duotone" />
-            ),
+          tabBarIcon: ({ focused }) => (
+            <UserCircleIcon
+              size={26}
+              color={focused ? colors.brand.primary : colors.text.primary}
+              weight={focused ? 'fill' : 'regular'}
+            />
+          ),
           headerRight: () => <CampanaConBadge total={totalNoLeidas} />,
         }}
       />

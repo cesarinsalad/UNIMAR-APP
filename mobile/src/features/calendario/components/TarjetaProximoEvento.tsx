@@ -1,9 +1,9 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { MapPinIcon, ClockIcon } from 'phosphor-react-native';
 import { router } from 'expo-router';
 
 import { colors, spacing, radius } from '@/shared/ui';
-import { ThemedText, ThemedView } from '@/shared/ui';
+import { PressableScale, ThemedText, ThemedView } from '@/shared/ui';
 import { etiquetaAudiencia } from '@/shared/lib/etiquetas';
 
 export interface EventoResumen {
@@ -35,7 +35,7 @@ const FORMATO_MES_CORTO = new Intl.DateTimeFormat('es-VE', { month: 'short' });
 export function TarjetaProximoEvento({ evento }: { evento: EventoResumen }) {
   const inicio = new Date(evento.inicioAt);
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={`Detalle de ${evento.titulo}`}
       onPress={() => router.push(`/eventos/${evento.id}` as never)}>
@@ -68,7 +68,7 @@ export function TarjetaProximoEvento({ evento }: { evento: EventoResumen }) {
           </View>
         </View>
       </ThemedView>
-    </Pressable>
+    </PressableScale>
   );
 }
 

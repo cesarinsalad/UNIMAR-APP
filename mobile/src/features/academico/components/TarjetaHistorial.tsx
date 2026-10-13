@@ -1,9 +1,9 @@
 import { Fragment } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 
-import { colors, spacing } from '@/shared/ui';
-import { ThemedText, ThemedView } from '@/shared/ui';
+import { colors, radius, spacing } from '@/shared/ui';
+import { PressableScale, ThemedText, ThemedView } from '@/shared/ui';
 import type { MateriaHistoricaDTO } from '../types';
 import { colorNotaClases } from './MateriaActualCard';
 
@@ -19,7 +19,7 @@ export function TarjetaHistorial({ historicas }: { historicas: MateriaHistoricaD
       {historicas.map((materia, indice) => (
         <Fragment key={materia.id}>
           {indice > 0 ? <View style={estilos.divisor} /> : null}
-          <Pressable
+          <PressableScale
             accessibilityRole="button"
             accessibilityLabel={`Detalle de ${materia.nombre}`}
             style={estilos.fila}
@@ -38,7 +38,7 @@ export function TarjetaHistorial({ historicas }: { historicas: MateriaHistoricaD
               style={{ color: colorNotaClases(materia.nota_final) }}>
               {materia.nota_final === null ? '—' : Math.round(materia.nota_final).toString()}
             </ThemedText>
-          </Pressable>
+          </PressableScale>
         </Fragment>
       ))}
     </ThemedView>
@@ -63,8 +63,8 @@ const estilos = StyleSheet.create({
     right: 0,
     height: 3,
     backgroundColor: colors.brand.primary,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: radius.card,
+    borderTopRightRadius: radius.card,
   },
   fila: {
     flexDirection: 'row',
