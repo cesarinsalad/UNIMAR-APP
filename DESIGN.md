@@ -178,8 +178,9 @@ pantalla: se usa para aquello sobre lo que la estudiante puede actuar o lo que
 confirma su identidad; su rareza es la que hace que se vea.
 
 **La Regla Naranja Exclusiva.** `#FF7A00` es solo para puntos de
-notificación, indicadores urgentes y puntos de estado del calendario — nunca
-tipografía, iconos de navegación ni rellenos decorativos.
+notificación, indicadores urgentes y estado del calendario (puntos y
+bloques de días con eventos personales) — nunca tipografía, iconos de
+navegación ni rellenos decorativos.
 
 ## Typography
 
@@ -317,6 +318,12 @@ lateral 3px).
   con unread > 0); navegación a detalle con botón circular blanco flotante
   (40px, `elevation.sm`, icono `ArrowLeft` azul institucional) + título
   centrado `subtitle` 600.
+- **Header de mes (Agenda):** badge azul sello 44px (`radius.button`) con el
+  número de mes a 2 dígitos en `subtitle` 600 blanco + nombre del mes en
+  MAYÚSCULAS `title` 600 azul institucional (tracking 0.5) y año en
+  `caption` gris metadato debajo; chevrones de navegación y botón de crear
+  a la derecha. Mayúsculas con peso 600 — El Bold 700 sostenido sigue
+  reservado al logotipo institucional.
 
 ### Signatures
 
@@ -327,11 +334,22 @@ lateral 3px).
   cifras 22 bold + mes caption) precedida de barra lateral vertical 3px color
   de estado (azul OFICIAL / gris PERSONAL / rojo…) — la firma visual de
   "esto es un documento con estado".
-- **Grid de calendario (GridMes):** celdas cuadradas flex (aspectRatio 1,
-  margen 1), cabecera LUN–DOM en caption semibold gris institucional;
-  seleccionado = fondo azul sello con texto blanco (la selección gana sobre
-  "hoy"); "hoy" = `{colors.surface-tint-blue}`; días de otro mes = cifra en
-  `{colors.neutral-text-secondary}`, no interactivos; punto 5px por evento.
+- **Grid de calendario (GridMes):** voz del calendario académico publicado.
+  Membrete LUN–DOM en cápsula gris suave (`background.sunken`, pill) con
+  abreviaturas caption semibold (tracking 0.5) centradas por columna; celdas
+  cuadradas flex (aspectRatio 1, margen 2), bloque interior `radius.lg` (12).
+  **Semántica infográfica: relleno = dato, contorno = acción.** Día con
+  evento = bloque por tipo con cifra semibold: OFICIAL azul sólido con
+  cifra blanca; PERSONAL tinte naranja 12% con cifra en tinta — el naranja
+  (`#FF7A00`, L≈0.35) no alcanza AA 4.5:1 como texto ni como fondo de
+  texto pequeño, así que el color lo carga el fondo y el dígito queda en
+  `{colors.neutral-text-primary}` (~8.9:1); el punto de estado naranja con
+  anillo blanco marca el día mixto (OFICIAL+PERSONAL) sobre el bloque
+  azul; "hoy" sin evento = tinte
+  `{colors.surface-tint-blue}` con cifra azul semibold; selección = anillo
+  azul con respiro de 2px (nunca rellenos); días de otro mes = cifra en
+  `{colors.neutral-text-secondary}`, no interactivos. Leyenda con muestras
+  cuadradas 8px por tipo.
 
 ## Do's and Don'ts
 
