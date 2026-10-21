@@ -42,6 +42,21 @@ const materiaBaseShape = {
  */
 const HORA_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
+/**
+ * Franja horaria individual de una materia en curso: una materia puede
+ * dictarse en varios bloques semanales con aula y horario distintos por
+ * bloque (ej. Mié A21 10:20-12:35 y Jue A40 11:50-01:35). Opcional por la
+ * misma razón que el horario estructurado: la API UNIMAR real aún no lo
+ * envía. `dia_semana` sigue ISO-8601: 1=lunes … 7=domingo.
+ */
+export const franjaSchema = z.object({
+  dia_semana: z.number().int().min(1).max(7),
+  aula: z.string().min(1),
+  hora_inicio: z.string().regex(HORA_RE, 'hora "HH:MM"'),
+  hora_fin: z.string().regex(HORA_RE, 'hora "HH:MM"'),
+});
+export type FranjaDTO = z.infer<typeof franjaSchema>;
+
 const materiaActualSchema = z.object({
   ...materiaBaseShape,
   es_actual: z.literal(true),
@@ -51,6 +66,8 @@ const materiaActualSchema = z.object({
   dias_semana: z.array(z.number().int().min(1).max(7)).optional(),
   hora_inicio: z.string().regex(HORA_RE, 'hora "HH:MM"').optional(),
   hora_fin: z.string().regex(HORA_RE, 'hora "HH:MM"').optional(),
+  seccion: z.string().min(1).optional(),
+  franjas: z.array(franjaSchema).optional(),
   cortes: z.array(corteSchema),
 });
 

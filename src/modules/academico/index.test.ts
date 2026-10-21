@@ -49,7 +49,7 @@ function buildApp(claimsForToken: Record<string, unknown>): {
     sub: 'uuid-est',
     role: 'ESTUDIANTE',
     decanato_id: 5,
-    nombre: 'Ana Estudiante',
+    nombre: 'Ana Administradora',
   } as never);
   void claimsForToken;
 

@@ -49,4 +49,34 @@ describe('materiaSchema (materia actual)', () => {
       materiaSchema.safeParse({ ...baseActual, dias_semana: [1, 8] }).success,
     ).toBe(false);
   });
+
+  it('valida franjas exactas por día (aula propia por bloque)', () => {
+    const result = materiaSchema.safeParse({
+      ...baseActual,
+      seccion: 'P-01',
+      franjas: [
+        { dia_semana: 3, aula: 'A21', hora_inicio: '10:20', hora_fin: '12:35' },
+        { dia_semana: 4, aula: 'A40', hora_inicio: '11:50', hora_fin: '13:35' },
+      ],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rechaza franja con hora o día inválidos', () => {
+    const dibujo = materiaSchema.safeParse({
+      ...baseActual,
+      franjas: [
+        { dia_semana: 3, aula: 'A21', hora_inicio: '25:00', hora_fin: '12:35' },
+      ],
+    });
+    expect(dibujo.success).toBe(false);
+
+    const diaFuera = materiaSchema.safeParse({
+      ...baseActual,
+      franjas: [
+        { dia_semana: 8, aula: 'A21', hora_inicio: '10:20', hora_fin: '12:35' },
+      ],
+    });
+    expect(diaFuera.success).toBe(false);
+  });
 });
