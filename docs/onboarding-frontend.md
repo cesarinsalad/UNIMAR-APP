@@ -108,7 +108,7 @@ Base URL: `http://localhost:3000/api/v1`.
 #### `POST /auth/login` — iniciar sesión
 ```jsonc
 // request
-{ "email": "ana.estudiante@unimar.edu.ve", "password": "unimar123" }
+{ "email": "ana.admin@unimar.edu.ve", "password": "unimar123" }
 // response 200
 {
   "data": {
@@ -116,9 +116,9 @@ Base URL: `http://localhost:3000/api/v1`.
     "usuario": {
       "id": "<uuid>",
       "cedula": "20123456",
-      "nombre": "Ana Estudiante",
-      "rol": "ESTUDIANTE",
-      "decanato_id": 5
+      "nombre": "Ana Administradora",
+      "rol": "ADMIN",
+      "decanato_id": null
     }
   }
 }
@@ -130,10 +130,10 @@ enviarlo en el header `Authorization` de los demás requests.
 
 | Usuario | Correo | Rol | Decanato |
 |---------|--------|-----|----------|
-| Ana | ana.estudiante@unimar.edu.ve | ESTUDIANTE | 5 |
+| Ana | ana.admin@unimar.edu.ve | ADMIN | null |
 | Bruno | bruno.otra@unimar.edu.ve | ESTUDIANTE | 3 |
 | Flavio | flavio.rosales@unimar.edu.ve | COMUNICADOR | 5 |
-| César | cgarcia.5516@unimar.edu.ve | ADMIN | null |
+| César | cgarcia.5516@unimar.edu.ve | ESTUDIANTE | 5 |
 
 (Todas las contraseñas: `unimar123`)
 
@@ -293,11 +293,18 @@ cliente debe representar esto (p. ej. etiqueta "Toda la universidad").
 `GET /academico/materias` devuelve objetos con el discriminador `es_actual`:
 
 ```jsonc
-// Materia ACTUAL (en curso): detalle completo
+// Materia ACTUAL (en curso): detalle completo. `franjas` (opcional) da la
+// ventana exacta por día con su aula; sin franjas solo `horario` string.
 {
-  "id": "mat-1", "codigo": "IS-701", "nombre": "Bases de Datos II",
-  "creditos": 4, "es_actual": true,
-  "profesor": "Dra. Pérez", "aula": "A-12", "horario": "Lun-Mié 9:00-10:30",
+  "id": "mat-1", "codigo": "AUS1205341", "nombre": "Auditoría de Sistemas",
+  "creditos": 3, "es_actual": true, "seccion": "P-01",
+  "profesor": "Daniela López", "aula": "A21",
+  "horario": "Mié 10:20-12:35 (A21) · Jue 11:50-01:35 (A40)",
+  "dias_semana": [3, 4], "hora_inicio": "10:20", "hora_fin": "12:35",
+  "franjas": [
+    { "dia_semana": 3, "aula": "A21", "hora_inicio": "10:20", "hora_fin": "12:35" },
+    { "dia_semana": 4, "aula": "A40", "hora_inicio": "11:50", "hora_fin": "13:35" }
+  ],
   "cortes": [ { "nombre": "Parcial 1", "fecha": "2026-09-15", "ponderacion": 30, "nota": 14 } ]
 }
 // Materia HISTÓRICA: resumen con nota final

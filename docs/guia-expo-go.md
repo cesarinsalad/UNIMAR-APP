@@ -88,7 +88,7 @@ npm start
     
 4. **Credenciales de prueba:**
     
-    - **Usuario:** `ana.estudiante@unimar.edu.ve` (estudiante ingeniería y afines), `bruno.otra@unimar.edu.ve` (estudiante ciencias económicas y sociales), `flavio.rosales@unimar.edu.ve` (comunicador - ingeniería y afines) o `cgarcia.5516@unimar.edu.ve` (admin)
+    - **Usuario:** `cgarcia.5516@unimar.edu.ve` (estudiante ingeniería y afines), `bruno.otra@unimar.edu.ve` (estudiante ciencias económicas y sociales), `flavio.rosales@unimar.edu.ve` (comunicador - ingeniería y afines) o `ana.admin@unimar.edu.ve` (admin)
     
     - **Contraseña:** `unimar123`
 ## 🔄 Resumen de Idempotencia

@@ -15,9 +15,9 @@ Stack: Supabase local + `npm run dev` con `PUSH_PROVIDER=mock`.
 
 | Usuario | Correo | Decanato | Rol |
 | ------- | ------ | -------- | --- |
-| Ana | ana.estudiante@unimar.edu.ve | 5 | ESTUDIANTE |
+| Ana | ana.admin@unimar.edu.ve | NULL | ADMIN |
 | Flavio | flavio.rosales@unimar.edu.ve | 5 | COMUNICADOR |
-| César | cgarcia.5516@unimar.edu.ve | NULL | ADMIN |
+| César | cgarcia.5516@unimar.edu.ve | 5 | ESTUDIANTE |
 
 ```
 POST /api/v1/auth/login { email, password }
@@ -25,7 +25,7 @@ POST /api/v1/auth/login { email, password }
 
 ### 2. Registro de dispositivos
 
-Ana y Flavio registran dispositivos con `push_token` `ExpoPushToken[e2e-*]` y
+César y Flavio registran dispositivos con `push_token` `ExpoPushToken[e2e-*]` y
 `plataforma: android`:
 
 ```
@@ -37,7 +37,7 @@ POST /api/v1/dispositivos
 1. Flavio crea un comunicado en el decanato 5
    (`POST /api/v1/comunicados` con `decanato_ids: [5]`).
 2. Flavio solicita revisión (`POST /api/v1/comunicados/:id/solicitar-revision`).
-3. El admin aprueba (`POST /api/v1/comunicados/:id/aprobar`) → estado PUBLICADO.
+3. La admin aprueba (`POST /api/v1/comunicados/:id/aprobar`) → estado PUBLICADO.
 
 Observado en los logs del servidor:
 
@@ -45,7 +45,7 @@ Observado en los logs del servidor:
 [push:mock] enviando 1 mensaje(s)
 ```
 
-Ana consulta su bandeja (`GET /api/v1/notificaciones?solo_no_leidas=true`) y
+César consulta su bandeja (`GET /api/v1/notificaciones?solo_no_leidas=true`) y
 obtiene una notificación:
 
 ```json
@@ -64,7 +64,7 @@ obtiene una notificación:
 ### 5. Rechazo con motivo
 
 1. Flavio crea otro comunicado → `POST /api/v1/comunicados` y solicita revisión.
-2. El admin rechaza con `{"motivo": "..."}` → estado BORRADOR.
+2. La admin rechaza con `{"motivo": "..."}` → estado BORRADOR.
 3. Flavio consulta su bandeja: notificación `COMUNICADO_RECHAZADO` con el
    motivo en `cuerpo`.
 

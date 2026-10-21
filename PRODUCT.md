@@ -91,8 +91,8 @@ el calendario de trimestres UNIMAR.
 
 - Mockups Figma aprobados de Clases, Agenda, Agregar Evento, Detalles de
   Evento y Perfil (provistos por el usuario en las conversaciones de trabajo).
-- Usuarios mock reales: ana.estudiante@ / bruno.otra@ / flavio.rosales@
-  (COMUNICADOR) / cgarcia.5516@ (ADMIN) en `@unimar.edu.ve`, todos con
+- Usuarios mock reales: bruno.otra@ / cgarcia.5516@ (ESTUDIANTE) /
+  flavio.rosales@ (COMUNICADOR) / ana.admin@ (ADMIN) en `@unimar.edu.ve`, todos con
   password `unimar123` — en docs/onboarding-frontend.md.
 - Ausencias que el trabajo futuro NO debe fabricar: fotografías de
   perfil/avatares (la API no provee imágenes — iniciales en su lugar),
