@@ -29,6 +29,11 @@ const envSchema = z.object({
    * intenta usarla. */
   UNIMAR_API_URL: z.string().default(''),
   UNIMAR_API_KEY: z.string().default(''),
+  /**
+   * Orígenes web permitidos por CORS (default: Metro web en dev). Soporta
+   * varios orígenes separados por coma para producción (p. ej. web desplegada).
+   */
+  CORS_ORIGIN: z.string().default('http://localhost:8081'),
 });
 
 export type Env = z.infer<typeof envSchema>;

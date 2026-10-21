@@ -1,3 +1,4 @@
+import cors from 'cors';
 import express, { type Express, type NextFunction, type Router } from 'express';
 import { NotFoundError } from './shared/errors';
 import { errorHandler } from './shared/http/middlewares';
@@ -6,6 +7,7 @@ import type { IJwtService } from './shared/security/jwt';
 import type { AuthService } from './modules/identidad';
 import { authRouter } from './modules/identidad';
 import type { UnitOfWork } from './shared/kernel/unitOfWork';
+import { env } from './config/env';
 
 export interface AppDeps {
   authService: AuthService;
@@ -27,6 +29,12 @@ export interface AppDeps {
  */
 export function createApp(deps: AppDeps): Express {
   const app = express();
+
+  // CORS para clientes web (navegador no nativo hace preflight cross-origin
+  // contra este BFF). Va antes de json/UoW para que OPTIONS no pase por ahí.
+  // Sin credentials: la app usa Bearer token en header, no cookies.
+  const allowedOrigins = env.CORS_ORIGIN.split(',').map((o) => o.trim());
+  app.use(cors({ origin: allowedOrigins, credentials: false }));
 
   app.use(express.json());
 
