@@ -10,7 +10,7 @@ describe('JwtService', () => {
     sub: '7c0b2c29-0e63-41fe-8c93-86803889da52',
     role: 'ESTUDIANTE',
     decanato_id: 5,
-    nombre: 'Ana Estudiante',
+    nombre: 'Ana Administradora',
   };
 
   it('roundtrip: sign y verify preservan claims', () => {

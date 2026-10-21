@@ -12,11 +12,11 @@ interface MockUsuario {
 
 const MOCK_USUARIOS: MockUsuario[] = [
   {
-    email: 'ana.estudiante@unimar.edu.ve',
+    email: 'ana.admin@unimar.edu.ve',
     password: 'unimar123',
     cedula: '20123456',
-    nombre: 'Ana Estudiante',
-    decanatoId: 5,
+    nombre: 'Ana Administradora',
+    decanatoId: null,
   },
   {
     email: 'bruno.otra@unimar.edu.ve',
@@ -36,8 +36,8 @@ const MOCK_USUARIOS: MockUsuario[] = [
     email: 'cgarcia.5516@unimar.edu.ve',
     password: 'unimar123',
     cedula: '30065516',
-    nombre: 'César García (Admin)',
-    decanatoId: null,
+    nombre: 'César García',
+    decanatoId: 5,
   },
 ];
 

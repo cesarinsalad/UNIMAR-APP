@@ -10,7 +10,9 @@ INSERT INTO decanatos (nombre) VALUES
 -- Los roles no-estudiante se pre-aprovisionan: la API de UNIMAR no conoce
 -- los roles de la app; el upsert de login NUNCA sobrescribe el rol.
 INSERT INTO usuarios (cedula, nombre, email, rol_id, decanato_id) VALUES
+  ('20123456', 'Ana Administradora', 'ana.admin@unimar.edu.ve',
+     (SELECT id FROM roles WHERE nombre = 'ADMIN'), NULL),
   ('17420667', 'Flavio Rosales (Comunicador)', 'flavio.rosales@unimar.edu.ve',
      (SELECT id FROM roles WHERE nombre = 'COMUNICADOR'), 5),
-  ('30065516', 'César García (Admin)', 'cgarcia.5516@unimar.edu.ve',
-     (SELECT id FROM roles WHERE nombre = 'ADMIN'), NULL);
+  ('30065516', 'César García', 'cgarcia.5516@unimar.edu.ve',
+     (SELECT id FROM roles WHERE nombre = 'ESTUDIANTE'), 5);

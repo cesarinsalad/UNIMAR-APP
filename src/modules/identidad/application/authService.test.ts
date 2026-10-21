@@ -22,19 +22,19 @@ function makeUnitOfWork() {
 
 describe('AuthService', () => {
   it('login exitoso valida, upsertea y emite un JWT con los claims correctos', async () => {
-    const credentials = { email: 'ana.estudiante@unimar.edu.ve', password: 'unimar123' };
+    const credentials = { email: 'ana.admin@unimar.edu.ve', password: 'unimar123' };
     const perfil = {
       cedula: '20123456',
-      nombre: 'Ana Estudiante',
-      decanatoId: 5,
+      nombre: 'Ana Administradora',
+      decanatoId: null,
       email: credentials.email,
     };
     const usuario = {
       id: 'uuid-ana',
       cedula: perfil.cedula,
       nombre: perfil.nombre,
-      rolNombre: 'ESTUDIANTE',
-      decanatoId: 5,
+      rolNombre: 'ADMIN',
+      decanatoId: null,
       preferencias: {},
     };
 
@@ -59,8 +59,8 @@ describe('AuthService', () => {
     const result = await authService.login(credentials);
 
     expect(result.token).toBe('token-con-uuid-ana');
-    expect(result.usuario.rol).toBe('ESTUDIANTE');
-    expect(result.usuario.decanato_id).toBe(5);
+    expect(result.usuario.rol).toBe('ADMIN');
+    expect(result.usuario.decanato_id).toBe(null);
   });
 
   it('propaga UnauthorizedError cuando la universidad rechaza credenciales', async () => {
