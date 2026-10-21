@@ -19,14 +19,13 @@ import {
   ventanaMes,
   claveDia,
   type GrupoDia,
-  type TipoPunto,
 } from '@/features/calendario/calendario-calculo';
 import { aplanarPaginas } from '@/shared/lib/paginar';
 import { useAgenda } from '@/features/calendario/hooks/useAgenda';
 import { EventosDelDia } from '@/features/calendario/components/EventosDelDia';
-import { GridMes, type InfoDia } from '@/features/calendario/components/GridMes';
+import { GridMes, colorBloque, type InfoDia } from '@/features/calendario/components/GridMes';
 import { TarjetaProximoEvento } from '@/features/calendario/components/TarjetaProximoEvento';
-import { colors, layout, spacing } from '@/shared/ui';
+import { colors, layout, radius, spacing } from '@/shared/ui';
 import {
   Card,
   EmptyState,
@@ -41,10 +40,11 @@ import { CampanaConBadge } from '@/features/notificaciones/components/CampanaCon
 import { useNoLeidas } from '@/features/notificaciones/hooks/useNoLeidas';
 
 /**
- * Tab Agenda estilo mock: header con campana, selector de mes con botón de
- * crear, grid mensual con puntos por tipo (azul OFICIAL / naranja PERSONAL)
- * + leyenda, "Próximos eventos" y eventos del día seleccionado. La mezcla
- * OFICIAL/PERSONAL la decide RLS en el BFF.
+ * Tab Agenda con la voz del calendario académico institucional: header de
+ * impacto (badge azul del número de mes + nombre en mayúsculas), cápsula
+ * gris del membrete semanal y grid infográfico donde RELLENO = dato
+ * (bloque azul/naranja por tipo) y CONTORNO = acción (anillo de selección).
+ * La mezcla OFICIAL/PERSONAL la decide RLS en el BFF.
  */
 export default function CalendarioScreen() {
   const insets = useSafeAreaInsets();
@@ -64,8 +64,13 @@ export default function CalendarioScreen() {
   const puntos = useMemo(() => {
     const mapa = new Map<string, InfoDia>();
     for (const grupo of grupos) {
-      const tipo: TipoPunto = todosOficial(grupo) ? 'OFICIAL' : 'PERSONAL';
-      mapa.set(grupo.clave, { tipo, cantidad: grupo.eventos.length });
+      const oficial = grupo.eventos.some((e) => e.tipo === 'OFICIAL');
+      const personal = grupo.eventos.some((e) => e.tipo === 'PERSONAL');
+      mapa.set(grupo.clave, {
+        tipo: oficial ? 'OFICIAL' : 'PERSONAL',
+        mixto: oficial && personal,
+        cantidad: grupo.eventos.length,
+      });
     }
     return mapa;
   }, [grupos]);
@@ -110,32 +115,45 @@ export default function CalendarioScreen() {
           action={<CampanaConBadge total={noLeidas.data?.total ?? 0} tono="claro" />}
         />
 
-        <View style={estilos.filaMes}>
-          <View style={estilos.espacioSimetrico} />
-          <PressableScale
-            accessibilityRole="button"
-            accessibilityLabel="Mes anterior"
-            hitSlop={12}
-            onPress={() => navegar(-1)}>
-            <CaretLeftIcon size={22} color={colors.brand.primary} />
-          </PressableScale>
-          <ThemedText variant="subtitle" weight="semibold" style={estilos.etiquetaMes}>
-            {etiquetaMes(ventana.etiqueta)}
-          </ThemedText>
-          <PressableScale
-            accessibilityRole="button"
-            accessibilityLabel="Siguiente mes"
-            hitSlop={12}
-            onPress={() => navegar(1)}>
-            <CaretRightIcon size={22} color={colors.brand.primary} />
-          </PressableScale>
-          <PressableScale
-            accessibilityRole="button"
-            accessibilityLabel="Agregar evento"
-            hitSlop={12}
-            onPress={() => router.push('/eventos/nuevo')}>
-            <PlusIcon size={24} color={colors.brand.primary} weight="bold" />
-          </PressableScale>
+        <View style={estilos.cabeceraMes}>
+          <View style={estilos.identidadMes}>
+            <View style={estilos.badgeMes}>
+              <ThemedText variant="subtitle" weight="semibold" style={estilos.textoBadgeMes}>
+                {String(posicion[1] + 1).padStart(2, '0')}
+              </ThemedText>
+            </View>
+            <View>
+              <ThemedText variant="title" weight="semibold" style={estilos.nombreMes}>
+                {nombreMes(posicion[0], posicion[1])}
+              </ThemedText>
+              <ThemedText variant="caption" tone="secondary">
+                {posicion[0]}
+              </ThemedText>
+            </View>
+          </View>
+          <View style={estilos.navegacionMes}>
+            <PressableScale
+              accessibilityRole="button"
+              accessibilityLabel="Mes anterior"
+              hitSlop={12}
+              onPress={() => navegar(-1)}>
+              <CaretLeftIcon size={22} color={colors.brand.primary} />
+            </PressableScale>
+            <PressableScale
+              accessibilityRole="button"
+              accessibilityLabel="Siguiente mes"
+              hitSlop={12}
+              onPress={() => navegar(1)}>
+              <CaretRightIcon size={22} color={colors.brand.primary} />
+            </PressableScale>
+            <PressableScale
+              accessibilityRole="button"
+              accessibilityLabel="Agregar evento"
+              hitSlop={12}
+              onPress={() => router.push('/eventos/nuevo')}>
+              <PlusIcon size={24} color={colors.brand.primary} weight="bold" />
+            </PressableScale>
+          </View>
         </View>
 
         <Card style={estilos.tarjetaCalendario} paddingV="md">
@@ -147,7 +165,7 @@ export default function CalendarioScreen() {
           />
           <View style={estilos.leyenda}>
             <ItemLeyenda color={colors.brand.primary} etiqueta="Eventos UNIMAR" />
-            <ItemLeyenda color={colors.accent.urgent} etiqueta="Personales" />
+            <ItemLeyenda color={colorBloque('PERSONAL')} etiqueta="Personales" />
           </View>
         </Card>
 
@@ -198,13 +216,11 @@ export default function CalendarioScreen() {
   );
 }
 
-function todosOficial(grupo: GrupoDia): boolean {
-  return grupo.eventos.every((e) => e.tipo === 'OFICIAL');
-}
-
-/** "septiembre de 2026" → "Septiembre 2026" (estilo del mock). */
-function etiquetaMes(etiqueta: string): string {
-  return etiqueta.charAt(0).toUpperCase() + etiqueta.slice(1).replace(' de ', ' ');
+/** Nombre del mes es-VE para el rótulo en mayúsculas del header. */
+function nombreMes(year: number, mesLocal: number): string {
+  return new Date(year, mesLocal, 1)
+    .toLocaleDateString('es-VE', { month: 'long' })
+    .toUpperCase();
 }
 
 /** Hoy si está en la matriz visible; si no, el primer día del mes. */
@@ -227,8 +243,8 @@ function ItemLeyenda({ color, etiqueta }: { color: string; etiqueta: string }) {
     <View
       style={estilos.itemLeyenda}
       accessible
-      accessibilityLabel={`${etiqueta}: punto ${tinta}`}>
-      <View style={[estilos.puntoLeyenda, { backgroundColor: color }]} />
+      accessibilityLabel={`${etiqueta}: bloque ${tinta}`}>
+      <View style={[estilos.muestraLeyenda, { backgroundColor: color }]} />
       <ThemedText variant="caption" tone="secondary">
         {etiqueta}
       </ThemedText>
@@ -259,20 +275,37 @@ const estilos = StyleSheet.create({
     paddingVertical: spacing.lg,
     paddingHorizontal: layout.screenPadding,
   },
-  filaMes: {
+  cabeceraMes: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
-  etiquetaMes: {
+  identidadMes: {
     flex: 1,
-    textAlign: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
   },
-  espacioSimetrico: {
-    // Iguala el peso óptico del lado izquierdo (chevron izquierdo) con el
-    // derecho (chevron + botón +), para que el rótulo del mes quede centrado.
-    width: 36,
+  badgeMes: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.button,
+    backgroundColor: colors.brand.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  textoBadgeMes: {
+    color: colors.text.onPrimary,
+  },
+  nombreMes: {
+    color: colors.brand.primary,
+    letterSpacing: 0.5,
+  },
+  navegacionMes: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
   },
   tarjetaCalendario: {
     gap: spacing.sm,
@@ -288,9 +321,9 @@ const estilos = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
   },
-  puntoLeyenda: {
-    width: 6,
-    height: 6,
+  muestraLeyenda: {
+    width: 8,
+    height: 8,
     borderRadius: 3,
   },
   seccionProximos: {
