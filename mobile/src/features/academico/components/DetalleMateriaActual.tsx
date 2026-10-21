@@ -2,7 +2,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { colors, spacing } from '@/shared/ui';
 import { ThemedText, ThemedView } from '@/shared/ui';
-import { colorNota } from '../helpers';
+import { colorNota, nombreDia } from '../helpers';
 import type { MateriaActualDTO } from '../types';
 
 const FORMATO_FECHA = new Intl.DateTimeFormat('es-VE', { dateStyle: 'medium' });
@@ -16,7 +16,18 @@ export function DetalleMateriaActual({ materia }: { materia: MateriaActualDTO })
     <View style={estilos.bloque}>
       <ThemedView variant="card" style={estilos.tarjeta}>
         <Fila etiqueta="Profesor" valor={materia.profesor} />
-        <Fila etiqueta="Aula" valor={materia.aula} />
+        {materia.seccion ? <Fila etiqueta="Sección" valor={materia.seccion} /> : null}
+        {materia.franjas && materia.franjas.length > 0 ? (
+          materia.franjas.map((franja) => (
+            <Fila
+              key={franja.dia_semana}
+              etiqueta={nombreDia(franja.dia_semana)}
+              valor={`${franja.aula} · ${franja.hora_inicio}–${franja.hora_fin}`}
+            />
+          ))
+        ) : (
+          <Fila etiqueta="Aula" valor={materia.aula} />
+        )}
         <Fila etiqueta="Horario" valor={materia.horario} />
         <Fila etiqueta="Créditos" valor={`${materia.creditos}`} />
       </ThemedView>

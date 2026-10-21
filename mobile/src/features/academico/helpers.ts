@@ -7,6 +7,21 @@ import type {
   PensumMateriaDTO,
 } from './types';
 
+const NOMBRES_DIA: Record<number, string> = {
+  1: 'Lunes',
+  2: 'Martes',
+  3: 'Miércoles',
+  4: 'Jueves',
+  5: 'Viernes',
+  6: 'Sábado',
+  7: 'Domingo',
+};
+
+/** Etiqueta del día ISO-8601 de una franja (4 → "Jueves"). */
+export function nombreDia(diaSemana: number): string {
+  return NOMBRES_DIA[diaSemana] ?? '';
+}
+
 /** Escala UNIMAR 0–20: aprobado desde 10. */
 export const NOTA_MINIMA_APROBADA = 10;
 

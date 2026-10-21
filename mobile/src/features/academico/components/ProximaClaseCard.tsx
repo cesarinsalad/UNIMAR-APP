@@ -72,7 +72,7 @@ export function ProximaClaseCard({
         <View style={estilos.filaMeta}>
           <MapPin size={16} color={colors.text.onPrimary} weight="duotone" />
           <ThemedText variant="bodySm" tone="onPrimary" style={estilos.texto}>
-            {materia.aula}
+            {clase.aula ?? materia.aula}
           </ThemedText>
           <User size={16} color={colors.text.onPrimary} weight="duotone" style={estilos.iconoMeta} />
           <ThemedText variant="bodySm" tone="onPrimary" numberOfLines={1} style={estilos.texto}>

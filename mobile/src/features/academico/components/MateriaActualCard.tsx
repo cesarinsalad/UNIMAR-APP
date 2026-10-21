@@ -65,6 +65,13 @@ function ColumnaCorte({ corte }: { corte: CorteDTO | undefined }) {
   );
 }
 
+/** Aulas de la materia: exactas por franja, o el campo plano. */
+export function aulasDeMateria(materia: MateriaActualDTO): string {
+  const aulas = materia.franjas?.map((f) => f.aula) ?? [];
+  const unicas = [...new Set(aulas)];
+  return unicas.length > 0 ? unicas.join(' · ') : materia.aula;
+}
+
 /** Tarjeta de materia en curso: badge de código, aula/profesor y cortes evaluativos. */
 export function MateriaActualCard({ materia }: { materia: MateriaActualDTO }) {
   const tonos = tonalidadesCodigo(materia.codigo);
@@ -89,7 +96,7 @@ export function MateriaActualCard({ materia }: { materia: MateriaActualDTO }) {
           <View style={estilos.metaItem}>
             <MapPinIcon size={14} color={colors.text.secondary} />
             <ThemedText variant="bodySm" tone="secondary">
-              {materia.aula}
+              {aulasDeMateria(materia)}
             </ThemedText>
           </View>
           <View style={estilos.metaItem}>

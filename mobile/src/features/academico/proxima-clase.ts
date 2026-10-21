@@ -16,6 +16,8 @@ export interface ProximaClase {
   minutosRestantes: number;
   /** `ahora` cae dentro de [inicioHoy, finHoy) de esta materia. */
   enCurso: boolean;
+  /** Aula exacta donde ocurre esta clase (viene de la franja). */
+  aula?: string;
 }
 
 /** Número de minuto del "HH:MM". */
@@ -29,21 +31,43 @@ function minutosDeHora(hora: string, fechaBase: Date): Date {
 }
 
 /**
- * Ocurrencia de una materia más próxima a `ahora` para un día de la
- * semana de `fechaBase` (recorre hacia adelante en semanas). Devuelve
- * null si el día no es del horario de la materia o terminó ya para esa
- * ocurrencia.
+ * Ventana semanal de una materia: una franja exacta (`franjas`) o, en su
+ * defecto, la compatibilidad con el horario plano (`dias_semana` +
+ * `hora_inicio/fin`) replicado por día. El aula es por franja.
+ */
+interface Ventana {
+  dia: number;
+  horaInicio: string;
+  horaFin: string;
+  aula?: string;
+}
+
+function ventanasDeMateria(materia: MateriaActualDTO): Ventana[] {
+  if (materia.franjas && materia.franjas.length > 0) {
+    return materia.franjas.map((f) => ({
+      dia: f.dia_semana,
+      horaInicio: f.hora_inicio,
+      horaFin: f.hora_fin,
+      aula: f.aula,
+    }));
+  }
+  const dias = materia.dias_semana;
+  const horaInicio = materia.hora_inicio;
+  if (!dias || dias.length === 0 || !horaInicio) return [];
+  const horaFin = materia.hora_fin ?? horaInicio;
+  return dias.map((dia) => ({ dia, horaInicio, horaFin, aula: materia.aula }));
+}
+
+/**
+ * Ocurrencia de una ventana más próxima a `ahora` para el día indicado
+ * (recorre hacia adelante en semanas). Devuelve null si la ocurrencia
+ * ya empezó o el dato es incoherente.
  */
 function ocurrenciaPosterior(
-  materia: MateriaActualDTO,
+  ventana: Ventana,
   fechaBase: Date,
   ahora: Date,
 ): Date | null {
-  const dias = materia.dias_semana;
-  const horaInicio = materia.hora_inicio;
-  if (!dias || dias.length === 0 || !horaInicio) return null;
-  const horaFin = materia.hora_fin ?? horaInicio;
-
   for (let offsetDias = 0; offsetDias <= 7; offsetDias += 1) {
     const candidato = new Date(
       fechaBase.getFullYear(),
@@ -52,12 +76,12 @@ function ocurrenciaPosterior(
     );
     // getDay() da 0=domingo…6=sábado; el contrato usa ISO-8601 1=lun…7=dom.
     const diaIso = candidato.getDay() === 0 ? 7 : candidato.getDay();
-    if (!dias.includes(diaIso)) continue;
+    if (diaIso !== ventana.dia) continue;
 
-    const inicio = minutosDeHora(horaInicio, candidato);
+    const inicio = minutosDeHora(ventana.horaInicio, candidato);
     if (inicio.getTime() <= ahora.getTime()) continue;
 
-    const fin = minutosDeHora(horaFin, candidato);
+    const fin = minutosDeHora(ventana.horaFin, candidato);
     if (fin.getTime() < inicio.getTime()) continue; // dato incoherente: descartado
     return inicio;
   }
@@ -65,24 +89,16 @@ function ocurrenciaPosterior(
 }
 
 /**
- * Clase en curso para una materia: `ahora` dentro de la ventana
+ * Clase en curso para una ventana: `ahora` dentro de la ventana
  * [inicio, fin) de una ocurrencia de hoy. Devuelve el inicio de esa
  * ventana o null si hoy no le toca clase o la ventana ya terminó.
  */
-function ocurrenciaEnCurso(
-  materia: MateriaActualDTO,
-  ahora: Date,
-): Date | null {
-  const dias = materia.dias_semana;
-  const horaInicio = materia.hora_inicio;
-  if (!dias || dias.length === 0 || !horaInicio) return null;
-  const horaFin = materia.hora_fin ?? horaInicio;
-
+function ocurrenciaEnCurso(ventana: Ventana, ahora: Date): Date | null {
   const diaIso = ahora.getDay() === 0 ? 7 : ahora.getDay();
-  if (!dias.includes(diaIso)) return null;
+  if (diaIso !== ventana.dia) return null;
 
-  const inicio = minutosDeHora(horaInicio, ahora);
-  const fin = minutosDeHora(horaFin, ahora);
+  const inicio = minutosDeHora(ventana.horaInicio, ahora);
+  const fin = minutosDeHora(ventana.horaFin, ahora);
   const esVentana = ahora.getTime() >= inicio.getTime() && ahora.getTime() < fin.getTime();
   return esVentana ? inicio : null;
 }
@@ -91,33 +107,47 @@ function ocurrenciaEnCurso(
  * Próxima clase para la card de Home.
  *
  * Reglas (decisión de diseño Fase 1c):
- *  - Solo materias con horario estructurado (`dias_semana` + `hora_inicio`).
+ *  - Solo materias con horario estructurado: preferimos `franjas` (exactas
+ *    por día/aula); sin ellas, `dias_semana` + `hora_inicio`.
  *  - Prioridad 1: clase EN CURSO (gana siempre; tie → primera del array).
- *  - Prioridad 2: ocurrencia futura más próxima; tie → primera del array.
+ *  - Prioridad 2: ocurrencia futura más próxima; tie → posición previa.
  *  - Máximo alcance: 7 días hacia adelante (horario semanal repetitivo).
  */
 export function proximaClase(
   materias: MateriaActualDTO[],
   ahora: Date,
 ): ProximaClase | null {
-  // 1) En curso → la primera (en orden del array) cuentas.
-  for (const materia of materias) {
-    const inicio = ocurrenciaEnCurso(materia, ahora);
+  // Ventanas aplanadas en orden estable: materia (orden del array) → franja.
+  const ventanas = materias
+    .map((materia) => ({ materia, ventanas: ventanasDeMateria(materia) }))
+    .flatMap(({ materia, ventanas }) =>
+      ventanas.map((ventana) => ({ materia, ventana })),
+    );
+
+  // 1) En curso → la primera en orden plano.
+  for (const { materia, ventana } of ventanas) {
+    const inicio = ocurrenciaEnCurso(ventana, ahora);
     if (inicio) {
-      return { materia, inicio, minutosRestantes: 0, enCurso: true };
+      return {
+        materia,
+        inicio,
+        minutosRestantes: 0,
+        enCurso: true,
+        aula: ventana.aula,
+      };
     }
   }
 
-  // 2) Futuras: gana la más próxima (tie → posición del array).
-  let ganadora: { materia: MateriaActualDTO; inicio: Date } | null = null;
-  for (const materia of materias) {
-    const inicio = ocurrenciaPosterior(materia, ahora, ahora);
+  // 2) Futuras: gana la más próxima (tie → posición previa en el orden plano).
+  let ganadora: { materia: MateriaActualDTO; ventana: Ventana; inicio: Date } | null = null;
+  for (const { materia, ventana } of ventanas) {
+    const inicio = ocurrenciaPosterior(ventana, ahora, ahora);
     if (!inicio) continue;
     if (
       !ganadora ||
       inicio.getTime() < ganadora.inicio.getTime()
     ) {
-      ganadora = { materia, inicio };
+      ganadora = { materia, ventana, inicio };
     }
   }
   if (!ganadora) return null;
@@ -127,5 +157,6 @@ export function proximaClase(
     inicio: ganadora.inicio,
     minutosRestantes: Math.round((ganadora.inicio.getTime() - ahora.getTime()) / 60_000),
     enCurso: false,
+    aula: ganadora.ventana.aula,
   };
 }

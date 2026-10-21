@@ -24,6 +24,20 @@ interface MateriaBase {
   creditos: number;
 }
 
+/**
+ * Franja horaria individual de una materia en curso (una por día de la
+ * semana, con aula y horario propios). Opcional: la API UNIMAR real aún
+ * no la envía; presente en el mock.
+ */
+export interface FranjaDTO {
+  /** ISO-8601: 1=lun … 7=dom. */
+  dia_semana: number;
+  aula: string;
+  /** "HH:MM" local 24h. */
+  hora_inicio: string;
+  hora_fin: string;
+}
+
 export interface MateriaActualDTO extends MateriaBase {
   es_actual: true;
   profesor: string;
@@ -35,6 +49,10 @@ export interface MateriaActualDTO extends MateriaBase {
   dias_semana?: number[];
   hora_inicio?: string;
   hora_fin?: string;
+  seccion?: string;
+  /** Franjas exactas por día. Si están, tienen prioridad sobre
+   *  `dias_semana`/`hora_inicio` para próxima clase y aula. */
+  franjas?: FranjaDTO[];
   cortes: CorteDTO[];
 }
 

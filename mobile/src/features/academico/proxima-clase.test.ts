@@ -6,23 +6,31 @@ import type { MateriaActualDTO } from './types';
 
 // Semana de referencia: 2026-10-07 es MIÉRCOLES (local).
 const MIERCOLES = new Date(2026, 9, 7, 10, 20, 0, 0); // mié 10:20 (getDay=3)
+const MIERCOLES_TARDE = new Date(2026, 9, 7, 17, 0, 0, 0); // mié 17:00: ya salió de clase
 
 function materia(overrides: Partial<MateriaActualDTO> = {}): MateriaActualDTO {
   return {
     id: 'mat-1',
-    codigo: 'IS-701',
-    nombre: 'Bases de Datos II',
-    creditos: 4,
+    codigo: 'AUS1205341',
+    nombre: 'Auditoría de Sistemas',
+    creditos: 3,
     es_actual: true,
-    profesor: 'Dra. Pérez',
-    aula: 'A-12',
-    horario: 'Lun-Mié 9:00-10:30',
-    dias_semana: [1, 3],
-    hora_inicio: '09:00',
-    hora_fin: '10:30',
+    profesor: 'Daniela López',
+    aula: 'A21',
+    horario: 'Mié 10:20-12:35 (A21) · Jue 11:50-01:35 (A40)',
+    dias_semana: [3, 4],
+    hora_inicio: '10:20',
+    hora_fin: '12:35',
     cortes: [],
     ...overrides,
   };
+}
+
+function franjas() {
+  return [
+    { dia_semana: 3, aula: 'A21', hora_inicio: '10:20', hora_fin: '12:35' },
+    { dia_semana: 4, aula: 'A40', hora_inicio: '11:50', hora_fin: '13:35' },
+  ];
 }
 
 describe('proximaClase', () => {
@@ -49,10 +57,10 @@ describe('proximaClase', () => {
 
   it('en curso (ahora dentro de [inicio, fin)) → enCurso true y minutos 0', () => {
     const r = proximaClase([materia({ dias_semana: [3] })], MIERCOLES);
-    // 09:00-10:30 contiene 10:20
+    // 10:20-12:35 contiene 10:20 (inicio inclusive)
     expect(r?.enCurso).toBe(true);
     expect(r?.minutosRestantes).toBe(0);
-    expect(r?.inicio.getHours()).toBe(9);
+    expect(r?.inicio.getHours()).toBe(10);
   });
 
   it('la clase en curso tiene prioridad total (decisión Fase 1c)', () => {
@@ -97,6 +105,39 @@ describe('proximaClase', () => {
       MIERCOLES,
     );
     expect(r).toBeNull();
+  });
+
+  it('con franjas, en curso usa la franja del día y su aula exacta', () => {
+    const r = proximaClase(
+      [materia({ franjas: franjas(), dias_semana: undefined, hora_inicio: undefined })],
+      MIERCOLES,
+    );
+    expect(r?.enCurso).toBe(true);
+    expect(r?.aula).toBe('A21');
+    expect(r?.inicio.getHours()).toBe(10);
+  });
+
+  it('con franjas, la segunda franja habilita la clase del jueves con su aula', () => {
+    const r = proximaClase(
+      [materia({ franjas: franjas(), dias_semana: undefined, hora_inicio: undefined })],
+      MIERCOLES_TARDE,
+    );
+    expect(r?.enCurso).toBe(false);
+    expect(r?.inicio.getDay()).toBe(4); // jueves
+    expect(r?.inicio.getHours()).toBe(11);
+    expect(r?.aula).toBe('A40');
+  });
+
+  it('franjas tienen prioridad sobre el horario plano (si difieren)', () => {
+    const mezcla = materia({
+      franjas: franjas(),
+      // plano apuntaría a otra ocurrencia distinta: debe GANAR la franja
+      dias_semana: [6],
+      hora_inicio: '08:00',
+    });
+    const r = proximaClase([mezcla], MIERCOLES_TARDE);
+    expect(r?.inicio.getDay()).toBe(4);
+    expect(r?.inicio.getHours()).toBe(11);
   });
 
   it('lista vacía → null', () => {
