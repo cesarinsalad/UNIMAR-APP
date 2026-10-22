@@ -20,8 +20,8 @@ export interface ProximaClase {
   aula?: string;
 }
 
-/** Número de minuto del "HH:MM". */
-function minutosDeHora(hora: string, fechaBase: Date): Date {
+/** Número de minuto del "HH:MM" → Date local con esa hora en `fechaBase`. */
+export function minutosDeHora(hora: string, fechaBase: Date): Date {
   const partes = hora.split(':');
   const hh = partes[0] ?? '0';
   const mm = partes[1] ?? '0';
@@ -35,14 +35,14 @@ function minutosDeHora(hora: string, fechaBase: Date): Date {
  * defecto, la compatibilidad con el horario plano (`dias_semana` +
  * `hora_inicio/fin`) replicado por día. El aula es por franja.
  */
-interface Ventana {
+export interface Ventana {
   dia: number;
   horaInicio: string;
   horaFin: string;
   aula?: string;
 }
 
-function ventanasDeMateria(materia: MateriaActualDTO): Ventana[] {
+export function ventanasDeMateria(materia: MateriaActualDTO): Ventana[] {
   if (materia.franjas && materia.franjas.length > 0) {
     return materia.franjas.map((f) => ({
       dia: f.dia_semana,

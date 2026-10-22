@@ -23,18 +23,15 @@ import {
 } from '@/shared/ui';
 import { particionarMaterias } from '@/features/academico/helpers';
 import { proximaClase } from '@/features/academico/proxima-clase';
+import { clasesDeDia } from '@/features/academico/clases-de-dia';
 import { ProximaClaseCard } from '@/features/academico/components/ProximaClaseCard';
+import { AgendaDia } from '@/features/academico/components/AgendaDia';
 import { useMaterias } from '@/features/academico/hooks/useMaterias';
 import { NoticiaCard } from '@/features/comunicaciones/components/NoticiaCard';
 import { useComunicadosFeed } from '@/features/comunicaciones/hooks/useComunicadosFeed';
-import { EventoAgendaCard } from '@/features/calendario/components/EventoAgendaCard';
-import { ventanaDias } from '@/features/calendario/calendario-calculo';
-import { useAgenda } from '@/features/calendario/hooks/useAgenda';
 import { CampanaConBadge } from '@/features/notificaciones/components/CampanaConBadge';
 import { useNoLeidas } from '@/features/notificaciones/hooks/useNoLeidas';
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
-
-const DIAS_VENTANA = 30;
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -44,8 +41,6 @@ export default function HomeScreen() {
   const noLeidas = useNoLeidas();
   const materias = useMaterias();
   const feed = useComunicadosFeed();
-  const ventana = useMemo(() => ventanaDias(new Date(), DIAS_VENTANA), []);
-  const agenda = useAgenda(ventana);
 
   const primerNombre = usuario?.nombre.split(' ')[0] ?? 'unimarista';
 
@@ -59,13 +54,10 @@ export default function HomeScreen() {
     [feed.data],
   );
 
-  const proximos = useMemo(() => {
-    if (!agenda.data) return [];
-    const ahora = Date.now();
-    return aplanarPaginas(agenda.data.pages)
-      .filter((e) => new Date(e.inicioAt).getTime() >= ahora)
-      .slice(0, 3);
-  }, [agenda.data]);
+  const clases = useMemo(() => {
+    const actuales = particionarMaterias(materias.data ?? []).actuales;
+    return clasesDeDia(actuales, new Date());
+  }, [materias.data]);
 
   // Mensaje de la card informativa según si hay error o simplemente nada.
   const mensajeClase = materias.isError
@@ -86,9 +78,7 @@ export default function HomeScreen() {
         refreshControl={
           <RefreshControl
             refreshing={refrescando}
-            onRefresh={() =>
-              void refrescar([['academico', 'materias'], ['comunicados'], ['eventos']])
-            }
+            onRefresh={() => void refrescar([['academico', 'materias'], ['comunicados']])}
             tintColor={colors.brand.primary}
           />
         }>
@@ -132,7 +122,6 @@ export default function HomeScreen() {
             <EmptyState
               title="Sin noticias por ahora"
               message="Cuando tu decanato publique comunicados, aparecerán aquí."
-              style={estilos.vacio}
             />
           ) : (
             <ScrollView
@@ -146,32 +135,33 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* ── Próximos eventos ── */}
+        {/* ── Agenda de hoy: las clases del día, de agenda ── */}
         <View style={estilos.seccion}>
           <SectionHeader
-            title="Tus próximos eventos"
+            title="Tu agenda de hoy"
             action={
               <EnlaceSeccion
-                etiqueta="Ver agenda"
-                descripcion="Ver la agenda completa"
-                onPress={() => router.navigate('/calendario')}
+                etiqueta="Ver horario"
+                descripcion="Ir a tus materias y horario"
+                onPress={() => router.navigate('/academico')}
               />
             }
           />
-          {agenda.isPending ? (
+          {materias.isPending ? (
             <CargandoSeccion />
-          ) : proximos.length === 0 ? (
+          ) : clases.length === 0 ? (
             <EmptyState
-              title="Sin próximos eventos"
-              message="Los eventos oficiales y personales de los próximos 30 días se listan aquí."
-              style={estilos.vacio}
+              title={
+                materias.isError ? 'No se pudo cargar tu horario' : 'No tienes clases hoy'
+              }
+              message={
+                materias.isError
+                  ? 'Revisa tu conexión e intenta de nuevo.'
+                  : 'Disfruta tu día; tu horario aparecerá aquí cuando tengas clases.'
+              }
             />
           ) : (
-            <View style={estilos.listaEventos}>
-              {proximos.map((evento) => (
-                <EventoAgendaCard key={evento.id} evento={evento} />
-              ))}
-            </View>
+            <AgendaDia clases={clases} />
           )}
         </View>
       </ScrollView>
@@ -211,17 +201,15 @@ const estilos = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     gap: spacing.xl,
   },
-  seccion: { gap: spacing.md },
+  seccion: { gap: spacing.lg },
   noticias: {
     flexDirection: 'row',
     gap: spacing.md,
   },
-  listaEventos: { gap: spacing.md },
   enlace: { color: colors.brand.primary },
   enlaceFila: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
   },
-  vacio: { paddingVertical: spacing.md },
 });

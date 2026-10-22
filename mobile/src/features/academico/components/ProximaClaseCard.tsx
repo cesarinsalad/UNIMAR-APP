@@ -116,7 +116,8 @@ const estilos = StyleSheet.create({
   texto: { opacity: 0.92 },
   vacia: {
     alignItems: 'center',
-    gap: spacing.sm,
-    padding: spacing.lg,
+    gap: spacing.md,
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.lg,
   },
 });

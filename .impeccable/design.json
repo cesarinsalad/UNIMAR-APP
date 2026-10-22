@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-07T00:00:00.000Z",
+  "generatedAt": "2026-10-22T00:00:00.000Z",
   "title": "Design System: UNIMARapp",
   "extensions": {
     "colorMeta": {
@@ -190,9 +190,14 @@
     ],
     "motion": [
       {
+        "name": "press-scale",
+        "value": "transform: scale(0.97); transition: 120ms ease-out",
+        "purpose": "Feedback táctil estándar en Pressables de tensión de decenas/día (PressableScale); casi imperceptible. Con motion reducido degrada a opacity 0.85 sin transforms."
+      },
+      {
         "name": "press-fade",
         "value": "opacity 0.85 on press",
-        "purpose": "Respuesta estándar al toque en Pressables custom (únicas transiciones definidas hoy)."
+        "purpose": "Respuesta en Pressables de tarjeta (PressableCard) y residuals pre-PressableScale."
       }
     ],
     "breakpoints": [
@@ -252,6 +257,14 @@
       "css": ".ds-status-row { display: flex; align-items: center; gap: 12px; background: #FFFFFF; border-radius: 20px; padding: 12px 16px 12px 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.14); font-family: 'Montserrat', sans-serif; } .ds-status-date { display: flex; flex-direction: column; align-items: center; } .ds-status-date .day { font-size: 22px; font-weight: 700; color: #413D3C; } .ds-status-date .month { font-size: 12px; color: #7A7574; } .ds-status-bar { width: 3px; align-self: stretch; border-radius: 999px; background: #D1D1D4; } .ds-status-bar.ds-official { background: #0D4D98; } .ds-status-body { flex: 1; display: flex; flex-direction: column; gap: 2px; } .ds-status-body .title { color: #413D3C; font-size: 16px; font-weight: 500; } .ds-status-body .meta { color: #7A7574; font-size: 12px; }"
     },
     {
+      "name": "Agenda del día (firma)",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "Agenda del Home: filas del día en UNA tarjeta con hairline; columna de hora (inicio semibold + fin caption), espina lateral 3px azul solo para la clase en curso, pill 'Ahora' tintada; pasadas solo atenuadas por color.",
+      "html": "<div class=\"ds-agenda\"><div class=\"ds-agenda-row\"><div class=\"spine active\"></div><div class=\"time\"><span class=\"start\">10:20</span><span class=\"end\">12:35</span></div><div class=\"body\"><span class=\"name\">Auditoría de Sistemas</span><span class=\"meta\">Aula A21 · Daniela López</span></div><span class=\"ahora\">Ahora</span></div><div class=\"ds-agenda-row dim\"><div class=\"spine\"></div><div class=\"time\"><span class=\"start\">08:00</span><span class=\"end\">09:00</span></div><div class=\"body\"><span class=\"name\">Cálculo I</span><span class=\"meta\">Aula B13 · Prof. X</span></div></div></div>",
+      "css": ".ds-agenda { background: #FFFFFF; border-radius: 20px; padding: 8px 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.14); border-top: 1px solid rgba(255,255,255,0.19); font-family: 'Montserrat', sans-serif; } .ds-agenda-row { display: flex; align-items: center; min-height: 56px; padding: 12px 0; } .ds-agenda-row + .ds-agenda-row { border-top: 1px solid #E8E8E8; } .ds-agenda .spine { width: 3px; align-self: stretch; border-radius: 999px; background: #E8E8E8; } .ds-agenda .spine.active { background: #0D4D98; } .ds-agenda .time { width: 52px; margin-left: 12px; display: flex; flex-direction: column; gap: 2px; } .ds-agenda .time .start { font-size: 14px; font-weight: 600; color: #413D3C; } .ds-agenda .time .end { font-size: 12px; color: #7A7574; } .ds-agenda .body { flex: 1; margin-left: 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; } .ds-agenda .name { color: #413D3C; font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-agenda .meta { color: #7A7574; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-agenda .dim .name, .ds-agenda .dim .time .start { color: #7A7574; } .ds-agenda-row:has(.spine.active) .time .start { color: #0D4D98; } .ds-agenda .ahora { margin-left: 12px; background: #EBF2FA; color: #0D4D98; font-size: 12px; font-weight: 600; border-radius: 999px; padding: 2px 8px; flex: none; }"
+    },
+    {
       "name": "Tab Bar Flotante (firma nav)",
       "kind": "nav",
       "refersTo": "badge",
@@ -264,7 +277,14 @@
     "northStar": "El Registro Institucional",
     "overview": "UNIMARapp se percibe como el escritorio de registro académico del estudiante: el fondo de pantalla es papel bond (#F8F9FA), cada bloque de información es un documento —tarjeta blanca con sombra estructural y un resplandor sutil en su borde superior— y toda acción que modifique o confirme lleva el sello institucional, el azul UNIMAR (#0D4D98). El sistema es Operate puro: la estudiante escanea, encuentra su clase y actúa; el diseño nunca compite por la atención.\n\nLa personalidad es institucional serena: transferible a notario más que a red social. La densidad es media (tarjetas con aire, listas de historial apretadas solo en datos), la tipografía sube la voz con peso, no con decoración, y el color es un semáforo — azul institucional solo identifica dónde interactuar.\n\nLos datos que se muestran vienen de la API institucional vía BFF; el diseño refleja estados reales (cortes sin nota en gris, nota reprobada en rojo) en vez de estados aspiracionales.",
     "keyCharacteristics": [
-      "Tarjeta blanca 20px sobre canvas #F8F9FA con sombra compuesta + resplandor superior."
+      "Tarjeta blanca 20px sobre canvas #F8F9FA con sombra compuesta + resplandor superior.",
+      "Azul #0D4D98 exclusivo de acción, identidad y selección (≈10% de cada pantalla).",
+      "Naranja #FF7A00 solo en puntos de notificación/estado de calendario.",
+      "Montserrat única, escala 2-en-2 desde 12px; jerarquía por peso.",
+      "Tab bar flotante tipo pill, siempre blanca con 5 iconos duotone.",
+      "Headers de pantalla vivos en el contenido (headline + campana), sin headers nativos.",
+      "Estados vacíos y errores con texto sereno, sin dramatismo rojo salvo reprobadas.",
+      "Agenda del día: una tarjeta con filas-hora separadas por hairline (naturaleza lista)."
     ],
     "rules": [
       {
