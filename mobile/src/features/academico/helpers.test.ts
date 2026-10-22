@@ -200,6 +200,10 @@ describe('formatearPeriodo (tríada UNIMAR)', () => {
     expect(formatearPeriodo(periodo)).toBe(esperado);
   });
 
+  it('intensivo de agosto (término 0) → etiqueta especial', () => {
+    expect(formatearPeriodo('2023-0')).toBe('Agosto (Intensivo) 2023');
+  });
+
   it('formato ajeno → crudo', () => {
     expect(formatearPeriodo('2025-4')).toBe('2025-4');
     expect(formatearPeriodo('X')).toBe('X');

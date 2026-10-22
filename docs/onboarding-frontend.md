@@ -307,11 +307,13 @@ cliente debe representar esto (p. ej. etiqueta "Toda la universidad").
   ],
   "cortes": [ { "nombre": "Parcial 1", "fecha": "2026-09-15", "ponderacion": 30, "nota": 14 } ]
 }
-// Materia HISTÓRICA: resumen con nota final
+// Incluye también KARDEX histórico (~70 materias, 13 períodos "AAAA-T";
+// término 0 = intensivo de Agosto). Regla de estado: nota ≥10 → APROBADA,
+// <10 → REPROBADA; cursos sin nota numérica ("AP") → APROBADA con nota null.
 {
-  "id": "mat-hist-1", "codigo": "IS-501", "nombre": "Algoritmos I",
-  "creditos": 4, "es_actual": false,
-  "periodo": "2025-2", "nota_final": 18, "estado": "APROBADA"
+  "id": "hist-69", "codigo": "TRI1106341", "nombre": "Trabajo de Investigación I",
+  "creditos": 3, "es_actual": false,
+  "periodo": "2026-2", "nota_final": null, "estado": "APROBADA"
 }
 ```
 La UI debe renderizar según `es_actual` (no asumir campos comunes).

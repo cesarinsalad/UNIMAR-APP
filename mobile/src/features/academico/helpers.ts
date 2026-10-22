@@ -110,12 +110,13 @@ const TRIMESTRES: Record<string, string> = {
 
 /**
  * Etiqueta de período para la UI: "2026-2" → "Trimestre Abril-Julio 2026"
- * (tríada UNIMAR). Formatos ajenos (p. ej. "2025-2" tras cambio futuro del
- * contrato) se muestran crudos en vez de inventar.
+ * (tríada UNIMAR). El término "0" es el intensivo de Agosto. Formatos
+ * ajenos se muestran crudos en vez de inventar.
  */
 export function formatearPeriodo(periodo: string): string {
   const anio = periodo.split('-')[0] ?? '';
   const termino = periodo.split('-')[1] ?? '';
+  if (termino === '0') return `Agosto (Intensivo) ${anio}`;
   const etiqueta = TRIMESTRES[termino];
   if (!etiqueta) return periodo;
   return `Trimestre ${etiqueta} ${anio}`;

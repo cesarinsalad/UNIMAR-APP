@@ -2,6 +2,7 @@ import { ServiceUnavailableError } from '../../../shared/errors';
 import type {
   HistorialMedicoDTO,
   MateriaDTO,
+  MateriaHistoricaDTO,
   PensumDTO,
   PerfilAcademico,
 } from '../domain/dtos';
@@ -28,7 +29,7 @@ export class MockUniversityAcademicService implements IUniversityAcademicService
       nombre: nombrePorCedula(cedula),
       carrera: 'Ingeniería de Sistemas',
       semestre: 12,
-      promedio: 16.4,
+      promedio: 15.2,
       estatus: 'ACTIVO',
     };
   }
@@ -105,6 +106,7 @@ export class MockUniversityAcademicService implements IUniversityAcademicService
           { nombre: 'Final', fecha: '2026-12-05', ponderacion: 40, nota: null },
         ],
       },
+      ...historicas(),
     ];
   }
 
@@ -171,6 +173,122 @@ export class MockUniversityAcademicService implements IUniversityAcademicService
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+// ─── Historial académico (kardex) ───────────────────────────────────
+
+/**
+ * Kardex real de un estudiante del 12º trimestre (cursos aprobados y
+ * reprobados por período). Codificación de períodos UNIMAR: `AAAA-T`
+ * donde el término 1=Enero-Abril, 2=Abril-Julio, 3=Septiembre-Diciembre
+ * y 0=intensivo de Agosto.
+ *
+ * Regla de estado: nota numérica ≥10 APROBADA, <10 REPROBADA. Los cursos
+ * sin nota numérica ('AP', por ejemplo práctica profesional) quedan
+ * APROBADA con nota_final null — el cliente los muestra con '—'.
+ * El promedio del perfil (15.2) es la media simple de las 67 notas
+ * numéricas de esta tabla.
+ */
+type NotaHistorica = number | 'AP';
+type TuplaHistorica = [codigo: string, nombre: string, periodo: string, nota: NotaHistorica];
+
+const KARDEX: TuplaHistorica[] = [
+  // Trimestre Septiembre-Diciembre 2022
+  ['IIG0104341', 'Introducción a la Ingeniería de Sistemas', '2022-3', 18],
+  ['ITI0104300', 'Introducción a la Tecnología de la Información', '2022-3', 16],
+  ['FOC0104300', 'Formación Ciudadana', '2022-3', 19],
+  ['GRL0104300', 'Gramática y Lectura', '2022-3', 19],
+  ['INM0104300', 'Introducción a la Matemática', '2022-3', 10],
+  ['TEE0104300', 'Técnicas de Estudio', '2022-3', 17],
+  ['ADR0102100', 'Actividades Deportivas y Recreativas', '2022-3', 10],
+  // Trimestre Enero-Abril 2023
+  ['DIB0203141', 'Dibujo I', '2023-1', 16],
+  ['AMS0204300', 'Ambiente Sostenible', '2023-1', 17],
+  ['GEA0205341', 'Geometría Analítica', '2023-1', 10],
+  ['MAT0205341', 'Matemática I', '2023-1', 15],
+  ['ALD0204341', 'Álgebra Discreta', '2023-1', 12],
+  ['IDR0204300', 'Identidad Regional', '2023-1', 20],
+  ['QUG0205341', 'Química General', '2023-1', 11],
+  // Trimestre Mayo-Julio 2023
+  ['ALL0304341', 'Álgebra Lineal', '2023-2', 10],
+  ['DPL0302200', 'Desarrollo del Pensamiento Lógico', '2023-2', 15],
+  ['FIS0304341', 'Física I', '2023-2', 10],
+  ['MAT0305341', 'Matemática II', '2023-2', 5],
+  ['INI0304341', 'Inglés Instrumental I', '2023-2', 15],
+  ['TEP0304341', 'Técnicas de Programación', '2023-2', 14],
+  ['DIB0303141', 'Dibujo II', '2023-2', 19],
+  // Intensivo Agosto 2023
+  ['MAT0305341', 'Matemática II', '2023-0', 15],
+  // Trimestre Septiembre-Diciembre 2023
+  ['DDD0402200', 'Dinámica del Desarrollo', '2023-3', 18],
+  ['INI0404341', 'Inglés Instrumental II', '2023-3', 17],
+  ['MAT0405341', 'Matemática III', '2023-3', 9],
+  ['PRO0405341', 'Programación I', '2023-3', 15],
+  ['LSP0402200', 'Liderazgo Social y Político Contemporáneo en Latinoamérica', '2023-3', 16],
+  ['LAF0403141', 'Laboratorio de Física I', '2023-3', 13],
+  ['FIS0405341', 'Física II', '2023-3', 14],
+  // Trimestre Enero-Abril 2024
+  ['MAT0405341', 'Matemática III', '2024-1', 12],
+  ['CIE0505341', 'Circuitos Eléctricos', '2024-1', 11],
+  ['PRO0505341', 'Programación II', '2024-1', 10],
+  ['ESD0504341', 'Estructura de Datos', '2024-1', 11],
+  ['MER0505341', 'Mecánica Racional', '2024-1', 11],
+  // Trimestre Abril-Julio 2024
+  ['BAD0604341', 'Base de Datos I', '2024-2', 14],
+  ['ELE0606341', 'Electrónica', '2024-2', 13],
+  ['PRO0605341', 'Programación III', '2024-2', 15],
+  ['SIS0605341', 'Sistemas I', '2024-2', 17],
+  ['HAT0302200', 'Herramientas y Aplicaciones Tecnológicas para el Aprendizaje', '2024-2', 16],
+  ['MAT0505341', 'Matemática IV', '2024-2', 13],
+  // Trimestre Septiembre-Diciembre 2024
+  ['ESP0605341', 'Estadística y Probabilidades', '2024-3', 12],
+  ['BAD0705341', 'Base de Datos II', '2024-3', 10],
+  ['SID0705341', 'Sistemas Digitales', '2024-3', 13],
+  ['SIS0705341', 'Sistemas II', '2024-3', 17],
+  ['MEF0805341', 'Mecánica de Fluidos', '2024-3', 18],
+  // Trimestre Enero-Abril 2025
+  ['PRO0705341', 'Programación IV', '2025-1', 16],
+  ['ESA0704341', 'Estadística Aplicada', '2025-1', 16],
+  ['SIS0005341', 'Sistemas III', '2025-1', 17],
+  ['ARC0804341', 'Arquitectura del Computador', '2025-1', 19],
+  ['INO0804341', 'Investigación de Operaciones para Ingenieros', '2025-1', 17],
+  // Trimestre Abril-Julio 2025
+  ['INI0504341', 'Inglés Instrumental III', '2025-2', 15],
+  ['CAN0804341', 'Cálculo Numérico', '2025-2', 13],
+  ['INE0904341', 'Ingeniería Económica', '2025-2', 18],
+  ['SIC0905341', 'Sistemas de Controles', '2025-2', 16],
+  ['SIG0905341', 'Sistemas de Información Gerencial', '2025-2', 20],
+  // Trimestre Septiembre-Diciembre 2025
+  ['SIO0904341', 'Sistemas Operativos', '2025-3', 19],
+  ['HEG1004341', 'Herramientas Gerenciales', '2025-3', 20],
+  ['SIS1004341', 'Sistemas de Señales', '2025-3', 16],
+  ['ECP1104341', 'Evaluación y Control de Proyectos', '2025-3', 19],
+  ['ADR0904341', 'Administración de Redes', '2025-3', 18],
+  ['MEI0904341', 'Metodología de la Investigación', '2025-3', 18],
+  // Trimestre Enero-Abril 2026
+  ['MDS1004241', 'Metodología de Desarrollo de Software', '2026-1', 18],
+  ['RED1005341', 'Redes de Datos', '2026-1', 20],
+  ['SMI1004341', 'Seminario Metodológico de Investigación', '2026-1', 'AP'],
+  ['SFL1004341', 'Software Libre', '2026-1', 20],
+  ['SEI1004341', 'Seguridad Informática', '2026-1', 20],
+  // Trimestre Abril-Julio 2026
+  ['INT1105341', 'Introducción a las Telecomunicaciones', '2026-2', 20],
+  ['PRP1107441', 'Práctica Profesional', '2026-2', 'AP'],
+  ['TRI1106341', 'Trabajo de Investigación I', '2026-2', 'AP'],
+  ['EDP1203341', 'Ética y Deontología Profesional', '2026-2', 16],
+];
+
+function historicas(): MateriaHistoricaDTO[] {
+  return KARDEX.map(([codigo, nombre, periodo, nota], i) => ({
+    id: `hist-${i + 1}`,
+    codigo,
+    nombre,
+    creditos: 3,
+    es_actual: false,
+    periodo,
+    nota_final: nota === 'AP' ? null : nota,
+    estado: nota === 'AP' || nota >= 10 ? 'APROBADA' : 'REPROBADA',
+  }));
 }
 
 function nombrePorCedula(cedula: string): string {
