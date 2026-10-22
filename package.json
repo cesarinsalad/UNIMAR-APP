@@ -9,6 +9,7 @@
     "predev:all": "npx supabase start",
     "dev:all": "concurrently -k -n bff,metro -c green,magenta \"npm run dev\" \"npm --prefix mobile run start -- --dev-client\"",
     "tunnel": "ngrok http 3000",
+    "dev:remoto": "concurrently -k -n bff,tunnel,metro -c green,cyan,magenta \"npm run dev\" \"npm run tunnel\" \"npm --prefix mobile run start:tunnel -- --dev-client\"",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "test": "vitest run",
