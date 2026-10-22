@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ArrowLeft, Share as ShareIcon } from 'phosphor-react-native';
+import { ArrowLeft, ShareNetwork as ShareIcon } from 'phosphor-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -193,7 +193,7 @@ function DetalleLector({
               message: `${comunicado.titulo} — unimarapp://comunicados/${comunicadoId}`,
             });
           }}>
-          <ShareIcon size={20} color={colors.brand.primary} weight="duotone" />
+          <ShareIcon size={20} color={colors.brand.primary} weight="fill" />
         </BotonCircular>
       </View>
 

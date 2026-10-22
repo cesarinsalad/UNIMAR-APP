@@ -1,5 +1,5 @@
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { NewspaperIcon } from 'phosphor-react-native';
+import { ArticleNyTimesIcon } from 'phosphor-react-native';
 
 import { colors } from '@/shared/ui';
 
@@ -23,7 +23,7 @@ export function PortadaPlaceholder({
           estilos.circulo,
           { width: circulo, height: circulo, borderRadius: circulo / 2 },
         ]}>
-        <NewspaperIcon size={tamanoIcono} color={colors.brand.primary} weight="duotone" />
+        <ArticleNyTimesIcon size={tamanoIcono} color={colors.brand.primary} weight="duotone" />
       </View>
     </View>
   );
