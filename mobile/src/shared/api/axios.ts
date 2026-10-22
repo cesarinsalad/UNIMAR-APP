@@ -68,6 +68,9 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
+  // Evita el intersticial del plan free de ngrok ("You are about to visit").
+  // Inofensivo para el resto de entornos.
+  config.headers.set('ngrok-skip-browser-warning', 'true');
   const token = useSesionStore.getState().token;
   if (token) {
     config.headers.set('Authorization', `Bearer ${token}`);

@@ -1,0 +1,12 @@
+version: 3
+# Tunnel con nombre para el BFF (puerto 3000).
+# El authtoken NO se coloca aqui: vive en ~/.config/ngrok/ngrok.yml
+# (`ngrok config add-authtoken <token>`).
+#
+# Con el plan free de ngrok, iniciar este tunnel usa automaticamente el
+# dev domain asignado a la cuenta (permanente, p. ej. *.ngrok-free.dev).
+# Ver docs/dev-remoto.md.
+tunnels:
+  unimar:
+    proto: http
+    addr: 3000

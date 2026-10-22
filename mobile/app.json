@@ -50,7 +50,7 @@
       "typedRoutes": true
     },
     "extra": {
-      "apiBaseUrl": "http://localhost:3000/api/v1",
+      "apiBaseUrl": "https://moonbeam-frosted-condition.ngrok-free.dev/api/v1",
       "eas": {
         "projectId": "99359622-bb83-44be-912f-e6fad44f525b"
       },
