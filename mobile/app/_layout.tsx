@@ -7,13 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClientProvider } from '@tanstack/react-query';
 
-import {
-  Montserrat_400Regular,
-  Montserrat_500Medium,
-  Montserrat_600SemiBold,
-  Montserrat_700Bold,
-  useFonts,
-} from '@expo-google-fonts/montserrat';
+import { useFonts } from 'expo-font';
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import { colors } from '@/shared/ui';
 import SplashLogo from '../assets/images/unimar/logo-vertical-blanco.png';
@@ -33,10 +27,17 @@ export default function RootLayout() {
   const hydrate = useSesionStore((s) => s.hydrate);
   const [listenersActivos, setListenersActivos] = useState(false);
   const [fuenteCargada] = useFonts({
-    Montserrat_400Regular,
-    Montserrat_500Medium,
-    Montserrat_600SemiBold,
-    Montserrat_700Bold,
+    // TTFs locales (equivalentes a las variantes de @expo-google-fonts;
+    // mismas keys para el theme). Viven en assets/ (no node_modules) para
+    // que el export web no las coloque bajo rutas ignoradas por wrangler.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    Montserrat_400Regular: require('../assets/fonts/Montserrat_400Regular.ttf'),
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    Montserrat_500Medium: require('../assets/fonts/Montserrat_500Medium.ttf'),
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    Montserrat_600SemiBold: require('../assets/fonts/Montserrat_600SemiBold.ttf'),
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    Montserrat_700Bold: require('../assets/fonts/Montserrat_700Bold.ttf'),
   });
 
   useEffect(() => {
