@@ -13,6 +13,8 @@ Tesis de Ingeniería de Sistemas. Backend completado; mobile completo (5 pasos).
 ```bash
 npm run dev          # BFF en http://localhost:3000 (requiere Supabase arriba)
 npm run dev:all      # Un comando: supabase start + BFF + Metro (dev build Android) con prefijos [supa,bff,metro]
+npm run dev:remoto   # Flujo universal: supabase start + BFF + ngrok + Metro --tunnel — app usable desde cualquier red (docs/dev-remoto.md)
+npm run tunnel       # ngrok http 3000 → dev domain fijo (apunta el BFF al exterior; apiBaseUrl móvil ya lo referencia)
 npm test             # Unit tests (sin DB)
 npm run test:db      # Integration RLS (requiere Supabase, RUN_DB_TESTS=1 interno)
 npm run typecheck
@@ -21,7 +23,10 @@ npm run lint
 
 ### Mobile (`mobile/`)
 ```bash
-npm start            # Metro bundler (QR para Expo Go)
+npm start                        # Metro bundler ACL (QR para Expo Go)
+npm run start:tunnel             # Metro público (--tunnel; link estable en .expo/settings.json)
+npm run web                      # web dev con hot reload (localhost:8081, en CORS_ORIGIN)
+npm run web:deploy               # export + wrangler pages deploy → https://unimarapp.pages.dev
 npm test             # Jest con preset jest-expo (NO vitest)
 npm run typecheck
 npm run lint
@@ -81,9 +86,13 @@ npm run test:db             # integration RLS; se salta si Supabase no está arr
 
 ## Gotchas operacionales
 
-- Supabase local exige **Docker**; puerto Postgres 54322.
-- `mobile/app.json > extra.apiBaseUrl` debe apuntar a la IP del host (no localhost) para dispositivo físico; **no commitear** ese cambio (usado solo para pruebas — revertear con `git checkout mobile/app.json`).
-- Dev en **WSL2**: IP de WSL cambia por reinicio; iOS físico requiere portproxy netsh (3000 y 8081) + firewall + URL manual `exp://<IP-WINDOWS>:8081` en Expo Go (detallado en `docs/guia-expo-go.md`).
+- Supabase local exige **Docker**; puerto Postgres 54322. **Flujo universal remoto** (cualquier red, sin portproxy ni tocar IPs): `npm run dev:remoto` — ver `docs/dev-remoto.md` (ngrok dev domain fijo + Metro `--tunnel` + Pages).
+- `mobile/app.json > extra.apiBaseUrl` apunta al **dev domain ngrok** (fijo, committable). Si se despliega el BFF (demo final), cambiar esa URL y re-build (`eas update` si solo JS). El portproxy/exp:// por LAN queda documentado como legacy en `guia-expo-go.md`.
+- APKs: cloud build (`eas build --profile preview` — canal `demo`, apto para `eas update --branch demo`) es el canal oficial; `--local` en desuso (incidente Metaspace `gradle.properties` del prebuild, ver gotchas de `dev-remoto.md`).
+- Dev build y preview coexisten en el mismo teléfono: profile `development` sufla el appId vía `plugins/withAppIdSuffix.ts` + env `UNIMAR_APP_ID_SUFFIX=.dev` (eas.json).
+- Locks de `mobile/`: regenerar/validar con `npx -y npm@10` (el builder cloud corre `npm ci` con npm ~10/11; locks de npm 12 le faltan subtrees → `Missing: X from lock file`). Blindado con `engines.npm` en `mobile/package.json`.
+- Web estática en `https://unimarapp.pages.dev` (Cloudflare Pages; NO usar `_redirects` catch-all: tapa assets/fonts y congela el splash en el gate de `useFonts` — el fallback SPA automático de Pages ya resuelve deep-links). Origen añadido en `CORS_ORIGIN`. Fuentes locales en `mobile/assets/fonts/` (no node_modules: wrangler las descarta).
+- API BFF online: `moonbeam-frosted-condition.ngrok-free.dev` (túnel; el plano free siempre inyectaría el intersticial → mitigado globalmente con header `ngrok-skip-browser-warning` en el interceptor axios).
 - Mock data activo con `UNIMAR_API_URL=` vacío (`.env`); `PUSH_PROVIDER=mock` loguea push en consola del BFF. `PUSH_PROVIDER=expo` envía push real (requiere dev build EAS; Expo Go no recibe push remoto).
 
 ## Referencias
@@ -92,4 +101,6 @@ npm run test:db             # integration RLS; se salta si Supabase no está arr
 - `STYLE.md` — guía de diseño UI (colores, espaciado 4px, tipografía); materializada en `mobile/src/shared/ui/theme.ts`.
 - `docs/onboarding-frontend.md` — contrato API completo + usuarios mock (todos password `unimar123`).
 - `docs/e2e-notificaciones.md` — verificación E2E de notificaciones.
-- `docs/guia-expo-go.md` — runbook de pruebas en dispositivo físico (WSL2, portproxy, idempotencia por paso).
+- `docs/dev-remoto.md` — flujo universal (ngrok + tunnel + Pages + EAS Update); reemplaza el runbook LAN.
+- `docs/guia-expo-go.md` — flujo LAN legacy (portproxy/IP); usar solo si no hay internet.
+- `docs/e2e-notificaciones.md` — verificación E2E de notificaciones.

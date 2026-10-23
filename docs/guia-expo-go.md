@@ -1,3 +1,6 @@
+> [!warning] LEGACY
+> Este flujo (portproxy/LAN) solo sirve si no hay internet disponible. Usar preferentemente el flujo universal: `npm run dev:remoto` → **`docs/dev-remoto.md`**.
+
 > [!info] Contexto inicial
 > Guía paso a paso asumiendo **PC recién reiniciada**, **iPhone en la misma red Wi-Fi** y **Expo Go instalado**. Cada paso especifica si es **idempotente** (seguro de repetir sin efectos secundarios).
 

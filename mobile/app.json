@@ -27,6 +27,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "./plugins/withAppIdSuffix",
       "expo-router",
       [
         "expo-splash-screen",
@@ -56,6 +57,12 @@
       },
       "router": {}
     },
-    "owner": "cesarinsalads-team"
+    "owner": "cesarinsalads-team",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/99359622-bb83-44be-912f-e6fad44f525b"
+    }
   }
 }

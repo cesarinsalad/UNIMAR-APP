@@ -9,16 +9,29 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "channel": "development",
+      "env": {
+        "UNIMAR_APP_ID_SUFFIX": ".dev"
       }
     },
     "simulator": {
       "developmentClient": true,
       "ios": {
         "simulator": true
-      }
+      },
+      "channel": "simulator"
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "channel": "demo"
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "channel": "production"
     }
   },
   "submit": {
