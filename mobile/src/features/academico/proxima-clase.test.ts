@@ -1,7 +1,7 @@
 // Tests de proximaClase (cálculo puro, sin red/DB). Los casos usan fechas
 // construidas en local (new Date(y, m, d, h, min)) para no depender de la
 // tz del entorno de CI.
-import { proximaClase } from './proxima-clase';
+import { etiquetaCuenta, proximaClase } from './proxima-clase';
 import type { MateriaActualDTO } from './types';
 
 // Semana de referencia: 2026-10-07 es MIÉRCOLES (local).
@@ -32,6 +32,28 @@ function franjas() {
     { dia_semana: 4, aula: 'A40', hora_inicio: '11:50', hora_fin: '13:35' },
   ];
 }
+
+describe('etiquetaCuenta', () => {
+  // IBM design: <1 h min; <24 h horas redondeadas; ≥24 h días por piso.
+  it('menos de una hora → minutos exactos', () => {
+    expect(etiquetaCuenta(45)).toBe('45 min');
+    expect(etiquetaCuenta(59)).toBe('59 min');
+    expect(etiquetaCuenta(0)).toBe('0 min');
+  });
+
+  it('menos de un día → horas redondeadas (1.5 h → 2 h)', () => {
+    expect(etiquetaCuenta(60)).toBe('1 h');
+    expect(etiquetaCuenta(90)).toBe('2 h'); // 1.5 → 2
+    expect(etiquetaCuenta(150)).toBe('3 h'); // 2.5 → 3 (banca del redondeo)
+    expect(etiquetaCuenta(1439)).toBe('24 h');
+  });
+
+  it('un día o más → días por piso con singular', () => {
+    expect(etiquetaCuenta(1440)).toBe('1 día');
+    expect(etiquetaCuenta(3947)).toBe('2 días'); // 2 d 17 h
+    expect(etiquetaCuenta(4320)).toBe('3 días');
+  });
+});
 
 describe('proximaClase', () => {
   it('clase de hoy más tarde → esa gana', () => {

@@ -59,6 +59,18 @@ export function ventanasDeMateria(materia: MateriaActualDTO): Ventana[] {
 }
 
 /**
+ * Cuenta legible para la pill de "Próxima clase" según los minutos
+ * restantes: min < 1 h; horas redondeadas (150 min → "3 h") < 1 día;
+ * días por piso (3947 min → "2 días") encima.
+ */
+export function etiquetaCuenta(minutos: number): string {
+  if (minutos < 60) return `${Math.max(minutos, 0)} min`;
+  if (minutos < 1440) return `${Math.round(minutos / 60)} h`;
+  const dias = Math.floor(minutos / 1440);
+  return dias === 1 ? '1 día' : `${dias} días`;
+}
+
+/**
  * Ocurrencia de una ventana más próxima a `ahora` para el día indicado
  * (recorre hacia adelante en semanas). Devuelve null si la ocurrencia
  * ya empezó o el dato es incoherente.

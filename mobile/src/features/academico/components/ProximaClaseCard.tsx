@@ -4,7 +4,7 @@ import { MapPin, User } from 'phosphor-react-native';
 
 import { colors, elevation, radius, spacing } from '@/shared/ui';
 import { PressableScale, ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
-import type { ProximaClase } from '../proxima-clase';
+import { etiquetaCuenta, type ProximaClase } from '../proxima-clase';
 
 const FORMATO_HORA = new Intl.DateTimeFormat('es-VE', { timeStyle: 'short' });
 
@@ -42,7 +42,7 @@ export function ProximaClaseCard({
   }
 
   const { materia, minutosRestantes, enCurso } = clase;
-  const pill = enCurso ? 'Clase en curso' : `Próxima clase · en ${minutosRestantes} min`;
+  const pill = enCurso ? 'Clase en curso' : `Próxima clase en ${etiquetaCuenta(minutosRestantes)}`;
 
   function abrirMateria() {
     router.push(`/academico/materias/${materia.id}` as Parameters<typeof router.push>[0]);
