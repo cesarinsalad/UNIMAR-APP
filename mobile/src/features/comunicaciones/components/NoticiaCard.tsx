@@ -2,8 +2,7 @@ import { Image, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-n
 import { router } from 'expo-router';
 
 import { spacing } from '@/shared/ui';
-import { Badge, PressableScale, ThemedText, ThemedView } from '@/shared/ui';
-import { etiquetaAudiencia } from '@/shared/lib/etiquetas';
+import { PressableScale, ThemedText, ThemedView } from '@/shared/ui';
 import { PortadaPlaceholder } from './PortadaPlaceholder';
 import { usePortada } from '../hooks/usePortada';
 import type { Comunicado } from '../types';
@@ -13,8 +12,8 @@ const ANCHO = 240;
 
 /**
  * Tarjeta de noticia del carrusel del Home: portada 3:2 (URL firmada si
- * hay imagenPath), Badge de audiencia sobre la imagen, título 2 líneas y
- * fecha compacta. Ancho fijo (240) para el scroll horizontal.
+ * hay imagenPath), título 2 líneas y fecha compacta. Ancho fijo (240) para
+ * el scroll horizontal.
  */
 export function NoticiaCard({
   comunicado,
@@ -42,9 +41,6 @@ export function NoticiaCard({
           ) : (
             <PortadaPlaceholder style={estilos.imagen} tamanoIcono={28} />
           )}
-          <View style={estilos.audiencia}>
-            <Badge label={etiquetaAudiencia(comunicado.decanatoIds)} tone="info" />
-          </View>
         </View>
         <View style={estilos.contenido}>
           <ThemedText variant="body" weight="semibold" numberOfLines={2}>
@@ -70,11 +66,6 @@ const estilos = StyleSheet.create({
   },
   banner: { position: 'relative' },
   imagen: { width: '100%', aspectRatio: 2 / 1 },
-  audiencia: {
-    position: 'absolute',
-    left: spacing.sm,
-    top: spacing.sm,
-  },
   contenido: {
     padding: spacing.md,
     gap: spacing.xs,
