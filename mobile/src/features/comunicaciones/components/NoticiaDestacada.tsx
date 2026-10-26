@@ -52,15 +52,12 @@ export function NoticiaDestacada({
             tamanoIcono={44}
           />
         )}
-        <View style={estilos.badge}>
-          <EtiquetaCategoria comunicado={comunicado} sobreImagen />
-        </View>
         <LinearGradient
           colors={['transparent', 'rgba(0,0,0,0.55)', 'rgba(0,0,0,0.85)']}
           style={estilos.gradiente}
         />
         <View style={estilos.contenido}>
-          <ThemedText variant="subtitle" weight="bold" tone="onPrimary" numberOfLines={2}>
+          <ThemedText variant="body" weight="bold" tone="onPrimary" numberOfLines={2}>
             {comunicado.titulo}
           </ThemedText>
           <ThemedText variant="caption" tone="onPrimary" style={estilos.meta}>
