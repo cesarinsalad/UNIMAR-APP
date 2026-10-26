@@ -43,7 +43,7 @@ export function NoticiaCard({
           )}
         </View>
         <View style={estilos.contenido}>
-          <ThemedText variant="body" weight="semibold" numberOfLines={2}>
+          <ThemedText variant="bodySm" weight="semibold" numberOfLines={2}>
             {comunicado.titulo}
           </ThemedText>
           {comunicado.publicadoAt ? (
