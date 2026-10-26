@@ -36,7 +36,12 @@ export function NoticiaCompacta({ comunicado }: { comunicado: Comunicado }) {
           <PortadaPlaceholder style={estilos.thumb} tamanoIcono={20} />
         )}
         <View style={estilos.textos}>
-          <EtiquetaCategoria comunicado={comunicado} mayusculas />
+          <EtiquetaCategoria
+            comunicado={comunicado}
+            mayusculas
+            peso="medium"
+            color="tinta"
+          />
           <ThemedText variant="body" weight="bold" numberOfLines={3}>
             {comunicado.titulo}
           </ThemedText>
