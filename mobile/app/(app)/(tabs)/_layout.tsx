@@ -60,7 +60,7 @@ function TabBarFlotante({ state, descriptors, navigation }: TabBarProps) {
             android_ripple={{ color: colors.brand.surfaceBlue }}
             onPress={() => navigation.dispatch({ type: 'JUMP_TO', payload: { name: route.name } })}
             style={styles.item}>
-            {options?.tabBarIcon?.({ focused: activo, color, size: 26 })}
+            {options?.tabBarIcon?.({ focused: activo, color, size: 22 })}
             <ThemedText
               variant="caption"
               weight={activo ? 'semibold' : 'medium'}
@@ -94,7 +94,7 @@ export default function TabsLayout() {
           headerShown: false,
           tabBarIcon: ({ focused }) => (
             <HouseIcon
-              size={26}
+              size={22}
               color={focused ? colors.brand.primary : colors.text.primary}
               weight={focused ? 'fill' : 'regular'}
             />
@@ -108,7 +108,7 @@ export default function TabsLayout() {
           headerShown: false,
           tabBarIcon: ({ focused }) => (
             <MegaphoneIcon
-              size={26}
+              size={22}
               color={focused ? colors.brand.primary : colors.text.primary}
               weight={focused ? 'fill' : 'regular'}
             />
@@ -135,7 +135,7 @@ export default function TabsLayout() {
           headerShown: false,
           tabBarIcon: ({ focused }) => (
             <GraduationCapIcon
-              size={26}
+              size={22}
               color={focused ? colors.brand.primary : colors.text.primary}
               weight={focused ? 'fill' : 'regular'}
             />
@@ -149,7 +149,7 @@ export default function TabsLayout() {
           headerShown: false,
           tabBarIcon: ({ focused }) => (
             <CalendarBlankIcon
-              size={26}
+              size={22}
               color={focused ? colors.brand.primary : colors.text.primary}
               weight={focused ? 'fill' : 'regular'}
             />
@@ -163,7 +163,7 @@ export default function TabsLayout() {
           headerShown: false,
           tabBarIcon: ({ focused }) => (
             <UserCircleIcon
-              size={26}
+              size={22}
               color={focused ? colors.brand.primary : colors.text.primary}
               weight={focused ? 'fill' : 'regular'}
             />
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: spacing.sm,
     right: spacing.sm,
-    height: 72,
+    height: 60,
     paddingHorizontal: spacing.md,
     flexDirection: 'row',
     borderRadius: radius.pill,
