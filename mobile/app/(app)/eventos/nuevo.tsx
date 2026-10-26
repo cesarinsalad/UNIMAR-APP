@@ -190,7 +190,7 @@ export default function FormularioEventoScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <KeyboardAvoidingView
         style={estilos.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        behavior="padding">
         <ScrollView contentContainerStyle={estilos.scroll} showsVerticalScrollIndicator={false}>
           <View style={estilos.cabecera}>
             <BotonCircular label="Volver" onPress={() => router.back()}>

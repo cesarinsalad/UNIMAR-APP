@@ -3,7 +3,6 @@ import {
   Image,
   KeyboardAvoidingView,
   Linking,
-  Platform,
   Pressable,
   StyleSheet,
   View,
@@ -66,7 +65,7 @@ export default function LoginScreen() {
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        behavior="padding">
         <View style={styles.contenedor}>
           <Card elevationKey="lg" paddingH="lg" paddingV="md" style={styles.card}>
             {/* Sección 1: imagen */}
@@ -101,11 +100,14 @@ export default function LoginScreen() {
                 editable={!cargando}
               />
 
+              {/* No controlado a propósito: echoar `value` mata el reveal
+                  transitorio de Android (bug RN 53696, fix solo en 0.87+). */}
               <TextField
                 label="Contraseña"
-                value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!mostrarPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
                 placeholder="••••••••"
                 editable={!cargando}
                 rightElement={

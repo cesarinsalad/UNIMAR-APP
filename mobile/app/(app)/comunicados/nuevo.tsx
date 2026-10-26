@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   Image,
   KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -200,7 +199,7 @@ export default function FormularioComunicadoScreen() {
       />
       <KeyboardAvoidingView
         style={estilos.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        behavior="padding">
         <ScrollView contentContainerStyle={estilos.scroll}>
           <Campo label="Título" error={errores.titulo}>
             <TextInput
