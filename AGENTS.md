@@ -94,6 +94,7 @@ npm run test:db             # integration RLS; se salta si Supabase no está arr
 - Web estática en `https://unimarapp.pages.dev` (Cloudflare Pages; NO usar `_redirects` catch-all: tapa assets/fonts y congela el splash en el gate de `useFonts` — el fallback SPA automático de Pages ya resuelve deep-links). Origen añadido en `CORS_ORIGIN`. Fuentes locales en `mobile/assets/fonts/` (no node_modules: wrangler las descarta).
 - API BFF online: `moonbeam-frosted-condition.ngrok-free.dev` (túnel; el plano free siempre inyectaría el intersticial → mitigado globalmente con header `ngrok-skip-browser-warning` en el interceptor axios).
 - Mock data activo con `UNIMAR_API_URL=` vacío (`.env`); `PUSH_PROVIDER=mock` loguea push en consola del BFF. `PUSH_PROVIDER=expo` envía push real (requiere dev build EAS; Expo Go no recibe push remoto).
+- Tras `npx supabase db reset`, las sesiones persistidas en la app quedan **huérfanas** (los UUIDs de `usuarios` se regeneran; el JWT sigue verificando porque `JWT_SECRET` no cambia). Hardening 2026-10-26: `obtenerCedula` responde 401 (→ la app desloguea sola vía interceptor) y `registrarLectura` omite la lectura (best-effort) en vez de 404/500. Si una app entra en estado zombie igualmente: cerrar sesión y volver a loguear.
 
 ## Referencias
 

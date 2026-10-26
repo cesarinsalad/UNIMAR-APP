@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { Pool, type PoolClient } from 'pg';
 import { PostgresUsuarioRepository } from './postgresUsuarioRepository';
-import { NotFoundError } from '../../../shared/errors';
+import { NotFoundError, UnauthorizedError } from '../../../shared/errors';
 
 const RUN_DB_TESTS = process.env.RUN_DB_TESTS === '1';
 const DATABASE_URL =
@@ -63,11 +63,11 @@ describe.skipIf(!RUN_DB_TESTS)('PostgresUsuarioRepository (ABAC)', () => {
     });
   });
 
-  it('obtenerCedula: usuario inexistente lanza NotFoundError', async () => {
+  it('obtenerCedula: sesión huérfana (sub inexistente) lanza UnauthorizedError', async () => {
     const repo = new PostgresUsuarioRepository();
     await withTx(async (c) => {
       await expect(repo.obtenerCedula(c, '00000000-0000-0000-0000-000000000000')).rejects.toThrow(
-        NotFoundError,
+        UnauthorizedError,
       );
     });
   });

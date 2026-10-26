@@ -1,5 +1,5 @@
 import type { DbTx } from '../../../shared/kernel/db';
-import { NotFoundError } from '../../../shared/errors';
+import { NotFoundError, UnauthorizedError } from '../../../shared/errors';
 import type { IUsuarioRepository, PerfilUniversitario, Usuario } from '../domain/ports';
 
 interface UsuarioRow {
@@ -68,7 +68,10 @@ export class PostgresUsuarioRepository implements IUsuarioRepository {
     );
     const row = result.rows[0];
     if (!row) {
-      throw new NotFoundError('Usuario no encontrado');
+      // El token es firmado y vigente pero su `sub` ya no existe (p. ej. tras
+      // `supabase db reset`). Es una sesión huérfana, no un recurso ausente:
+      // 401 para que el cliente desloguee y se re-autentique.
+      throw new UnauthorizedError('Sesión inválida: el usuario del token ya no existe');
     }
     return row.cedula;
   }

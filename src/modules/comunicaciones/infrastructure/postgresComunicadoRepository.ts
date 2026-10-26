@@ -252,8 +252,15 @@ export class PostgresComunicadoRepository implements IComunicadoRepository {
     comunicadoId: string,
     usuarioId: string,
   ): Promise<void> {
+    // Best-effort: si el usuario del token ya no existe (sesión huérfana tras
+    // un `db reset`), la FK de `usuario_id` fallaría y rompería la lectura del
+    // comunicado con un 500. Sin fila no hay estadística, pero el detalle
+    // sigue siendo legible.
     await tx.query(
-      'INSERT INTO comunicado_lecturas (comunicado_id, usuario_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      `INSERT INTO comunicado_lecturas (comunicado_id, usuario_id)
+       SELECT $1, $2
+       WHERE EXISTS (SELECT 1 FROM usuarios WHERE id = $2)
+       ON CONFLICT DO NOTHING`,
       [comunicadoId, usuarioId],
     );
   }

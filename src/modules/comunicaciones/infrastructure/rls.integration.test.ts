@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { Pool, type PoolClient } from 'pg';
+import { PostgresComunicadoRepository } from './postgresComunicadoRepository';
 
 const RUN_DB_TESTS = process.env.RUN_DB_TESTS === '1';
 const DATABASE_URL =
@@ -729,6 +730,48 @@ describe.skipIf(!RUN_DB_TESTS)('RLS Comunicaciones (ABAC)', () => {
         const result = await c.query('SELECT usuario_id FROM comunicado_lecturas ORDER BY usuario_id');
         const ids = result.rows.map((r) => r.usuario_id);
         expect(ids).toEqual([u.est5]);
+      });
+    });
+  });
+
+  // ──────────────────────────────────────────────────────────
+  // registrarLectura: best-effort ante sesión huérfana
+  // ──────────────────────────────────────────────────────────
+  describe('registrarLectura (PostgresComunicadoRepository)', () => {
+    const repo = new PostgresComunicadoRepository();
+
+    it('usuario existente inserta la lectura', async () => {
+      await withTx(async (c) => {
+        const u = await seedUsuarios(c);
+        const coms = await seedComunicados(c, u);
+        await setClaims(c, claimsFor(u.est5, 'ESTUDIANTE', 5, 'Est5'));
+
+        await repo.registrarLectura(c, coms.publicado5, u.est5);
+
+        const result = await c.query<{ n: number }>(
+          'SELECT count(*)::int AS n FROM comunicado_lecturas WHERE comunicado_id = $1',
+          [coms.publicado5],
+        );
+        expect(result.rows[0]!.n).toBe(1);
+      });
+    });
+
+    it('sesión huérfana (sub inexistente): no lanza ni inserta (best-effort)', async () => {
+      await withTx(async (c) => {
+        const u = await seedUsuarios(c);
+        const coms = await seedComunicados(c, u);
+        // El claims.sub simulado no existe en usuarios: la FK fallaría sin
+        // el guard. La lectura del comunicado debe seguir funcionando.
+        const subHuerfano = '00000000-0000-4000-8000-000000000000';
+        await setClaims(c, claimsFor(subHuerfano, 'ESTUDIANTE', 5, 'Huérfano'));
+
+        await expect(repo.registrarLectura(c, coms.publicadoGlobal, subHuerfano)).resolves.toBeUndefined();
+
+        const result = await c.query<{ n: number }>(
+          'SELECT count(*)::int AS n FROM comunicado_lecturas WHERE comunicado_id = $1',
+          [coms.publicadoGlobal],
+        );
+        expect(result.rows[0]!.n).toBe(0);
       });
     });
   });
