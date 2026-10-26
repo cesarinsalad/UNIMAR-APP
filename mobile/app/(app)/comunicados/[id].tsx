@@ -23,7 +23,6 @@ import {
 } from '@/features/comunicaciones/api/comunicados.api';
 import { CuerpoMarkdown } from '@/features/comunicaciones/components/CuerpoMarkdown';
 import { SeccionAdjuntos } from '@/features/comunicaciones/components/SeccionAdjuntos';
-import { EtiquetaCategoria } from '@/features/comunicaciones/components/EtiquetaCategoria';
 import { accionesPermitidas } from '@/features/comunicaciones/hooks/accionesPermitidas';
 import {
   etiquetaLecturas,
@@ -269,8 +268,6 @@ function DetalleLector({
         ) : null}
 
         <View style={estilos.contenido}>
-          <EtiquetaCategoria comunicado={comunicado} />
-
           <ThemedText variant="headline" weight="bold">
             {comunicado.titulo}
           </ThemedText>
