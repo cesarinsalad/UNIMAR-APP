@@ -28,8 +28,6 @@ import { NoticiaDestacada } from '@/features/comunicaciones/components/NoticiaDe
 import { EventoAgendaCard } from '@/features/calendario/components/EventoAgendaCard';
 import { ventanaDias } from '@/features/calendario/calendario-calculo';
 import { useAgenda } from '@/features/calendario/hooks/useAgenda';
-import { CampanaConBadge } from '@/features/notificaciones/components/CampanaConBadge';
-import { useNoLeidas } from '@/features/notificaciones/hooks/useNoLeidas';
 
 const DIAS_EVENTOS = 7;
 
@@ -40,7 +38,6 @@ const DIAS_EVENTOS = 7;
  */
 export default function ComunicadosScreen() {
   const insets = useSafeAreaInsets();
-  const noLeidas = useNoLeidas();
   const permisos = usePermisos();
   const feed = useComunicadosFeed();
 
@@ -75,7 +72,7 @@ export default function ComunicadosScreen() {
         contentContainerStyle={[
           estilos.scroll,
           {
-            paddingTop: insets.top + spacing.lg,
+            paddingTop: spacing.lg,
             paddingBottom: insets.bottom + layout.bottomTabInset + spacing.lg,
           },
         ]}
@@ -93,7 +90,6 @@ export default function ComunicadosScreen() {
         {/* ── Encabezado: título + campana (+ Gestionar para staff) ── */}
         <HeaderTab
           titulo="Noticias"
-          action={<CampanaConBadge total={noLeidas.data?.total ?? 0} tono="claro" />}
         />
 
         {/* ── Gestionar (COMUNICADOR/ADMIN): la puerta del flujo de staff ── */}

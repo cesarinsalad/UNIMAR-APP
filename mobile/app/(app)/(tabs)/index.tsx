@@ -29,8 +29,6 @@ import { AgendaDia } from '@/features/academico/components/AgendaDia';
 import { useMaterias } from '@/features/academico/hooks/useMaterias';
 import { NoticiaCard } from '@/features/comunicaciones/components/NoticiaCard';
 import { useComunicadosFeed } from '@/features/comunicaciones/hooks/useComunicadosFeed';
-import { CampanaConBadge } from '@/features/notificaciones/components/CampanaConBadge';
-import { useNoLeidas } from '@/features/notificaciones/hooks/useNoLeidas';
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
 
 export default function HomeScreen() {
@@ -38,7 +36,6 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { refrescando, refrescar } = useRefrescarQueries();
   const usuario = useSesionStore((s) => s.usuario);
-  const noLeidas = useNoLeidas();
   const materias = useMaterias();
   const feed = useComunicadosFeed();
 
@@ -70,7 +67,7 @@ export default function HomeScreen() {
         contentContainerStyle={[
           estilos.scroll,
           {
-            paddingTop: insets.top + spacing.lg,
+            paddingTop: spacing.lg,
             paddingBottom: insets.bottom + layout.bottomTabInset + spacing.lg,
           },
         ]}
@@ -86,7 +83,6 @@ export default function HomeScreen() {
         <HeaderTab
           titulo="Inicio"
           saludo={`Bienvenido, ${primerNombre}!`}
-          action={<CampanaConBadge total={noLeidas.data?.total ?? 0} tono="claro" />}
         />
 
         {/* ── Próxima clase (tarjeta estrella) ── */}

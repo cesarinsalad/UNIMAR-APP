@@ -12,8 +12,6 @@ import {
 
 import { colors, elevation, radius, spacing } from '@/shared/ui/theme';
 import { ThemedText } from '@/shared/ui/ThemedText';
-import { CampanaConBadge } from '@/features/notificaciones/components/CampanaConBadge';
-import { useNoLeidas } from '@/features/notificaciones/hooks/useNoLeidas';
 import { usePermisos } from '@/features/identidad/hooks/usePermisos';
 
 /** Contrato mínimo que consume el bar (evita deep-imports de internals). */
@@ -79,8 +77,6 @@ function TabBarFlotante({ state, descriptors, navigation }: TabBarProps) {
 }
 
 export default function TabsLayout() {
-  const noLeidas = useNoLeidas();
-  const totalNoLeidas = noLeidas.data?.total ?? 0;
   const permisos = usePermisos();
 
   return (
@@ -172,7 +168,6 @@ export default function TabsLayout() {
               weight={focused ? 'fill' : 'regular'}
             />
           ),
-          headerRight: () => <CampanaConBadge total={totalNoLeidas} />,
         }}
       />
     </Tabs>

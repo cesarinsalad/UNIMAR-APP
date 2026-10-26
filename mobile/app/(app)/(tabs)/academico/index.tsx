@@ -24,8 +24,6 @@ import { useMaterias } from '@/features/academico/hooks/useMaterias';
 import { MateriaActualCard } from '@/features/academico/components/MateriaActualCard';
 import { SelectorPeriodo } from '@/features/academico/components/SelectorPeriodo';
 import { TarjetaHistorial } from '@/features/academico/components/TarjetaHistorial';
-import { CampanaConBadge } from '@/features/notificaciones/components/CampanaConBadge';
-import { useNoLeidas } from '@/features/notificaciones/hooks/useNoLeidas';
 
 /**
  * Tab Clases (mock aprobado): header con campana, materias en curso con
@@ -34,7 +32,6 @@ import { useNoLeidas } from '@/features/notificaciones/hooks/useNoLeidas';
  */
 export default function AcademicoScreen() {
   const insets = useSafeAreaInsets();
-  const noLeidas = useNoLeidas();
   const materias = useMaterias();
   const [periodoActivo, setPeriodoActivo] = useState<string | null>(null);
 
@@ -82,7 +79,7 @@ export default function AcademicoScreen() {
         contentContainerStyle={[
           estilos.scroll,
           {
-            paddingTop: insets.top + spacing.lg,
+            paddingTop: spacing.lg,
             paddingBottom: insets.bottom + layout.bottomTabInset,
           },
         ]}
@@ -99,7 +96,6 @@ export default function AcademicoScreen() {
         }>
         <HeaderTab
           titulo="Clases"
-          action={<CampanaConBadge total={noLeidas.data?.total ?? 0} tono="claro" />}
         />
 
         <SectionHeader title="Materias en curso" />

@@ -18,15 +18,12 @@ import { usePerfil } from '@/features/academico/hooks/usePerfil';
 import { CarnetDigital, inicialesDe } from '@/features/identidad/components/CarnetDigital';
 import { colors, layout, radius, spacing } from '@/shared/ui';
 import { HeaderTab, PressableScale, ThemedText, ThemedView } from '@/shared/ui';
-import { CampanaConBadge } from '@/features/notificaciones/components/CampanaConBadge';
-import { useNoLeidas } from '@/features/notificaciones/hooks/useNoLeidas';
 
 type PerfilAcademicoQuery = ReturnType<typeof usePerfil>;
 
 /** Tab Perfil: identidad + carnet digital (estético) + pensum + ajustes. */
 export default function PerfilScreen() {
   const insets = useSafeAreaInsets();
-  const noLeidas = useNoLeidas();
   const perfil = usePerfil();
   const [carnetAbierto, setCarnetAbierto] = useState(false);
 
@@ -36,14 +33,13 @@ export default function PerfilScreen() {
         contentContainerStyle={[
           estilos.scroll,
           {
-            paddingTop: insets.top + spacing.lg,
+            paddingTop: spacing.lg,
             paddingBottom: insets.bottom + layout.bottomTabInset,
           },
         ]}
         showsVerticalScrollIndicator={false}>
         <HeaderTab
           titulo="Perfil"
-          action={<CampanaConBadge total={noLeidas.data?.total ?? 0} tono="claro" />}
         />
 
         <TarjetaIdentidad abreCarnet={() => setCarnetAbierto(true)} perfil={perfil} />

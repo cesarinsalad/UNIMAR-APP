@@ -6,9 +6,10 @@ import { ThemedText } from './ThemedText';
 /**
  * Header de tab: título headline en el contenido con slot de acción.
  * Convención aprobada del sistema: los tabs usan headerShown: false,
- * dibujan este header claro (headline + acción derecha) y dejan a la
- * campana con badge del módulo notificaciones como action — el scroll
- * del screen resuelve los insets (paddingTop: insets.top + spacing.lg).
+ * dibujan este header claro (headline + acción derecha). El inset
+ * superior lo absorbe la barra institucional persistente
+ * (BarraInstitucional), así que los screens solo suman aire fijo
+ * (paddingTop: spacing.lg) sin volver a consumir insets.top.
  */
 export function HeaderTab({
   titulo,

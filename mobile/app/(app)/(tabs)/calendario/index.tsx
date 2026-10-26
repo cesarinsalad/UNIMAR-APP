@@ -36,8 +36,6 @@ import {
   ThemedText,
   ThemedView,
 } from '@/shared/ui';
-import { CampanaConBadge } from '@/features/notificaciones/components/CampanaConBadge';
-import { useNoLeidas } from '@/features/notificaciones/hooks/useNoLeidas';
 
 /**
  * Tab Agenda con la voz del calendario académico institucional: header de
@@ -49,7 +47,6 @@ import { useNoLeidas } from '@/features/notificaciones/hooks/useNoLeidas';
 export default function CalendarioScreen() {
   const insets = useSafeAreaInsets();
   const hoy = useMemo(() => new Date(), []);
-  const noLeidas = useNoLeidas();
   const [posicion, setPosicion] = useState<[number, number]>([hoy.getFullYear(), hoy.getMonth()]);
   const [diaSeleccionado, setDiaSeleccionado] = useState<string | null>(null);
 
@@ -112,7 +109,6 @@ export default function CalendarioScreen() {
         }>
         <HeaderTab
           titulo="Agenda"
-          action={<CampanaConBadge total={noLeidas.data?.total ?? 0} tono="claro" />}
         />
 
         <View style={estilos.cabeceraMes}>

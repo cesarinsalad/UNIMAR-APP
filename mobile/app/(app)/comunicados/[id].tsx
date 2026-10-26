@@ -12,7 +12,6 @@ import {
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ArrowLeft, ShareNetwork as ShareIcon } from 'phosphor-react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import {
@@ -134,7 +133,6 @@ function DetalleLector({
   comunicado: Comunicado;
   comunicadoId: string;
 }) {
-  const insets = useSafeAreaInsets();
   const usuario = useSesionStore((s) => s.usuario);
   const acciones = accionesPermitidas({
     rol: usuario?.rol ?? null,
@@ -182,7 +180,7 @@ function DetalleLector({
 
   return (
     <View style={estilos.flex}>
-      <View style={[estilos.filaBotones, { top: insets.top + spacing.md }]}>
+      <View style={[estilos.filaBotones, { top: spacing.md }]}>
         <BotonCircular label="Volver" onPress={() => router.back()}>
           <ArrowLeft size={20} color={colors.brand.primary} weight="bold" />
         </BotonCircular>
