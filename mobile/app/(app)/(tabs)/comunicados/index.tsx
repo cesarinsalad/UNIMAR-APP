@@ -28,10 +28,8 @@ import { seleccionarParaCarrusel } from '@/features/comunicaciones/carrusel';
 import { NoticiaCompacta } from '@/features/comunicaciones/components/NoticiaCompacta';
 import { CarruselNoticias } from '@/features/comunicaciones/components/CarruselNoticias';
 import { EventoAgendaCard } from '@/features/calendario/components/EventoAgendaCard';
-import { ventanaDias } from '@/features/calendario/calendario-calculo';
+import { DIAS_DISCOVERY, ventanaDias } from '@/features/calendario/calendario-calculo';
 import { useAgenda } from '@/features/calendario/hooks/useAgenda';
-
-const DIAS_EVENTOS = 7;
 
 /**
  * Tab de Noticias: encabezado con campana, carrusel de noticias destacadas
@@ -48,7 +46,7 @@ export default function ComunicadosScreen() {
   // 'todos': el carrusel de "Eventos del campus" muestra TODO lo visible
   // (incluidos oficiales que aún no agregaste) — es discovery, no agenda.
   const eventos = useAgenda(
-    useMemo(() => ventanaDias(new Date(), DIAS_EVENTOS), []),
+    useMemo(() => ventanaDias(new Date(), DIAS_DISCOVERY), []),
     'todos',
   );
 
@@ -75,7 +73,7 @@ export default function ComunicadosScreen() {
     const ahora = Date.now();
     return aplanarPaginas(eventos.data.pages)
       .filter((e) => new Date(e.inicioAt).getTime() >= ahora)
-      .slice(0, 2);
+      .slice(0, 4);
   }, [eventos.data]);
 
   return (
@@ -189,12 +187,12 @@ export default function ComunicadosScreen() {
           />
           {proximos.length === 0 ? (
             <EmptyState
-              title="Sin eventos esta semana"
+              title="Sin eventos próximos"
               message="Explora todos los eventos del campus y agrega los que te interesen."
               style={estilos.vacio}
             />
           ) : (
-            <View style={estilos.lista}>
+            <View style={estilos.listaEventos}>
               {proximos.map((evento) => (
                 <EventoAgendaCard key={evento.id} evento={evento} />
               ))}
@@ -217,6 +215,8 @@ const estilos = StyleSheet.create({
   // El separador lo pone cada NoticiaCompacta (borderBottom editorial):
   // aquí solo se reserva el cierre de la última línea.
   lista: { marginBottom: spacing.sm },
+  // Los cards de evento sí necesitan respirar: ahora llevan sombra.
+  listaEventos: { gap: spacing.md },
   enlace: { color: colors.brand.primary },
   enlaceFila: {
     flexDirection: 'row',

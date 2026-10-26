@@ -3,11 +3,8 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 
 import { siguienteOffset } from '@/shared/lib/paginar';
 import { listarEventos } from '../api/eventos.api';
-import { ventanaDias } from '../calendario-calculo';
+import { DIAS_DISCOVERY, ventanaDias } from '../calendario-calculo';
 import { PAGE_SIZE_EVENTOS } from './useAgenda';
-
-/** Ventana del discovery: el máximo del contrato (90 días). */
-const DIAS_DISCOVERY = 90;
 
 /**
  * Discovery de eventos del campus: OFICIALES visibles por RLS (audiencia o

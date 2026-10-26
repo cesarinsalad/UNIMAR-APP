@@ -2,9 +2,8 @@ import { StyleSheet, View } from 'react-native';
 import { MapPinIcon, ClockIcon } from 'phosphor-react-native';
 import { router } from 'expo-router';
 
-import { colors, spacing, radius } from '@/shared/ui';
+import { colors, elevation, highlight, spacing, radius } from '@/shared/ui';
 import { PressableScale, ThemedText, ThemedView } from '@/shared/ui';
-import { etiquetaAudiencia } from '@/shared/lib/etiquetas';
 
 export interface EventoResumen {
   id: string;
@@ -31,15 +30,6 @@ export function colorBarra(tipo: 'OFICIAL' | 'PERSONAL' | 'INSTITUCIONAL'): stri
 
 const FORMATO_MES_CORTO = new Intl.DateTimeFormat('es-VE', { month: 'short' });
 
-/** Caption del tipo: Evento oficial · audiencia / Personal / Institucional. */
-function captionTipo(evento: EventoResumen): string {
-  if (evento.tipo === 'OFICIAL') {
-    return `Evento oficial · ${etiquetaAudiencia(evento.decanatoIds ?? [])}`;
-  }
-  if (evento.tipo === 'INSTITUCIONAL') return 'Evento institucional';
-  return 'Evento personal';
-}
-
 /**
  * LA receta de evento del sistema (motivo "bloque de fecha"): día grande +
  * mes en tinta azul, barra lateral de color por tipo, hora y lugar. Única
@@ -64,12 +54,7 @@ export function TarjetaProximoEvento({ evento }: { evento: EventoResumen }) {
         </View>
         <View style={[estilos.barra, { backgroundColor: colorBarra(evento.tipo) }]} />
         <View style={estilos.cuerpo}>
-          {evento.decanatoIds && !evento.compacta ? (
-            <ThemedText variant="caption" tone="tertiary" numberOfLines={1}>
-              {captionTipo(evento)}
-            </ThemedText>
-          ) : null}
-          <ThemedText variant="body" weight="medium" numberOfLines={1}>
+          <ThemedText variant="bodySm" weight="medium" numberOfLines={1}>
             {evento.titulo}
           </ThemedText>
           <View style={estilos.meta}>
@@ -111,10 +96,15 @@ const estilos = StyleSheet.create({
     gap: spacing.md,
     paddingVertical: spacing.md,
     paddingRight: spacing.lg,
+    // Sombra pequeña (receta oficial del Card shared) para que la tarjeta
+    // destaque sobre el canvas sin hablar más fuerte que la destacada.
+    ...elevation.sm,
+    // Resplandor superior institucional (mismo patrón que Card).
+    ...highlight.sm,
   },
   fecha: {
     alignItems: 'center',
-    gap: 2,
+    gap: 0,
   },
   barra: {
     width: 3,

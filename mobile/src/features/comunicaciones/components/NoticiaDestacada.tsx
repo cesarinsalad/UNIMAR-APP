@@ -5,7 +5,6 @@ import { router } from 'expo-router';
 import { radius, spacing } from '@/shared/ui';
 import { PressableScale, ThemedText, ThemedView } from '@/shared/ui';
 import { haceRelativo, minutosLectura } from '@/shared/lib/tiempo';
-import { EtiquetaCategoria } from './EtiquetaCategoria';
 import { PortadaPlaceholder } from './PortadaPlaceholder';
 import { usePortada } from '../hooks/usePortada';
 import type { Comunicado } from '../types';

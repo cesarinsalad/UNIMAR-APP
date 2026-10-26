@@ -6,6 +6,9 @@
  * El parámetro `hoy` es inyectable para testear sin fusionar con Date.now.
  */
 
+/** Días máximos de ventana remota permitidos por el contrato (90). */
+export const DIAS_DISCOVERY = 90;
+
 export interface VentanaMes {
   /** Inicio del mes 00:00 local (ISO). */
   desde: string;

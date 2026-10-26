@@ -69,7 +69,7 @@ export default function ListadoEventosScreen() {
             { paddingBottom: insets.bottom + layout.bottomTabInset },
           ]}
           renderItem={({ item }) => (
-            <View key={item.clave}>
+            <View key={item.clave} style={estilos.grupo}>
               <SectionHeader title={item.etiqueta} />
               {item.eventos.map((evento) => (
                 <FilaEvento
@@ -194,6 +194,12 @@ const estilos = StyleSheet.create({
     paddingHorizontal: layout.screenPadding,
     paddingBottom: spacing.lg,
     gap: 0,
+  },
+  /** Entre cards y entre grupos: el shadow de TarjetaProximoEvento necesita
+   *  aire para respirar (el File-team sentía las filas pegadas). */
+  grupo: {
+    gap: spacing.md,
+    marginBottom: spacing.xl,
   },
   centro: {
     flex: 1,
