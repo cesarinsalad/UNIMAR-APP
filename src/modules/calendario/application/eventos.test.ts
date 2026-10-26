@@ -18,6 +18,8 @@ import { EditarEvento } from './editarEvento';
 import { EliminarEvento } from './eliminarEvento';
 import { ListarEventos } from './listarEventos';
 import { ObtenerEvento } from './obtenerEvento';
+import { ParticiparEvento } from './participarEvento';
+import { AbandonarEvento } from './abandonarEvento';
 
 const fakeTx = {} as DbTx;
 
@@ -54,6 +56,7 @@ function makeEvento(overrides: Partial<Evento> = {}): Evento {
     lugar: null,
     createdAt: new Date(),
     decanatoIds: [],
+    participo: false,
     ...overrides,
   };
 }
@@ -117,6 +120,16 @@ function makeRepo(initial: Evento | null = null): { repo: IEventoRepository; cal
     destinatariosDeEvento: async () => [],
     filtrarYaEnviados: async (_tx, _id, ids) => ids,
     marcarRecordatoriosEnviados: async () => undefined,
+    participar: async (_tx, id, usuarioId) => {
+      calls.push({ method: 'participar', args: [id, usuarioId] });
+    },
+    abandonar: async (_tx, id, usuarioId) => {
+      calls.push({ method: 'abandonar', args: [id, usuarioId] });
+    },
+    participacionIds: async (_tx, usuarioId, ids) => {
+      calls.push({ method: 'participacionIds', args: [usuarioId, ids] });
+      return [];
+    },
   };
   return { repo, calls };
 }
@@ -459,32 +472,156 @@ describe('ListarEventos', () => {
     const uc = new ListarEventos(repo, makeUnitOfWork());
     const desde = new Date('2030-01-01T00:00:00Z');
     const hasta = new Date('2030-01-31T23:59:59Z');
-    const result = await uc.ejecutar(makeEstClaims(), { desde, hasta, limit: 20, offset: 0 });
+    const result = await uc.ejecutar(makeEstClaims(), {
+      desde,
+      hasta,
+      incluirOficiales: 'todos',
+      limit: 20,
+      offset: 0,
+    });
     expect(result).toHaveLength(1);
     const args = calls.find((c) => c.method === 'listar')?.args[0] as {
       desde: Date;
       hasta: Date;
       limit: number;
       offset: number;
+      incluirOficiales: 'todos' | 'agregados';
+      usuarioId: string;
     };
     expect(args.desde).toEqual(desde);
     expect(args.hasta).toEqual(hasta);
+    expect(args.incluirOficiales).toBe('todos');
+    expect(args.usuarioId).toBe('uuid-est');
     expect(args.limit).toBe(20);
     expect(args.offset).toBe(0);
   });
 });
 
 describe('ObtenerEvento', () => {
-  it('devuelve el evento', async () => {
-    const { repo } = makeRepo(makeEvento({ usuarioId: 'uuid-est', tipo: 'PERSONAL' }));
+  it('devuelve el evento decorado con participo', async () => {
+    const { repo, calls } = makeRepo(makeEvento({ usuarioId: 'uuid-est', tipo: 'PERSONAL' }));
     const uc = new ObtenerEvento(repo, makeUnitOfWork());
     const result = await uc.ejecutar(makeEstClaims(), 'evt-id');
     expect(result.id).toBe('evt-id');
+    expect(result.participo).toBe(false);
+    expect(calls.some((c) => c.method === 'participacionIds')).toBe(true);
   });
 
   it('No existe -> NotFoundError', async () => {
     const { repo } = makeRepo(null);
     const uc = new ObtenerEvento(repo, makeUnitOfWork());
+    await expect(uc.ejecutar(makeEstClaims(), 'evt-missing')).rejects.toThrow(
+      NotFoundError,
+    );
+  });
+});
+
+describe('CrearEvento: INSTITUCIONAL', () => {
+  it('ADMIN crea INSTITUCIONAL OK (sin audiencias ni fan-out)', async () => {
+    const { repo, calls } = makeRepo();
+    let publicarLlamado = false;
+    const bus = { publicar: async () => { publicarLlamado = true; return []; } } as unknown as EventBus;
+    const uc = new CrearEvento(repo, makeUnitOfWork(), bus);
+    await uc.ejecutar(makeAdminClaims(), {
+      titulo: 'Inicio de inscripciones',
+      tipo: 'INSTITUCIONAL',
+      inicioAt: '2030-01-01T10:00:00Z',
+    });
+    expect(calls.some((c) => c.method === 'crear')).toBe(true);
+    expect(calls.some((c) => c.method === 'agregarAudiencias')).toBe(false);
+    expect(publicarLlamado).toBe(false);
+  });
+
+  it('ESTUDIANTE crea INSTITUCIONAL -> ForbiddenError', async () => {
+    const { repo } = makeRepo();
+    const uc = new CrearEvento(repo, makeUnitOfWork());
+    await expect(
+      uc.ejecutar(makeEstClaims(), {
+        titulo: 't',
+        tipo: 'INSTITUCIONAL',
+        inicioAt: '2030-01-01T10:00:00Z',
+      }),
+    ).rejects.toThrow(ForbiddenError);
+  });
+
+  it('COMUNICADOR crea INSTITUCIONAL -> ForbiddenError', async () => {
+    const { repo } = makeRepo();
+    const uc = new CrearEvento(repo, makeUnitOfWork());
+    await expect(
+      uc.ejecutar(makeComClaims('uuid-c', 5), {
+        titulo: 't',
+        tipo: 'INSTITUCIONAL',
+        inicioAt: '2030-01-01T10:00:00Z',
+      }),
+    ).rejects.toThrow(ForbiddenError);
+  });
+
+  it('INSTITUCIONAL con audiencia -> BadRequestError', async () => {
+    const { repo } = makeRepo();
+    const uc = new CrearEvento(repo, makeUnitOfWork());
+    await expect(
+      uc.ejecutar(makeAdminClaims(), {
+        titulo: 't',
+        tipo: 'INSTITUCIONAL',
+        inicioAt: '2030-01-01T10:00:00Z',
+        decanatoIds: [5],
+      }),
+    ).rejects.toThrow(BadRequestError);
+  });
+});
+
+describe('ParticiparEvento', () => {
+  it('agrega un OFICIAL visible a la agenda (delega con claims.sub)', async () => {
+    const { repo, calls } = makeRepo(makeEvento({ tipo: 'OFICIAL', decanatoIds: [5] }));
+    const uc = new ParticiparEvento(repo, makeUnitOfWork());
+    await uc.ejecutar(makeEstClaims(), 'evt-id');
+    expect(calls.some((c) => c.method === 'participar')).toBe(true);
+    const args = calls.find((c) => c.method === 'participar')?.args;
+    expect(args?.[1]).toBe('uuid-est');
+  });
+
+  it('no visible (RLS) -> NotFoundError', async () => {
+    const { repo } = makeRepo(null);
+    const uc = new ParticiparEvento(repo, makeUnitOfWork());
+    await expect(uc.ejecutar(makeEstClaims(), 'evt-missing')).rejects.toThrow(
+      NotFoundError,
+    );
+  });
+
+  it('evento PERSONAL -> BadRequestError (no se agrega: ya es de la agenda del dueño)', async () => {
+    const { repo, calls } = makeRepo(
+      makeEvento({ tipo: 'PERSONAL', usuarioId: 'uuid-est' }),
+    );
+    const uc = new ParticiparEvento(repo, makeUnitOfWork());
+    await expect(uc.ejecutar(makeEstClaims(), 'evt-id')).rejects.toThrow(
+      BadRequestError,
+    );
+    expect(calls.some((c) => c.method === 'participar')).toBe(false);
+  });
+
+  it('evento INSTITUCIONAL -> BadRequestError (siempre está en la agenda)', async () => {
+    const { repo, calls } = makeRepo(makeEvento({ tipo: 'INSTITUCIONAL' }));
+    const uc = new ParticiparEvento(repo, makeUnitOfWork());
+    await expect(uc.ejecutar(makeEstClaims(), 'evt-id')).rejects.toThrow(
+      BadRequestError,
+    );
+    expect(calls.some((c) => c.method === 'participar')).toBe(false);
+  });
+});
+
+describe('AbandonarEvento', () => {
+  it('abandona un evento visible (delega con claims.sub)', async () => {
+    const { repo, calls } = makeRepo(makeEvento({ tipo: 'OFICIAL', decanatoIds: [5] }));
+    const uc = new AbandonarEvento(repo, makeUnitOfWork());
+    await uc.ejecutar(makeEstClaims(), 'evt-id');
+    expect(calls.some((c) => c.method === 'abandonar')).toBe(true);
+    const args = calls.find((c) => c.method === 'abandonar')?.args;
+    expect(args?.[1]).toBe('uuid-est');
+  });
+
+  it('no visible -> NotFoundError', async () => {
+    const { repo } = makeRepo(null);
+    const uc = new AbandonarEvento(repo, makeUnitOfWork());
     await expect(uc.ejecutar(makeEstClaims(), 'evt-missing')).rejects.toThrow(
       NotFoundError,
     );

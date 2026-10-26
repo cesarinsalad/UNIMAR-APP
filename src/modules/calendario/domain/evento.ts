@@ -2,18 +2,23 @@
  * Entidad del dominio Calendario.
  *
  * Un evento representa una entrada en el calendario institucional. Se divide
- * en dos naturalezas:
+ * en tres naturalezas:
  *  - OFICIAL: creado por ADMIN o COMUNICADOR (este último solo para su
  *    propio decanato). Se difunde a una audiencia. Notifica al resto de
- *    usuarios afectados vía fan-out.
+ *    usuarios afectados vía fan-out. El usuario puede agregarlo a su agenda
+ *    vía la pivot `evento_participantes`.
  *  - PERSONAL: creado por cualquier usuario autenticado. Solo visible para
  *    su dueño.
+ *  - INSTITUCIONAL: fechas fijas del calendario académico (solo ADMIN las
+ *    crea). Visible para todos automáticamente; no se agrega ni se quita de
+ *    la agenda: siempre está presente.
  *
  * El campo `usuario_id` siempre está presente: es el "propietario/creador"
- * del evento, lo que permite que un COMUNICADOR edite/elimine los oficiales
- * que él mismo creó sin necesidad de un campo `creado_por` separado.
+ * del evento, lo que permite que un ADMIN edite/elimine los oficiales que
+ * él mismo creó (y los INSTITUCIONAL) sin necesidad de un campo
+ * `creado_por` separado.
  */
-export const TIPOS_EVENTO = ['OFICIAL', 'PERSONAL'] as const;
+export const TIPOS_EVENTO = ['OFICIAL', 'PERSONAL', 'INSTITUCIONAL'] as const;
 export type TipoEvento = (typeof TIPOS_EVENTO)[number];
 
 export interface Evento {
@@ -31,6 +36,13 @@ export interface Evento {
   createdAt: Date;
   /** Solo aplica a eventos OFICIALES; `[]` = GLOBAL. */
   decanatoIds: number[];
+  /**
+   * True si el usuario autenticado agregó el evento a su agenda
+   * (fila en `evento_participantes`). Los casos de uso lo decoran con las
+   * participaciones del claim actual; en contextos sin usuario (job del
+   * sistema) queda en false.
+   */
+  participo: boolean;
 }
 
 export interface CrearEventoInput {

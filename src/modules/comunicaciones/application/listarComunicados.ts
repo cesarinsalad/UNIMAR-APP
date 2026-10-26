@@ -18,7 +18,14 @@ export class ListarComunicados {
 
   async ejecutar(
     claims: Claims,
-    filtro: { estado?: Estado; categoria?: string; limit: number; offset: number },
+    filtro: {
+      estado?: Estado;
+      categoria?: string;
+      /** Búsqueda textual por título (ILIKE). */
+      q?: string;
+      limit: number;
+      offset: number;
+    },
   ): Promise<Comunicado[]> {
     return this.uow.runAs(claims, async (tx) => {
       return this.repo.listar(tx, filtro);

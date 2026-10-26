@@ -28,7 +28,7 @@ export interface IComunicadoRepository {
 
   listar(
     tx: DbTx,
-    filtro: { estado?: Estado; limit: number; offset: number },
+    filtro: { estado?: Estado; categoria?: string; q?: string; limit: number; offset: number },
   ): Promise<Comunicado[]>;
 
   actualizar(

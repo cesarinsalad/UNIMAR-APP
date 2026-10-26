@@ -445,6 +445,194 @@ describe.skipIf(!RUN_DB_TESTS)('RLS Calendario (ABAC)', () => {
   });
 
   // ──────────────────────────────────────────────────────────
+  // INSTITUCIONAL: visible a todos; solo ADMIN escribe
+  // ──────────────────────────────────────────────────────────
+  describe('eventos INSTITUCIONAL', () => {
+    it('ESTUDIANTE de otro decanato ve el INSTITUCIONAL (visible a todos)', async () => {
+      await withTx(async (c) => {
+        const u = await seedUsuarios(c);
+        await setClaims(c, claimsFor(u.adminId, 'ADMIN', null, 'Admin'));
+        const inst = await c.query<{ id: string }>(
+          "INSERT INTO eventos (titulo, tipo, usuario_id, inicio_at) VALUES ('Inicio de inscripciones', 'INSTITUCIONAL', $1, now() + interval '10 day') RETURNING id",
+          [u.adminId],
+        );
+        const instId = inst.rows[0]!.id;
+
+        await setClaims(c, claimsFor(u.est3, 'ESTUDIANTE', 3, 'EST3'));
+        const result = await c.query<{ id: string }>(
+          "SELECT id FROM eventos WHERE tipo = 'INSTITUCIONAL'",
+        );
+        expect(result.rows.map((r) => r.id)).toContain(instId);
+      });
+    });
+
+    it('ESTUDIANTE intenta insertar INSTITUCIONAL -> 42501', async () => {
+      await withTx(async (c) => {
+        const u = await seedUsuarios(c);
+        await setClaims(c, claimsFor(u.est5, 'ESTUDIANTE', 5, 'EST5'));
+        await expect(
+          c.query(
+            "INSERT INTO eventos (titulo, tipo, usuario_id, inicio_at) VALUES ('t', 'INSTITUCIONAL', $1, now() + interval '1 day')",
+            [u.est5],
+          ),
+        ).rejects.toMatchObject({ code: '42501' });
+      });
+    });
+
+    it('COMUNICADOR intenta insertar INSTITUCIONAL -> 42501', async () => {
+      await withTx(async (c) => {
+        const u = await seedUsuarios(c);
+        await setClaims(c, claimsFor(u.com5, 'COMUNICADOR', 5, 'COM5'));
+        await expect(
+          c.query(
+            "INSERT INTO eventos (titulo, tipo, usuario_id, inicio_at) VALUES ('t', 'INSTITUCIONAL', $1, now() + interval '1 day')",
+            [u.com5],
+          ),
+        ).rejects.toMatchObject({ code: '42501' });
+      });
+    });
+
+    it('ADMIN inserta INSTITUCIONAL OK', async () => {
+      await withTx(async (c) => {
+        const u = await seedUsuarios(c);
+        await setClaims(c, claimsFor(u.adminId, 'ADMIN', null, 'Admin'));
+        const result = await c.query<{ id: string }>(
+          "INSERT INTO eventos (titulo, tipo, usuario_id, inicio_at) VALUES ('t', 'INSTITUCIONAL', $1, now() + interval '1 day') RETURNING id",
+          [u.adminId],
+        );
+        expect(result.rows[0]!.id).toBeDefined();
+      });
+    });
+  });
+
+  // ──────────────────────────────────────────────────────────
+  // evento_participantes: pivot "agregar a mi agenda"
+  // ──────────────────────────────────────────────────────────
+  describe('evento_participantes', () => {
+    it('usuario inserta su propia participación OK', async () => {
+      await withTx(async (c) => {
+        const u = await seedUsuarios(c);
+        await setClaims(c, claimsFor(u.adminId, 'ADMIN', null, 'Admin'));
+        const ev = await c.query<{ id: string }>(
+          "INSERT INTO eventos (titulo, tipo, usuario_id, inicio_at) VALUES ('t', 'OFICIAL', $1, now() + interval '1 day') RETURNING id",
+          [u.adminId],
+        );
+        const evId = ev.rows[0]!.id;
+
+        await setClaims(c, claimsFor(u.est5, 'ESTUDIANTE', 5, 'EST5'));
+        // El evento es GLOBAL, el ESTUDIANTE lo ve (RLS eventos Select) y
+        // RLS de participantes le permite insertar SU fila.
+        const result = await c.query(
+          'INSERT INTO evento_participantes (evento_id, usuario_id) VALUES ($1, $2)',
+          [evId, u.est5],
+        );
+        expect(result.rowCount).toBe(1);
+      });
+    });
+
+    it('usuario intenta insertar participación ajena -> 42501', async () => {
+      await withTx(async (c) => {
+        const u = await seedUsuarios(c);
+        await setClaims(c, claimsFor(u.adminId, 'ADMIN', null, 'Admin'));
+        const ev = await c.query<{ id: string }>(
+          "INSERT INTO eventos (titulo, tipo, usuario_id, inicio_at) VALUES ('t', 'OFICIAL', $1, now() + interval '1 day') RETURNING id",
+          [u.adminId],
+        );
+        const evId = ev.rows[0]!.id;
+
+        await setClaims(c, claimsFor(u.est5, 'ESTUDIANTE', 5, 'EST5'));
+        await expect(
+          c.query('INSERT INTO evento_participantes (evento_id, usuario_id) VALUES ($1, $2)', [
+            evId,
+            u.est3,
+          ]),
+        ).rejects.toMatchObject({ code: '42501' });
+      });
+    });
+
+    it('SELECT: solo ve sus propias filas (ADMIN ve todas)', async () => {
+      await withTx(async (c) => {
+        const u = await seedUsuarios(c);
+        await setClaims(c, claimsFor(u.adminId, 'ADMIN', null, 'Admin'));
+        const ev = await c.query<{ id: string }>(
+          "INSERT INTO eventos (titulo, tipo, usuario_id, inicio_at) VALUES ('t', 'OFICIAL', $1, now() + interval '1 day') RETURNING id",
+          [u.adminId],
+        );
+        const evId = ev.rows[0]!.id;
+        // Cada usuario inserta SU participación (RLS lo exige también aquí).
+        await setClaims(c, claimsFor(u.adminId, 'ADMIN', null, 'Admin'));
+        await c.query('INSERT INTO evento_participantes (evento_id, usuario_id) VALUES ($1, $2)', [
+          evId,
+          u.adminId,
+        ]);
+        await setClaims(c, claimsFor(u.est5, 'ESTUDIANTE', 5, 'EST5'));
+        await c.query('INSERT INTO evento_participantes (evento_id, usuario_id) VALUES ($1, $2)', [
+          evId,
+          u.est5,
+        ]);
+
+        await setClaims(c, claimsFor(u.est5, 'ESTUDIANTE', 5, 'EST5'));
+        const r = await c.query<{ usuario_id: string }>('SELECT usuario_id FROM evento_participantes');
+        expect(r.rows.map((row) => row.usuario_id)).toEqual([u.est5]);
+
+        await setClaims(c, claimsFor(u.est3, 'ESTUDIANTE', 3, 'EST3'));
+        const r2 = await c.query<{ usuario_id: string }>('SELECT usuario_id FROM evento_participantes');
+        expect(r2.rows).toHaveLength(0);
+      });
+    });
+
+    it('DELETE: solo sus propias filas; fila ajena -> 0 filas', async () => {
+      await withTx(async (c) => {
+        const u = await seedUsuarios(c);
+        await setClaims(c, claimsFor(u.adminId, 'ADMIN', null, 'Admin'));
+        const ev = await c.query<{ id: string }>(
+          "INSERT INTO eventos (titulo, tipo, usuario_id, inicio_at) VALUES ('t', 'OFICIAL', $1, now() + interval '1 day') RETURNING id",
+          [u.adminId],
+        );
+        const evId = ev.rows[0]!.id;
+        await setClaims(c, claimsFor(u.est5, 'ESTUDIANTE', 5, 'EST5'));
+        await c.query('INSERT INTO evento_participantes (evento_id, usuario_id) VALUES ($1, $2)', [
+          evId,
+          u.est5,
+        ]);
+
+        await setClaims(c, claimsFor(u.est3, 'ESTUDIANTE', 3, 'EST3'));
+        const r = await c.query('DELETE FROM evento_participantes WHERE evento_id = $1', [evId]);
+        expect(r.rowCount).toBe(0);
+
+        await setClaims(c, claimsFor(u.est5, 'ESTUDIANTE', 5, 'EST5'));
+        const r2 = await c.query('DELETE FROM evento_participantes WHERE evento_id = $1', [evId]);
+        expect(r2.rowCount).toBe(1);
+      });
+    });
+
+    it('la participación cuelga por FK: borrar el evento elimina sus filas (cascada)', async () => {
+      // Evidencia de ON DELETE CASCADE: eliminar el evento elimina las
+      // participaciones (dependencia referencial base, indistinto del tipo).
+      await withTx(async (c) => {
+        const u = await seedUsuarios(c);
+        await setClaims(c, claimsFor(u.adminId, 'ADMIN', null, 'Admin'));
+        const ev = await c.query<{ id: string }>(
+          "INSERT INTO eventos (titulo, tipo, usuario_id, inicio_at) VALUES ('t', 'OFICIAL', $1, now() + interval '1 day') RETURNING id",
+          [u.adminId],
+        );
+        const evId = ev.rows[0]!.id;
+        await setClaims(c, claimsFor(u.est5, 'ESTUDIANTE', 5, 'EST5'));
+        await c.query('INSERT INTO evento_participantes (evento_id, usuario_id) VALUES ($1, $2)', [
+          evId,
+          u.est5,
+        ]);
+        await setClaims(c, claimsFor(u.adminId, 'ADMIN', null, 'Admin'));
+        await c.query('DELETE FROM eventos WHERE id = $1', [evId]);
+        const r = await c.query<{ n: number }>(
+          'SELECT count(*)::int AS n FROM evento_participantes',
+        );
+        expect(r.rows[0]!.n).toBe(0);
+      });
+    });
+  });
+
+  // ──────────────────────────────────────────────────────────
   // evento_recordatorios_enviados: solo sistema
   // ──────────────────────────────────────────────────────────
   describe('evento_recordatorios_enviados', () => {

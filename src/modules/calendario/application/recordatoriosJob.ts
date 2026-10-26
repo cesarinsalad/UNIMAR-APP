@@ -13,7 +13,8 @@ import type {
  * Fase DENTRO del tx (modo sistema, sin claims — `uow.run`):
  *  1. Buscar eventos cuyo momento de recordatorio haya caído en la ventana
  *     `[now() - ventanaSegundos, now()]`.
- *  2. Resolver destinatarios por audiencia (OFICIAL) o por dueño (PERSONAL).
+ *  2. Resolver destinatarios: dueño (PERSONAL), participantes
+ *     (`evento_participantes`, OFICIAL) o audiencia (INSTITUCIONAL).
  *  3. Filtrar los que ya recibieron el recordatorio (idempotencia vía
  *     `evento_recordatorios_enviados`).
  *  4. Insertar UNA notificación in-app por destinatario.

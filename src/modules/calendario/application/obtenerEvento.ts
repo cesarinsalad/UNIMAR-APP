@@ -22,6 +22,10 @@ export class ObtenerEvento {
     return this.uow.runAs(claims, async (tx) => {
       const evento = await this.repo.buscarPorId(tx, id);
       if (!evento) throw new NotFoundError('Evento no encontrado');
+      // Decora `participo` para que el detalle muestre si el usuario
+      // lo tiene en su agenda (una consulta extra, misma transacción).
+      const ids = await this.repo.participacionIds(tx, claims.sub, [evento.id]);
+      evento.participo = ids.includes(evento.id);
       return evento;
     });
   }

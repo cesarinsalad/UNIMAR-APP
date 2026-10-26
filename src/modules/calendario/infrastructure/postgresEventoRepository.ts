@@ -6,7 +6,7 @@ interface EventoRow {
   id: string;
   titulo: string;
   descripcion: string | null;
-  tipo: 'OFICIAL' | 'PERSONAL';
+  tipo: 'OFICIAL' | 'PERSONAL' | 'INSTITUCIONAL';
   usuario_id: string;
   inicio_at: Date;
   fin_at: Date | null;
@@ -17,7 +17,7 @@ interface EventoRow {
   decanato_ids: number[];
 }
 
-function mapRow(row: EventoRow): Evento {
+function mapRow(row: EventoRow, participo = false): Evento {
   return {
     id: row.id,
     titulo: row.titulo,
@@ -31,6 +31,7 @@ function mapRow(row: EventoRow): Evento {
     lugar: row.lugar,
     createdAt: row.created_at,
     decanatoIds: row.decanato_ids ?? [],
+    participo,
   };
 }
 
@@ -57,7 +58,7 @@ export class PostgresEventoRepository implements IEventoRepository {
     input: {
       titulo: string;
       descripcion: string | null;
-      tipo: 'OFICIAL' | 'PERSONAL';
+      tipo: 'OFICIAL' | 'PERSONAL' | 'INSTITUCIONAL';
       usuarioId: string;
       inicioAt: string;
       finAt: string | null;
@@ -107,17 +108,86 @@ export class PostgresEventoRepository implements IEventoRepository {
 
   async listar(
     tx: DbTx,
-    filtro: { desde: Date; hasta: Date; limit: number; offset: number },
+    filtro: {
+      desde: Date;
+      hasta: Date;
+      limit: number;
+      offset: number;
+      usuarioId: string;
+      incluirOficiales: 'todos' | 'agregados';
+    },
   ): Promise<Evento[]> {
-    const result = await tx.query<EventoRow>(
+    const params: (Date | string | number)[] = [filtro.desde, filtro.hasta];
+    const where: string[] = ['e.inicio_at >= $1', 'e.inicio_at <= $2'];
+
+    // Agenda opt-in: los OFICIALES solo entran si el usuario los agregó
+    // (`evento_participantes`); PERSONAL e INSTITUCIONAL siguen entrando
+    // según los deje RLS.
+    if (filtro.incluirOficiales === 'agregados') {
+      params.push(filtro.usuarioId);
+      where.push(
+        `(
+          e.tipo <> 'OFICIAL'
+          OR EXISTS (
+            SELECT 1 FROM evento_participantes ep
+            WHERE ep.evento_id = e.id AND ep.usuario_id = $${params.length}
+          )
+        )`,
+      );
+    }
+    params.push(filtro.limit, filtro.offset);
+
+    const rows = await tx.query<EventoRow>(
       `${BASE_SELECT}
-        WHERE e.inicio_at >= $1 AND e.inicio_at <= $2
+        WHERE ${where.join(' AND ')}
         GROUP BY e.id
         ORDER BY e.inicio_at ASC
-        LIMIT $3 OFFSET $4`,
-      [filtro.desde, filtro.hasta, filtro.limit, filtro.offset],
+        LIMIT $${params.length - 1} OFFSET $${params.length}`,
+      params,
     );
-    return result.rows.map(mapRow);
+
+    return this.decorarParticipaciones(tx, filtro.usuarioId, rows.rows);
+  }
+
+  async participar(tx: DbTx, eventoId: string, usuarioId: string): Promise<void> {
+    await tx.query(
+      `INSERT INTO evento_participantes (evento_id, usuario_id)
+       VALUES ($1, $2)
+       ON CONFLICT (evento_id, usuario_id) DO NOTHING`,
+      [eventoId, usuarioId],
+    );
+  }
+
+  async abandonar(tx: DbTx, eventoId: string, usuarioId: string): Promise<void> {
+    await tx.query(
+      'DELETE FROM evento_participantes WHERE evento_id = $1 AND usuario_id = $2',
+      [eventoId, usuarioId],
+    );
+  }
+
+  async participacionIds(tx: DbTx, usuarioId: string, eventoIds: string[]): Promise<string[]> {
+    if (eventoIds.length === 0) return [];
+    const r = await tx.query<{ evento_id: string }>(
+      'SELECT evento_id FROM evento_participantes WHERE usuario_id = $1 AND evento_id = ANY($2::uuid[])',
+      [usuarioId, eventoIds],
+    );
+    return r.rows.map((row) => row.evento_id);
+  }
+
+  /** Decora rows de eventos con `participo` (una sola consulta extra). */
+  private async decorarParticipaciones(
+    tx: DbTx,
+    usuarioId: string,
+    rows: EventoRow[],
+  ): Promise<Evento[]> {
+    const eventos = rows.map((row) => mapRow(row, false));
+    const ids = new Set(eventos.map((e) => e.id));
+    const participantes = await this.participacionIds(tx, usuarioId, [...ids]);
+    const set = new Set(participantes);
+    for (const evento of eventos) {
+      evento.participo = set.has(evento.id);
+    }
+    return eventos;
   }
 
   async actualizar(
@@ -206,14 +276,26 @@ export class PostgresEventoRepository implements IEventoRepository {
         GROUP BY e.id`,
       [String(ventanaSegundos)],
     );
-    return result.rows.map(mapRow);
+    return result.rows.map((row) => mapRow(row, false));
   }
 
   async destinatariosDeEvento(tx: DbTx, evento: Evento): Promise<string[]> {
     if (evento.tipo === 'PERSONAL') {
       return [evento.usuarioId];
     }
-    // OFICIAL: excluye al creador para no duplicar con el fan-out inicial.
+    // OFICIAL: solo participantes de `evento_participantes` (agenda opt-in);
+    // la notificación de "nuevo evento oficial" la maneja el fan-out de
+    // EVENTO_OFICIAL_CREADO.
+    if (evento.tipo === 'OFICIAL') {
+      const r = await tx.query<{ usuario_id: string }>(
+        'SELECT usuario_id FROM evento_participantes WHERE evento_id = $1',
+        [evento.id],
+      );
+      return r.rows.map((row) => row.usuario_id);
+    }
+    // INSTITUCIONAL: audiencia GLOBAL = todos los usuarios; específica =
+    // usuarios de esos decanatos. Excluye al creador (patrón preexistente
+    // para no duplicar notificaciones con el fan-out inicial).
     if (evento.decanatoIds.length === 0) {
       const r = await tx.query<{ id: string }>(
         'SELECT id FROM usuarios WHERE id <> $1',

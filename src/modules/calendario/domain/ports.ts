@@ -18,7 +18,7 @@ export interface IEventoRepository {
     input: {
       titulo: string;
       descripcion: string | null;
-      tipo: 'OFICIAL' | 'PERSONAL';
+      tipo: 'OFICIAL' | 'PERSONAL' | 'INSTITUCIONAL';
       usuarioId: string;
       inicioAt: string;
       finAt: string | null;
@@ -34,8 +34,32 @@ export interface IEventoRepository {
 
   listar(
     tx: DbTx,
-    filtro: { desde: Date; hasta: Date; limit: number; offset: number },
+    filtro: {
+      desde: Date;
+      hasta: Date;
+      limit: number;
+      offset: number;
+      /** Participaciones del claim (para decorar `participo`). */
+      usuarioId: string;
+      /** 'agregados': excluye los OFICIALES que el usuario no agregó. */
+      incluirOficiales: 'todos' | 'agregados';
+    },
   ): Promise<Evento[]>;
+
+  /**
+   * Agrega el evento a la agenda del usuario (`evento_participantes`).
+   * Idempotente: re-agregar no es error (ON CONFLICT DO NOTHING).
+   */
+  participar(tx: DbTx, eventoId: string, usuarioId: string): Promise<void>;
+
+  /** Quita el evento de la agenda del usuario. Idempotente (efímero). */
+  abandonar(tx: DbTx, eventoId: string, usuarioId: string): Promise<void>;
+
+  /**
+   * Devuelve los ids de `eventoIds` en los que el usuario participa.
+   * Para decorar listas (`participo`) en una sola consulta.
+   */
+  participacionIds(tx: DbTx, usuarioId: string, eventoIds: string[]): Promise<string[]>;
 
   actualizar(
     tx: DbTx,
@@ -63,10 +87,12 @@ export interface IEventoRepository {
 
   /**
    * Resuelve los ids de usuario destinatarios de un evento a efectos de
-   * recordatorio. PERSONALES: solo el dueño. OFICIALES: audiencia GLOBAL =
-   * todos los usuarios; audiencia específica = usuarios de esos decanatos.
-   * El creador del evento se excluye en ambos casos para no duplicar con el
-   * fan-out inicial.
+   * recordatorio. PERSONALES: solo el dueño. OFICIALES: únicamente los
+   * usuarios que lo agregaron a su agenda (`evento_participantes`) — desde
+   * que la agenda es opt-in, el recordatorio la sigue. INSTITUCIONALES:
+   * audiencia GLOBAL = todos los usuarios; audiencia específica = usuarios
+   * de esos decanatos. En INSTITUCIONAL el creador se excluye para no
+   * duplicar con el fan-out inicial.
    */
   destinatariosDeEvento(tx: DbTx, evento: Evento): Promise<string[]>;
 

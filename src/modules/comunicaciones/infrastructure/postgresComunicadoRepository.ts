@@ -123,7 +123,14 @@ export class PostgresComunicadoRepository implements IComunicadoRepository {
 
   async listar(
     tx: DbTx,
-    filtro: { estado?: Estado; categoria?: string; limit: number; offset: number },
+    filtro: {
+      estado?: Estado;
+      categoria?: string;
+      /** Búsqueda textual por título (ILIKE, case-insensitive). */
+      q?: string;
+      limit: number;
+      offset: number;
+    },
   ): Promise<Comunicado[]> {
     const params: (string | number)[] = [];
     const where: string[] = [];
@@ -135,6 +142,10 @@ export class PostgresComunicadoRepository implements IComunicadoRepository {
     if (filtro.categoria) {
       params.push(filtro.categoria);
       where.push(`c.categoria = $${params.length}`);
+    }
+    if (filtro.q) {
+      params.push(`%${filtro.q}%`);
+      where.push(`c.titulo ILIKE $${params.length}`);
     }
 
     const whereSql = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';

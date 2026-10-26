@@ -145,7 +145,7 @@ enviarlo en el header `Authorization` de los demás requests.
 | Método | Ruta | Rol | Descripción |
 |--------|------|-----|-------------|
 | POST | `/comunicados` | COMUNICADOR | Crear (body: `titulo`, `cuerpo` [Markdown], `decanato_ids`[], `programado_para`?, `expira_at`?) |
-| GET | `/comunicados?estado=&limit=&offset=` | todos | Listar visibles |
+| GET | `/comunicados?estado=&categoria=&q=&limit=&offset=` | todos | Listar visibles. `q` busca por título (ILIKE, máx 100 chars). `limit` 1-100 (default 20). |
 | GET | `/comunicados/:id` | todos | Detalle (registra lectura si no eres autor) |
 | PATCH | `/comunicados/:id` | autor/ADMIN | Editar (solo BORRADOR/PUBLICADO) |
 | POST | `/comunicados/:id/solicitar-revision` | autor | BORRADOR → PENDIENTE |
@@ -220,18 +220,25 @@ envío real; `mock` lo loguea.
 
 | Método | Ruta | Rol | Descripción |
 |--------|------|-----|-------------|
-| POST | `/eventos` | todos (PERSONAL), ADMIN/COMUNICADOR (OFICIAL) | Body: `titulo`, `descripcion`?, `tipo` (`OFICIAL`\|`PERSONAL`), `inicio_at`, `fin_at`?, `dia_completo`?, `recordatorio_minutos`?, `lugar`?, `decanato_ids`? |
-| GET | `/eventos?desde=&hasta=&limit=&offset=` | todos | Listar en rango (máx. 90 días) |
-| GET | `/eventos/:id` | todos | Detalle |
+| POST | `/eventos` | todos (PERSONAL), ADMIN/COMUNICADOR (OFICIAL), ADMIN (INSTITUCIONAL) | Body: `titulo`, `descripcion`?, `tipo` (`OFICIAL`\|`PERSONAL`\|`INSTITUCIONAL`), `inicio_at`, `fin_at`?, `dia_completo`?, `recordatorio_minutos`?, `lugar`?, `decanato_ids`? |
+| GET | `/eventos?desde=&hasta=&incluir_oficiales=&limit=&offset=` | todos | Listar en rango (máx. 90 días). `incluir_oficiales`: `todos` (default; el discovery) \| `agregados` (agenda: tus PERSONAL + OFICIALES con participar + INSTITUCIONAL). Los eventos traen `participo: boolean`. |
+| GET | `/eventos/:id` | todos | Detalle (incluye `participo`) |
 | PATCH | `/eventos/:id` | dueño/ADMIN | Editar (no cambia `tipo`) |
 | DELETE | `/eventos/:id` | dueño/ADMIN | Eliminar |
+| POST | `/eventos/:id/participar` | todos | Agregar evento OFICIAL a mi agenda (`evento_participantes`). 204, idempotente. 404 si RLS no lo muestra; 400 si no es OFICIAL. |
+| DELETE | `/eventos/:id/participar` | todos | Quitar de mi agenda. 204, idempotente (DELETE de 0 filas también es 204). |
 
 **Reglas de tipo:**
 - `PERSONAL`: lo crea cualquier usuario; solo lo ve su dueño.
 - `OFICIAL`: lo crea ADMIN (cualquier audiencia o global) o COMUNICADOR (solo
-  su decanato). Se ve por audiencia.
+  su decanato). Se ve por audiencia. La agenda lo incluye solo si el usuario
+  agrega ese evento a ella (vi `participar`); su recordatorio va solo a los
+  participantes.
+- `INSTITUCIONAL`: fechas fijas del calendario académico; lo crea solo el
+  ADMIN, sin audiencia (siempre global), y aparece en la agenda de todos
+  automáticamente.
 - `recordatorio_minutos`: el job del BFF notifica a los involucrados N minutos
-  antes del inicio.
+  antes del inicio. Para OFICIAL, involucrado = participante de agenda.
 - `lugar` (opcional, ≤120 chars): ubicación del evento (aula, sala, edificio).
   En PATCH, `lugar: null` la limpia. En la respuesta circula como camelCase
   `lugar` junto al resto de la entidad.

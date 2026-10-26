@@ -87,3 +87,25 @@ INSERT INTO evento_audiencias (evento_id, decanato_id)
 SELECT e.id, d.id FROM eventos e, decanatos d
  WHERE e.titulo = 'Semana de la Salud Mental'
    AND d.id = 2;
+
+-- Eventos INSTITUCIONALES: fechas fijas del calendario académico visibles
+-- para toda la universidad (tipo INSTITUCIONAL; estado FUTURO-próximos).
+-- Varios a futuro para que la pestaña Agenda y la pantalla de eventos
+-- del campus siempre muestren material.
+INSERT INTO eventos (titulo, descripcion, tipo, usuario_id, inicio_at, fin_at, dia_completo, lugar) VALUES
+  ('Inicio de inscripciones',
+   'Apertura del portal de inscripciones para el semestre en curso. Verifica tu cita con antelación en el portal.',
+   'INSTITUCIONAL', (SELECT id FROM usuarios WHERE cedula = '20123456'),
+   now() + interval '10 day', now() + interval '17 day', true, 'Portal académico'),
+  ('Evaluaciones parciales',
+   'Semana de evaluaciones parciales: solo se autorizan justificativos por enfermedad o emergencia familiar.',
+   'INSTITUCIONAL', (SELECT id FROM usuarios WHERE cedula = '20123456'),
+   now() + interval '30 day', now() + interval '37 day', true, 'Campus'),
+  ('Ferias de las Facultades',
+   'Exposición de proyectos estudiantiles de cada Facultad en el patio central.',
+   'INSTITUCIONAL', (SELECT id FROM usuarios WHERE cedula = '20123456'),
+   now() + interval '45 day', now() + interval '2 day', true, 'Patio central'),
+  ('Vacaciones escolares',
+   'La universidad permanecerá cerrada durante las vacaciones de fin de semestre.',
+   'INSTITUCIONAL', (SELECT id FROM usuarios WHERE cedula = '20123456'),
+   now() + interval '60 day', now() + interval '5 day', true, NULL);

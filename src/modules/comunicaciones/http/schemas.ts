@@ -57,6 +57,7 @@ export const asignarPortadaSchema = z.object({
 export const listarComunicadosQuerySchema = z.object({
   estado: z.enum(ESTADOS).optional(),
   categoria: z.enum(CATEGORIAS).optional(),
+  q: z.string().trim().min(1, 'La búsqueda no puede quedar vacía').max(100, 'Máximo 100 caracteres').optional(),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   offset: z.coerce.number().int().min(0).default(0),
 });

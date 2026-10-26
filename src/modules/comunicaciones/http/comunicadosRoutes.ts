@@ -95,6 +95,7 @@ export function comunicadosRoutes(deps: ComunicadosRoutesDeps): Router {
       const result = await deps.listar.ejecutar(requireAuth(req)!, {
         estado: query.estado,
         categoria: query.categoria,
+        q: query.q,
         limit: query.limit,
         offset: query.offset,
       });

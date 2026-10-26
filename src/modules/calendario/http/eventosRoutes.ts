@@ -8,6 +8,8 @@ import type { EditarEvento } from '../application/editarEvento';
 import type { EliminarEvento } from '../application/eliminarEvento';
 import type { ListarEventos } from '../application/listarEventos';
 import type { ObtenerEvento } from '../application/obtenerEvento';
+import type { ParticiparEvento } from '../application/participarEvento';
+import type { AbandonarEvento } from '../application/abandonarEvento';
 import {
   crearEventoSchema,
   editarEventoSchema,
@@ -48,6 +50,8 @@ export interface EventosRoutesDeps {
   eliminar: EliminarEvento;
   listar: ListarEventos;
   obtener: ObtenerEvento;
+  participar: ParticiparEvento;
+  abandonar: AbandonarEvento;
 }
 
 export function eventosRoutes(deps: EventosRoutesDeps): Router {
@@ -86,6 +90,7 @@ export function eventosRoutes(deps: EventosRoutesDeps): Router {
       const result = await deps.listar.ejecutar(requireAuth(req)!, {
         desde,
         hasta,
+        incluirOficiales: query.incluir_oficiales,
         limit: query.limit,
         offset: query.offset,
       });
@@ -126,6 +131,27 @@ export function eventosRoutes(deps: EventosRoutesDeps): Router {
     asyncHandler(async (req, res) => {
       const id = parseId(getParamId(req.params.id));
       await deps.eliminar.ejecutar(requireAuth(req)!, id);
+      res.status(204).send();
+    }),
+  );
+
+  // ── Participar (agregar a la agenda) ──
+  // Sin authorize(): todos los roles autenticados participan. La validez
+  // (evento visible por RLS, solo OFICIAL) la decide el caso de uso.
+  router.post(
+    '/:id/participar',
+    asyncHandler(async (req, res) => {
+      const id = parseId(getParamId(req.params.id));
+      await deps.participar.ejecutar(requireAuth(req)!, id);
+      res.status(204).send();
+    }),
+  );
+
+  router.delete(
+    '/:id/participar',
+    asyncHandler(async (req, res) => {
+      const id = parseId(getParamId(req.params.id));
+      await deps.abandonar.ejecutar(requireAuth(req)!, id);
       res.status(204).send();
     }),
   );
