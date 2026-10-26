@@ -53,3 +53,37 @@ INSERT INTO comunicado_audiencias (comunicado_id, decanato_id)
 SELECT c.id, d.id FROM comunicados c, decanatos d
  WHERE c.titulo = 'Semana de la Salud Mental'
    AND d.id = 2;
+
+-- Eventos OFICIALES del calendario institucional, espejo de los comunicados
+-- con categoria='EVENTO' (no hay FK comunicado↔evento; solo coherencia
+-- editorial). INSERT directos: no disparan el bus ni push, igual que arriba.
+-- Audiencia: 0 filas en evento_audiencias = GLOBAL (toda la universidad).
+-- Fechas fieles a las carteleras (huso horario de Venezuela, UTC-4).
+-- El único evento futuro (Recital, 17–19 nov) lleva recordatorio 24 h antes.
+INSERT INTO eventos (titulo, descripcion, tipo, usuario_id, inicio_at, fin_at, dia_completo, recordatorio_minutos, lugar) VALUES
+  ('Recital «EPIC: The Musical»',
+   'Muestra escénica y vocal del American Corner basada en el musical de Jorge Rivera-Herrans (inspirado en La Odisea de Homero), bajo la metodología de Aprendizaje Basado en el Arte (ABA). Fechas: 17, 18 y 19 de noviembre; audiciones abiertas hasta el 5 de noviembre.',
+   'OFICIAL', (SELECT id FROM usuarios WHERE cedula = '20123456'),
+   '2026-11-17 00:00:00-04', '2026-11-19 23:59:59-04', true, 1440, 'Sala de Conferencias II'),
+  ('Programa de Formación «Piensa como INGENIERO: Más allá del Código»',
+   'Programa de formación del Decanato de Ingeniería y Afines: arquitecturas cloud-native, IA aplicada al negocio y product mindset. Sesión del miércoles 7 de octubre, 12:00 m, con registro previo vía la comunidad WhatsApp.',
+   'OFICIAL', (SELECT id FROM usuarios WHERE cedula = '17420667'),
+   '2026-10-07 12:00:00-04', NULL, false, NULL, 'Salón de Conferencias I'),
+  ('Foro «Alianza por la Educación»',
+   'Jornada abierta para debatir los alcances de la plataforma «Alianza por la Educación», con Santiago Perera (Secretario General UNIMET) y Mariano Herrera (coordinador del proyecto). Entrada libre.',
+   'OFICIAL', (SELECT id FROM usuarios WHERE cedula = '20123456'),
+   '2026-10-09 10:00:00-04', NULL, false, NULL, 'Sala de Conferencias II'),
+  ('Semana de la Salud Mental',
+   'Semana de sensibilización de la Escuela de Psicología: conferencias, cineforos, talleres de defensa personal y bailoterapia sobre salud mental y estabilidad emocional. Del 13 al 16 de octubre en el campus.',
+   'OFICIAL', (SELECT id FROM usuarios WHERE cedula = '20123456'),
+   '2026-10-13 00:00:00-04', '2026-10-16 23:59:59-04', true, NULL, 'Sala de Conferencias I, Aula Abierta y Aula de Extensión');
+
+-- Audiencias de eventos (lo no listado aquí queda GLOBAL por no tener filas).
+INSERT INTO evento_audiencias (evento_id, decanato_id)
+SELECT e.id, d.id FROM eventos e, decanatos d
+ WHERE e.titulo = 'Programa de Formación «Piensa como INGENIERO: Más allá del Código»'
+   AND d.id = 5;
+INSERT INTO evento_audiencias (evento_id, decanato_id)
+SELECT e.id, d.id FROM eventos e, decanatos d
+ WHERE e.titulo = 'Semana de la Salud Mental'
+   AND d.id = 2;
