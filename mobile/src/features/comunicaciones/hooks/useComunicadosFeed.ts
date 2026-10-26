@@ -10,15 +10,20 @@ export const PAGE_SIZE_COMUNICADOS = 20;
  * Feed público: PUBLICADO para todos los roles. La visibilidad real
  * (ventana programado/expira + audiencia/GLOBAL) la decide RLS en el BFF;
  * los borradores y pendientes viven en la pantalla de gestión (3c).
+ * `q` busca por título en el backend (ILIKE), ordenados por fecha DESC.
  */
-export function useComunicadosFeed(categoria: string | null = null) {
+export function useComunicadosFeed(
+  categoria: string | null = null,
+  q: string | null = null,
+) {
   return useInfiniteQuery({
-    queryKey: ['comunicados', 'feed', categoria ?? 'todas'],
+    queryKey: ['comunicados', 'feed', categoria ?? 'todas', q ?? ''],
     initialPageParam: 0,
     queryFn: ({ pageParam }) =>
       listarComunicados({
         estado: 'PUBLICADO',
         categoria: categoria ?? undefined,
+        q: q ?? undefined,
         limit: PAGE_SIZE_COMUNICADOS,
         offset: pageParam as number,
       }),

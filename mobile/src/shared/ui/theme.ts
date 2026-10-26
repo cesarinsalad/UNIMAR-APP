@@ -97,6 +97,10 @@ export const radius = {
  * fuente por defecto.
  */
 export const fontFamily = {
+  /** Montserrat Light 300: solo para etiquetas livianas (categorías de
+   *  noticias). TTF con subconjunto latin — cubre é/í/ó/ú/ñ/¿¡ pero no
+   *  caracteres fuera de U+0000-00FF: ampliación = reemplazar el .ttf. */
+  light: 'Montserrat_300Light',
   regular: 'Montserrat_400Regular',
   medium: 'Montserrat_500Medium',
   semibold: 'Montserrat_600SemiBold',
@@ -134,6 +138,7 @@ export const typography = {
     relaxed: 1.75,
   },
   weight: {
+    light: '300',
     regular: '400',
     medium: '500',
     semibold: '600',

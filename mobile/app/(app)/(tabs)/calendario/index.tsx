@@ -9,6 +9,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { CaretLeftIcon, CaretRightIcon, PlusIcon } from 'phosphor-react-native';
+import { type TipoEvento } from '@/features/calendario/types';
 
 import {
   agruparPorDia,
@@ -41,8 +42,9 @@ import {
  * Tab Agenda con la voz del calendario académico institucional: header de
  * impacto (badge azul del número de mes + nombre en mayúsculas), cápsula
  * gris del membrete semanal y grid infográfico donde RELLENO = dato
- * (bloque azul/naranja por tipo) y CONTORNO = acción (anillo de selección).
- * La mezcla OFICIAL/PERSONAL la decide RLS en el BFF.
+ * (bloque azul/naranja/pálido por tipo) y CONTORNO = acción (anillo de
+ * selección). Agenda opt-in: tus PERSONAL + los OFICIALES que agregaste
+ * desde la pantalla de eventos + los INSTITUCIONAL (fechas fijas).
  */
 export default function CalendarioScreen() {
   const insets = useSafeAreaInsets();
@@ -61,11 +63,15 @@ export default function CalendarioScreen() {
   const puntos = useMemo(() => {
     const mapa = new Map<string, InfoDia>();
     for (const grupo of grupos) {
-      const oficial = grupo.eventos.some((e) => e.tipo === 'OFICIAL');
-      const personal = grupo.eventos.some((e) => e.tipo === 'PERSONAL');
+      const hayPor = (tipo: TipoEvento) => grupo.eventos.some((e) => e.tipo === tipo);
+      const oficial = hayPor('OFICIAL');
+      const institucional = hayPor('INSTITUCIONAL');
+      const personal = hayPor('PERSONAL');
+      const tiposActivos = [oficial, institucional, personal].filter(Boolean).length;
       mapa.set(grupo.clave, {
-        tipo: oficial ? 'OFICIAL' : 'PERSONAL',
-        mixto: oficial && personal,
+        // Precedencia: el color del tipo más "fuerte" presente; mixto marca días con varios.
+        tipo: oficial ? 'OFICIAL' : institucional ? 'INSTITUCIONAL' : 'PERSONAL',
+        mixto: tiposActivos > 1,
         cantidad: grupo.eventos.length,
       });
     }
@@ -162,10 +168,25 @@ export default function CalendarioScreen() {
           <View style={estilos.leyenda}>
             <ItemLeyenda color={colors.brand.primary} etiqueta="Eventos UNIMAR" />
             <ItemLeyenda color={colorBloque('PERSONAL')} etiqueta="Personales" />
+            <ItemLeyenda color={colorBloque('INSTITUCIONAL')} etiqueta="Institucionales" />
           </View>
         </Card>
 
-        <SectionHeader title="Próximos eventos" style={estilos.seccionProximos} />
+        <SectionHeader
+          title="Próximos eventos"
+          action={
+            <PressableScale
+              accessibilityRole="link"
+              accessibilityLabel="Explorar eventos del campus"
+              hitSlop={12}
+              onPress={() => router.push('/eventos/listado')}>
+              <ThemedText variant="bodySm" weight="semibold" style={estilos.enlaceSeccion}>
+                Explorar campus
+              </ThemedText>
+            </PressableScale>
+          }
+          style={estilos.seccionProximos}
+        />
         {agenda.isPending ? (
           <Centrado>
             <ActivityIndicator color={colors.brand.primary} />
@@ -191,7 +212,7 @@ export default function CalendarioScreen() {
         ) : (
           <EmptyState
             title="Sin próximos eventos"
-            message="Los eventos de este mes aparecerán aquí."
+            message="Tus eventos personales, los oficiales que agregues y las fechas institucionales aparecerán aquí."
           />
         )}
 
@@ -324,6 +345,9 @@ const estilos = StyleSheet.create({
   },
   seccionProximos: {
     marginTop: spacing.xl,
+  },
+  enlaceSeccion: {
+    color: colors.brand.primary,
   },
   listaProximos: {
     gap: spacing.md,

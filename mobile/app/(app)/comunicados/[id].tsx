@@ -23,7 +23,7 @@ import {
 } from '@/features/comunicaciones/api/comunicados.api';
 import { CuerpoMarkdown } from '@/features/comunicaciones/components/CuerpoMarkdown';
 import { SeccionAdjuntos } from '@/features/comunicaciones/components/SeccionAdjuntos';
-import { etiquetaCategoria } from '@/features/comunicaciones/helpers';
+import { EtiquetaCategoria } from '@/features/comunicaciones/components/EtiquetaCategoria';
 import { accionesPermitidas } from '@/features/comunicaciones/hooks/accionesPermitidas';
 import {
   etiquetaLecturas,
@@ -39,7 +39,7 @@ import { ApiError } from '@/shared/api/axios';
 import { haceRelativo, minutosLectura } from '@/shared/lib/tiempo';
 import { excerpt } from '@/shared/lib/markdown';
 import { colors, elevation, layout, radius, spacing } from '@/shared/ui';
-import { Badge, ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
+import { ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
 
 const FORMATO_FECHA_LARGA = new Intl.DateTimeFormat('es-VE', {
   dateStyle: 'long',
@@ -269,7 +269,7 @@ function DetalleLector({
         ) : null}
 
         <View style={estilos.contenido}>
-          <Badge label={etiquetaCategoria(comunicado)} tone="info" />
+          <EtiquetaCategoria comunicado={comunicado} />
 
           <ThemedText variant="headline" weight="bold">
             {comunicado.titulo}
@@ -488,7 +488,7 @@ const estilos = StyleSheet.create({
   centroConGap: { gap: spacing.four },
   scroll: {
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
+    paddingTop: spacing.twelve,
     paddingBottom: layout.bottomTabInset,
     gap: spacing.lg,
   },

@@ -98,8 +98,9 @@ function Celda({
     : celda.esHoy
       ? { backgroundColor: colors.brand.surfaceBlue }
       : null;
-  // Dígito del bloque: blanco sobre azul sólido; tinta sobre el tinte
-  // naranja (regla AA: el naranja solo sirve de fondo, nunca de texto).
+  // Dígito del bloque: blanco sobre azul sólido; tinta sobre los tintes
+  // naranja/institucional (regla AA: el tono pálido solo sirve de fondo,
+  // nunca de texto).
   const colorTexto = info
     ? info.tipo === 'OFICIAL'
       ? colors.text.onPrimary
@@ -129,9 +130,13 @@ function Celda({
 /** Bloque de estado del día: azul sólido (OFICIAL con dígito blanco);
  *  tinte naranja 12% (PERSONAL con dígito en tinta) — el naranja puro no
  *  alcanza AA con texto pequeño (~2.6:1), así que el color lo carga el
- *  fondo (patrón de tono al 12% de PALETA_CODIGO). */
+ *  fondo (patrón de tono al 12% de PALETA_CODIGO). INSTITUCIONAL usa el
+ *  tinte azul pálido (surfaceBlue) con dígito azul para distinguirse del
+ *  oficial sin meter un tercer color fuerte al grid. */
 export function colorBloque(tipo: TipoPunto): string {
-  return tipo === 'OFICIAL' ? colors.brand.primary : `${colors.accent.urgent}1F`;
+  if (tipo === 'OFICIAL') return colors.brand.primary;
+  if (tipo === 'INSTITUCIONAL') return colors.brand.surfaceBlue;
+  return `${colors.accent.urgent}1F`;
 }
 
 const estilos = StyleSheet.create({

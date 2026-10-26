@@ -114,8 +114,9 @@ export function etiquetaRecordatorioMinutos(minutos: number | null): string | nu
 
 /**
  * Anti-global de eventos: OFICIAL + COMUNICADOR → fijo su decanato ([]
- * prohibido). PERSONAL → no aplica (null). ADMIN → selección libre,
- * incluido [] (GLOBAL).
+ * prohibido). PERSONAL → no aplica (null). INSTITUCIONAL → no aplica
+ * (null: siempre GLOBAL, el BFF rechaza audiencia). ADMIN → selección
+ * libre, incluido [] (GLOBAL).
  */
 export function audienciaParaEvento(
   rol: Rol | 'ESTUDIANTE',
@@ -123,7 +124,7 @@ export function audienciaParaEvento(
   decanato_id: number | null,
   seleccion: number[] | null,
 ): number[] | null {
-  if (tipo === 'PERSONAL') return null;
+  if (tipo === 'PERSONAL' || tipo === 'INSTITUCIONAL') return null;
   if (rol === 'COMUNICADOR') {
     return decanato_id !== null ? [decanato_id] : null;
   }

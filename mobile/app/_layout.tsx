@@ -31,6 +31,8 @@ export default function RootLayout() {
     // mismas keys para el theme). Viven en assets/ (no node_modules) para
     // que el export web no las coloque bajo rutas ignoradas por wrangler.
     // eslint-disable-next-line @typescript-eslint/no-require-imports
+    Montserrat_300Light: require('../assets/fonts/Montserrat_300Light.ttf'),
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     Montserrat_400Regular: require('../assets/fonts/Montserrat_400Regular.ttf'),
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     Montserrat_500Medium: require('../assets/fonts/Montserrat_500Medium.ttf'),

@@ -4,6 +4,8 @@ import type { Comunicado, EstadoComunicado } from '../types';
 export interface FiltroComunicados {
   estado?: EstadoComunicado;
   categoria?: string;
+  /** Búsqueda textual por título (el BFF aplica ILIKE). */
+  q?: string;
   limit: number;
   offset: number;
 }
@@ -17,6 +19,7 @@ export async function listarComunicados(filtro: FiltroComunicados): Promise<Comu
     params: {
       estado: filtro.estado,
       categoria: filtro.categoria,
+      q: filtro.q,
       limit: filtro.limit,
       offset: filtro.offset,
     },

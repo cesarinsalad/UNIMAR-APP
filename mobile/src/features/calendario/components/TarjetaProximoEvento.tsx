@@ -9,7 +9,7 @@ import { etiquetaAudiencia } from '@/shared/lib/etiquetas';
 export interface EventoResumen {
   id: string;
   titulo: string;
-  tipo: 'OFICIAL' | 'PERSONAL';
+  tipo: 'OFICIAL' | 'PERSONAL' | 'INSTITUCIONAL';
   inicioAt: string;
   finAt?: string | null;
   diaCompleto: boolean;
@@ -17,14 +17,28 @@ export interface EventoResumen {
   decanatoIds?: number[];
   /** compacto: filas de una sola línea (listas del día), sin caption tipo. */
   compacta?: boolean;
+  /** True si el usuario lo tiene en su agenda (pivot participar). */
+  participo?: boolean;
 }
 
-/** Barra lateral de la tarjeta: azul corporativo (OFICIAL) o gris (PERSONAL). */
-export function colorBarra(tipo: 'OFICIAL' | 'PERSONAL'): string {
-  return tipo === 'OFICIAL' ? colors.brand.primary : colors.border.strong;
+/** Barra lateral de la tarjeta: azul corporativo (OFICIAL), pálido
+ *  (INSTITUCIONAL) o gris (PERSONAL). */
+export function colorBarra(tipo: 'OFICIAL' | 'PERSONAL' | 'INSTITUCIONAL'): string {
+  if (tipo === 'OFICIAL') return colors.brand.primary;
+  if (tipo === 'INSTITUCIONAL') return colors.brand.surfaceBlue;
+  return colors.border.strong;
 }
 
 const FORMATO_MES_CORTO = new Intl.DateTimeFormat('es-VE', { month: 'short' });
+
+/** Caption del tipo: Evento oficial · audiencia / Personal / Institucional. */
+function captionTipo(evento: EventoResumen): string {
+  if (evento.tipo === 'OFICIAL') {
+    return `Evento oficial · ${etiquetaAudiencia(evento.decanatoIds ?? [])}`;
+  }
+  if (evento.tipo === 'INSTITUCIONAL') return 'Evento institucional';
+  return 'Evento personal';
+}
 
 /**
  * LA receta de evento del sistema (motivo "bloque de fecha"): día grande +
@@ -52,9 +66,7 @@ export function TarjetaProximoEvento({ evento }: { evento: EventoResumen }) {
         <View style={estilos.cuerpo}>
           {evento.decanatoIds && !evento.compacta ? (
             <ThemedText variant="caption" tone="tertiary" numberOfLines={1}>
-              {evento.tipo === 'OFICIAL'
-                ? `Evento oficial · ${etiquetaAudiencia(evento.decanatoIds)}`
-                : 'Evento personal'}
+              {captionTipo(evento)}
             </ThemedText>
           ) : null}
           <ThemedText variant="body" weight="medium" numberOfLines={1}>

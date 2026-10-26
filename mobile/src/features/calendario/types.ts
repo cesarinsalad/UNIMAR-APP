@@ -1,7 +1,7 @@
 /** Espejo del wire de /eventos (camelCase, fechas ISO-string). */
-export type TipoEvento = 'OFICIAL' | 'PERSONAL';
+export type TipoEvento = 'OFICIAL' | 'PERSONAL' | 'INSTITUCIONAL';
 
-export const TIPOS_EVENTO: readonly TipoEvento[] = ['OFICIAL', 'PERSONAL'] as const;
+export const TIPOS_EVENTO: readonly TipoEvento[] = ['OFICIAL', 'PERSONAL', 'INSTITUCIONAL'] as const;
 
 export interface Evento {
   id: string;
@@ -19,12 +19,19 @@ export interface Evento {
   createdAt: string;
   /** Audiencia (solo OFICIAL); [] = GLOBAL. */
   decanatoIds: number[];
+  /** True si el usuario lo agregó a su agenda (pivot participar). */
+  participo: boolean;
 }
 
 export interface FiltroEventos {
   /** Rango obligatorio del contrato (máx 90 días). */
   desde: string;
   hasta: string;
+  /**
+   * 'agregados': solo PERSONAL propios + OFICIALES que el usuario agregó
+   * a su agenda + INSTITUCIONAL (la tab Agenda). Default 'todos'.
+   */
+  incluirOficiales?: 'todos' | 'agregados';
   limit: number;
   offset: number;
 }

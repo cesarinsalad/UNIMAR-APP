@@ -10,6 +10,7 @@ import { accionesPermitidasEvento } from '@/features/calendario/hooks/eventos-pe
 import { etiquetaRecordatorioMinutos } from '@/features/calendario/hooks/formulario-evento';
 import { useEventoDetalle } from '@/features/calendario/hooks/useEventoDetalle';
 import { useMutacionEvento } from '@/features/calendario/hooks/useMutacionEvento';
+import { useParticipacion } from '@/features/calendario/hooks/useParticipacion';
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import type { Evento, TipoEvento } from '@/features/calendario/types';
 import { colorBarra } from '@/features/calendario/components/TarjetaProximoEvento';
@@ -77,6 +78,7 @@ function Contenido({ evento, eventoId }: { evento: Evento; eventoId: string }) {
   const hayAcciones = acciones.puedeEditar || acciones.puedeEliminar;
 
   const eliminar = useMutacionEvento(() => eliminarEvento(eventoId));
+  const participar = useParticipacion();
   const [errorMutacion, setErrorMutacion] = useState<string | null>(null);
 
   const recordatorio = etiquetaRecordatorioMinutos(evento.recordatorioMinutos);
@@ -174,6 +176,18 @@ function Contenido({ evento, eventoId }: { evento: Evento; eventoId: string }) {
         </View>
       ) : null}
 
+      {evento.tipo === 'OFICIAL' ? (
+        <ThemedButton
+          title={evento.participo ? 'Quitar de mi agenda' : 'Agregar a mi agenda'}
+          variant={evento.participo ? 'secondary' : 'primary'}
+          size="md"
+          loading={participar.agregar.isPending || participar.quitar.isPending}
+          onPress={() =>
+            evento.participo ? participar.quitar.mutate(evento.id) : participar.agregar.mutate(evento.id)
+          }
+        />
+      ) : null}
+
       {hayAcciones ? (
         <View style={estilos.acciones}>
           {acciones.puedeEditar ? (
@@ -207,7 +221,9 @@ function Contenido({ evento, eventoId }: { evento: Evento; eventoId: string }) {
 }
 
 function tituloTipo(tipo: TipoEvento): string {
-  return tipo === 'OFICIAL' ? 'Evento oficial' : 'Personal';
+  if (tipo === 'OFICIAL') return 'Evento oficial';
+  if (tipo === 'INSTITUCIONAL') return 'Evento institucional';
+  return 'Personal';
 }
 
 const FORMATO_FECHA_COMPLETA = new Intl.DateTimeFormat('es-VE', { dateStyle: 'full' });

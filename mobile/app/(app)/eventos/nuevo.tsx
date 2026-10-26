@@ -32,6 +32,8 @@ import { useDecanatos } from '@/features/identidad/hooks/useDecanatos';
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import { ApiError } from '@/shared/api/axios';
 import { colors, radius, spacing } from '@/shared/ui';
+import type { TipoEvento } from '@/features/calendario/types';
+import type { Rol } from '@/features/identidad/types';
 import {
   BotonCircular,
   Select,
@@ -44,6 +46,19 @@ import {
 /** Formulario crear/editar evento (estilo mock): back circular + campos en
  *  cajas blancas con pickers nativos. El mismo screen sirve de editor via
  *  `?id=`; en edición el tipo se congela (el contrato no deja cambiarlo). */
+
+/** Tipos ofrecidos en el formulario según el rol del usuario. */
+function tiposDisponibles(rol: Rol | undefined): TipoEvento[] {
+  if (rol === 'ADMIN') return ['PERSONAL', 'OFICIAL', 'INSTITUCIONAL'];
+  if (rol === 'COMUNICADOR') return ['PERSONAL', 'OFICIAL'];
+  return ['PERSONAL'];
+}
+
+const ETIQUETA_TIPO: Record<TipoEvento, string> = {
+  PERSONAL: 'Personal (solo tú lo ves)',
+  OFICIAL: 'Oficial (para una audiencia)',
+  INSTITUCIONAL: 'Institucional (fecha fija del campus)',
+};
 export default function FormularioEventoScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const esEdicion = Boolean(id);
@@ -61,8 +76,10 @@ export default function FormularioEventoScreen() {
   const [errorServidor, setErrorServidor] = useState<string | null>(null);
 
   // Elección de tipo (UI): por defecto PERSONAL para todos; oficiales solo
-  // COMUNICADOR/ADMIN; en edición se congela (contrato lo prohíbe cambiar).
-  const [tipo, setTipo] = useState<'OFICIAL' | 'PERSONAL'>('PERSONAL');
+  // COMUNICADOR/ADMIN; INSTITUCIONAL solo ADMIN (fechas fijas del calendario
+  // académico, sin audiencia); en edición se congela (contrato lo prohíbe
+  // cambiar).
+  const [tipo, setTipo] = useState<TipoEvento>('PERSONAL');
 
   const [inicio, setInicio] = useState<Date>(() => nuevaFechaSana());
   const [fin, setFin] = useState<Date | null>(() => finPredeterminado(nuevaFechaSana()));
@@ -204,11 +221,11 @@ export default function FormularioEventoScreen() {
 
           {puedeElegirTipo ? (
             <View style={estilos.filaChips}>
-              {(['PERSONAL', 'OFICIAL'] as const).map((t) => (
+              {tiposDisponibles(usuario?.rol).map((t) => (
                 <Pressable key={t} onPress={() => setTipo(t)}>
                   <ThemedView variant={tipo === t ? 'sunken' : 'elevated'} style={estilos.chip}>
                     <ThemedText variant="caption" weight={tipo === t ? 'semibold' : 'regular'}>
-                      {t === 'PERSONAL' ? 'Personal (solo tú lo ves)' : 'Oficial (para una audiencia)'}
+                      {ETIQUETA_TIPO[t]}
                     </ThemedText>
                   </ThemedView>
                 </Pressable>
@@ -218,7 +235,7 @@ export default function FormularioEventoScreen() {
 
           {esEdicion ? (
             <ThemedText variant="caption" tone="tertiary">
-              Tipo: {tipo === 'OFICIAL' ? 'Evento oficial' : 'Personal'} (no editable)
+              Tipo: {ETIQUETA_TIPO[tipo]} (no editable)
             </ThemedText>
           ) : null}
 

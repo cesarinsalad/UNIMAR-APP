@@ -2,7 +2,7 @@ import { api } from '@/shared/api/axios';
 import type { Evento, FiltroEventos, TipoEvento } from '../types';
 
 /**
- * GET /eventos?desde=&hasta=&limit=&offset=
+ * GET /eventos?desde=&hasta=&incluir_oficiales=&limit=&offset=
  * Query snake_case; el rango es obligatorio y el BFF rechaza >90 días.
  */
 export async function listarEventos(filtro: FiltroEventos): Promise<Evento[]> {
@@ -10,6 +10,7 @@ export async function listarEventos(filtro: FiltroEventos): Promise<Evento[]> {
     params: {
       desde: filtro.desde,
       hasta: filtro.hasta,
+      incluir_oficiales: filtro.incluirOficiales,
       limit: filtro.limit,
       offset: filtro.offset,
     },
@@ -74,4 +75,16 @@ export async function editarEvento(
 /** DELETE /eventos/:id → 204. Solo dueño (personal) o ADMIN/comunicador creador (oficial). */
 export async function eliminarEvento(id: string): Promise<void> {
   await api.delete(`/eventos/${id}`);
+}
+
+// ─── Participar (agregar/abandonar la agenda) ──────────────────────────────
+
+/** POST /eventos/:id/participar → 204 (idempotente). Solo eventos OFICIAL. */
+export async function participarEvento(id: string): Promise<void> {
+  await api.post(`/eventos/${id}/participar`);
+}
+
+/** DELETE /eventos/:id/participar → 204 (idempotente). */
+export async function abandonarEvento(id: string): Promise<void> {
+  await api.delete(`/eventos/${id}/participar`);
 }

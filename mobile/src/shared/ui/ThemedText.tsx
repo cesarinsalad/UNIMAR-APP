@@ -16,6 +16,7 @@ export interface ThemedTextProps extends TextProps {
 }
 
 const FONT_BY_WEIGHT: Record<keyof typeof typography.weight, string> = {
+  light: fontFamily.light,
   regular: fontFamily.regular,
   medium: fontFamily.medium,
   semibold: fontFamily.semibold,

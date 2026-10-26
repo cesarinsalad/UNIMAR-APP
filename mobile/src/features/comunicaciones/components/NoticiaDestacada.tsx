@@ -3,20 +3,31 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 
 import { radius, spacing } from '@/shared/ui';
-import { Badge, PressableScale, ThemedText, ThemedView } from '@/shared/ui';
+import { PressableScale, ThemedText, ThemedView } from '@/shared/ui';
 import { haceRelativo, minutosLectura } from '@/shared/lib/tiempo';
-import { etiquetaCategoria } from '../helpers';
+import { EtiquetaCategoria } from './EtiquetaCategoria';
 import { PortadaPlaceholder } from './PortadaPlaceholder';
 import { usePortada } from '../hooks/usePortada';
 import type { Comunicado } from '../types';
 
 /**
- * Tarjeta destacada del feed de noticias: imagen full-bleed con gradiente
+ * Tarjeta destacada del feed de noticias: imagen full-card con gradiente
  * oscuro en la base, Badge de categoría arriba y título + meta ("Hace 2
  * horas · 5 min de lectura") en blanco. Presionable → detalle.
+ * `ancho` opcional: base para el recorte 0.6 del slide contenedor (carrusel
+ * insetted); por omisión usa el ancho de ventana.
  */
-export function NoticiaDestacada({ comunicado }: { comunicado: Comunicado }) {
-  const { width } = useWindowDimensions();
+export function NoticiaDestacada({
+  comunicado,
+  ancho,
+}: {
+  comunicado: Comunicado;
+  /** Ancho del slide contenedor; omitir si la tarjeta ocupa todo el ancho. */
+  ancho?: number;
+}) {
+  const { width: anchoVentana } = useWindowDimensions();
+  const base = ancho ?? anchoVentana;
+  const alturaImagen = base * 0.6;
   const portada = usePortada(comunicado.id, comunicado.imagenPath !== null);
 
   function abrir() {
@@ -32,17 +43,17 @@ export function NoticiaDestacada({ comunicado }: { comunicado: Comunicado }) {
         {portada.url ? (
           <Image
             source={{ uri: portada.url }}
-            style={[estilos.imagen, { height: width * 0.6 }]}
+            style={[estilos.imagen, { height: alturaImagen }]}
             resizeMode="cover"
           />
         ) : (
           <PortadaPlaceholder
-            style={[estilos.imagen, { height: width * 0.6 }]}
+            style={[estilos.imagen, { height: alturaImagen }]}
             tamanoIcono={44}
           />
         )}
         <View style={estilos.badge}>
-          <Badge label={etiquetaCategoria(comunicado)} tone="info" />
+          <EtiquetaCategoria comunicado={comunicado} sobreImagen />
         </View>
         <LinearGradient
           colors={['transparent', 'rgba(0,0,0,0.55)', 'rgba(0,0,0,0.85)']}
