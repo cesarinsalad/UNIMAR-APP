@@ -63,7 +63,7 @@ const estilos = StyleSheet.create({
     paddingVertical: spacing.sm,
     gap: spacing.xs,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border.subtle,
+    borderBottomColor: colors.border.strong,
   },
   contenido: {
     flexDirection: 'row',
