@@ -26,9 +26,10 @@ import { SelectorPeriodo } from '@/features/academico/components/SelectorPeriodo
 import { TarjetaHistorial } from '@/features/academico/components/TarjetaHistorial';
 
 /**
- * Tab Clases (mock aprobado): header con campana, materias en curso con
- * cortes evaluativos + historial académico filtrable por período. El
- * filtrado es local (helpers puros): una sola query, sin refetch.
+ * Tab Clases (mock aprobado): header con campana, materias en curso como
+ * filas de registro (nombre, profesor, horario) + historial académico
+ * filtrable por período. El filtrado es local (helpers puros): una sola
+ * query, sin refetch.
  */
 export default function AcademicoScreen() {
   const insets = useSafeAreaInsets();
@@ -98,13 +99,17 @@ export default function AcademicoScreen() {
           titulo="Clases"
         />
 
-        <SectionHeader title="Materias en curso" />
         {particion.actuales.length > 0 ? (
-          <View style={estilos.tarjetasMaterias}>
-            {particion.actuales.map((materia) => (
-              <MateriaActualCard key={materia.id} materia={materia} />
-            ))}
-          </View>
+          <>
+            <ThemedText variant="caption" weight="semibold" style={estilos.etiquetaGrupo}>
+              MATERIAS EN CURSO
+            </ThemedText>
+            <View style={estilos.tarjetasActuales}>
+              {particion.actuales.map((materia) => (
+                <MateriaActualCard key={materia.id} materia={materia} />
+              ))}
+            </View>
+          </>
         ) : (
           <EmptyState
             title="Sin materias en curso"
@@ -165,6 +170,20 @@ const estilos = StyleSheet.create({
   tarjetasMaterias: {
     gap: spacing.lg,
     marginTop: spacing.lg,
+  },
+  // Sobretítulo del grupo vivo: la receta eyebrow de la casa
+  // (EtiquetaCategoria.mayusculas — caption + MAYÚSCULAS + tracking 0.8),
+  // en gris metadato; corona el grupo con 24px de aire según la regla de
+  // proximidad — más espacio sobre la etiqueta que entre cards (12).
+  etiquetaGrupo: {
+    marginTop: spacing.xl,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    color: colors.text.secondary,
+  },
+  tarjetasActuales: {
+    gap: spacing.md,
+    marginTop: spacing.sm,
   },
   seccionHistorial: {
     marginTop: spacing.xl,

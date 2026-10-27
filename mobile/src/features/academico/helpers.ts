@@ -22,6 +22,19 @@ export function nombreDia(diaSemana: number): string {
   return NOMBRES_DIA[diaSemana] ?? '';
 }
 
+/** Abreviatura de 3 letras en el registro UNIMAR (4 → "Jue"), mismo
+ *  vocabulario que usa el `horario` de la API y el membrete del grid. */
+export function abrevDia(diaSemana: number): string {
+  return nombreDia(diaSemana).slice(0, 3);
+}
+
+/** Día ISO-8601 de hoy (1=lun … 7=dom): la conversión de getDay() que
+ *  antes quedó inline en proxima-clase.ts y clases-de-dia.ts. */
+export function diaIsoHoy(): number {
+  const diaJs = new Date().getDay();
+  return diaJs === 0 ? 7 : diaJs;
+}
+
 /** Escala UNIMAR 0–20: aprobado desde 10. */
 export const NOTA_MINIMA_APROBADA = 10;
 

@@ -1,11 +1,10 @@
 import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { MapPinIcon, UserIcon } from 'phosphor-react-native';
 
-import { colors, radius, spacing } from '@/shared/ui';
+import { colors, elevation, highlight, radius, spacing } from '@/shared/ui';
 import { PressableScale, ThemedText, ThemedView } from '@/shared/ui';
-import { colorNota, formatoNota2, notaAcumulada } from '../helpers';
-import type { CorteDTO, MateriaActualDTO } from '../types';
+import { abrevDia, colorNota, diaIsoHoy } from '../helpers';
+import type { FranjaDTO, MateriaActualDTO } from '../types';
 
 interface TonosCodigo {
   fondo: string;
@@ -44,86 +43,62 @@ export function colorNotaClases(nota: number | null): string {
   }
 }
 
-/** Columna de un corte: etiqueta + ponderación arriba, nota debajo. */
-function ColumnaCorte({ corte }: { corte: CorteDTO | undefined }) {
-  if (!corte) return <View style={estilos.columnaCorte} />;
-  return (
-    <View style={estilos.columnaCorte}>
-      <View style={estilos.etiquetaCorte}>
-        <ThemedText variant="caption" tone="secondary" numberOfLines={1}>
-          {corte.nombre}
-        </ThemedText>
-        <ThemedText variant="caption" weight="medium" style={estilos.ponderacion}>
-          {' '}
-          {corte.ponderacion}%
-        </ThemedText>
-      </View>
-      <ThemedText variant="bodySm" weight="semibold">
-        {formatoNota2(corte.nota)}
-      </ThemedText>
-    </View>
-  );
-}
-
-/** Aulas de la materia: exactas por franja, o el campo plano. */
-export function aulasDeMateria(materia: MateriaActualDTO): string {
-  const aulas = materia.franjas?.map((f) => f.aula) ?? [];
-  const unicas = [...new Set(aulas)];
-  return unicas.length > 0 ? unicas.join(' · ') : materia.aula;
-}
-
-/** Tarjeta de materia en curso: badge de código, aula/profesor y cortes evaluativos. */
+/**
+ * Tarjeta de materia en curso: fila de registro destilada — la firma de
+ * estado (barra lateral 3px azul, misma receta que las tarjetas de evento)
+ * precede al cuerpo tipográfico: nombre, profesor y horario. Con franjas
+ * estructuradas el horario es una mini-tabla (día en columna fija 32 +
+ * hora + aula), la misma receta de columnas duras de AgendaDia y el
+ * bloque de fecha del evento: las columnas alinean entre franjas y entre
+ * cards. El día de HOY se distingue en azul semibold (la cifra "hoy" del
+ * grid del calendario); sin franjas (API UNIMAR real), fallback al
+ * `horario` plano de la wire. El código y las notas viven en el detalle.
+ */
 export function MateriaActualCard({ materia }: { materia: MateriaActualDTO }) {
-  const tonos = tonalidadesCodigo(materia.codigo);
+  const diaHoy = diaIsoHoy();
+  // Barra semántica: azul sólida solo si la materia tiene clase hoy — las
+  // demás van en el tinte del grid. Sin franjas (API real) se queda
+  // sólida: "en curso" y sin forma de saber la proximidad.
+  const tieneClaseHoy = materia.franjas?.some((f) => f.dia_semana === diaHoy) ?? false;
   return (
-    <PressableScale onPress={navegar(materia.id)} accessibilityRole="button">
+    <PressableScale
+      onPress={navegar(materia.id)}
+      accessibilityRole="button"
+      accessibilityLabel={`Detalle de ${materia.nombre}`}>
       <ThemedView variant="card" style={estilos.tarjeta}>
-        <View style={estilos.fileRule} />
-        <View style={estilos.cabecera}>
-          <View style={[estilos.badge, { backgroundColor: tonos.fondo }]}>
-            <ThemedText
-              variant="caption"
-              weight="semibold"
-              style={{ color: tonos.texto }}>
-              {materia.codigo}
-            </ThemedText>
-          </View>
-          <ThemedText variant="body" weight="medium" numberOfLines={2} style={estilos.nombre}>
+        <View
+          style={[
+            estilos.barra,
+            // No-hoy: azul sello al 30% — el tinte pálido del card sobre
+            // blanco desaparece; esta intensidad se nota sin gritar.
+            {
+              backgroundColor: tieneClaseHoy
+                ? colors.brand.primary
+                : `${colors.brand.primary}4D`,
+            },
+          ]}
+        />
+        <View style={estilos.cuerpo}>
+          <ThemedText variant="subtitle" weight="semibold" numberOfLines={2}>
             {materia.nombre}
           </ThemedText>
-        </View>
-        <View style={estilos.meta}>
-          <View style={estilos.metaItem}>
-            <MapPinIcon size={14} color={colors.text.secondary} />
-            <ThemedText variant="bodySm" tone="secondary">
-              {aulasDeMateria(materia)}
-            </ThemedText>
-          </View>
-          <View style={estilos.metaItem}>
-            <UserIcon size={14} color={colors.text.secondary} />
-            <ThemedText
-              variant="bodySm"
-              tone="secondary"
-              numberOfLines={1}
-              style={estilos.profesor}>
-              {materia.profesor}
-            </ThemedText>
-          </View>
-        </View>
-        <View style={estilos.divisor} />
-        <View style={estilos.cortes}>
-          <ColumnaCorte corte={materia.cortes[0]} />
-          <ColumnaCorte corte={materia.cortes[1]} />
-          <View style={estilos.acumulada}>
-            <ThemedText variant="caption" tone="secondary">
-              Acumulada
-            </ThemedText>
-            <ThemedText
-              variant="headline"
-              weight="bold"
-              style={{ color: colorNotaClases(notaAcumulada(materia.cortes)) }}>
-              {formatoNota2(notaAcumulada(materia.cortes))}
-            </ThemedText>
+          <ThemedText variant="bodySm" tone="secondary" numberOfLines={1}>
+            {materia.profesor}
+          </ThemedText>
+          <View style={estilos.meta}>
+            {materia.franjas?.length
+              ? materia.franjas.map((franja) => (
+                  <FilaFranja
+                    key={franja.dia_semana}
+                    franja={franja}
+                    esHoy={franja.dia_semana === diaHoy}
+                  />
+                ))
+              : (
+                <ThemedText variant="caption" tone="secondary" numberOfLines={2}>
+                  {materia.horario}
+                </ThemedText>
+              )}
           </View>
         </View>
       </ThemedView>
@@ -137,68 +112,68 @@ function navegar(id: string) {
   };
 }
 
+/**
+ * Fila tabulada de una franja: "MIÉ  10:20-12:35  (A21)" — día semibold
+ * (azul si es hoy, la cifra "hoy" del grid del calendario) cada hora y
+ * aula en gris metadato. La columna de día ancho fijo (32) alinea las
+ * franjas entre sí y con las de las demás materias del listado.
+ */
+function FilaFranja({ franja, esHoy }: { franja: FranjaDTO; esHoy: boolean }) {
+  return (
+    <View style={estilos.filaFranja}>
+      <ThemedText
+        variant="caption"
+        weight="semibold"
+        numberOfLines={1}
+        style={[estilos.diaFranja, { color: esHoy ? colors.brand.primary : colors.text.primary }]}
+        accessibilityLabel={esHoy ? `hoy (${abrevDia(franja.dia_semana)})` : undefined}>
+        {abrevDia(franja.dia_semana)}
+      </ThemedText>
+      <ThemedText variant="caption" tone="secondary" style={estilos.horaFranja}>
+        {franja.hora_inicio} - {franja.hora_fin}
+      </ThemedText>
+      <ThemedText variant="caption" tone="secondary">
+        ({franja.aula})
+      </ThemedText>
+    </View>
+  );
+}
+
 const estilos = StyleSheet.create({
   tarjeta: {
-    gap: spacing.sm,
-    overflow: 'hidden',
-  },
-  fileRule: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 3,
-    backgroundColor: colors.brand.primary,
-    borderTopLeftRadius: radius.card,
-    borderTopRightRadius: radius.card,
-  },
-  cabecera: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    ...elevation.sm,
+    ...highlight.sm,
   },
-  badge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+  barra: {
+    width: 3,
+    alignSelf: 'stretch',
     borderRadius: radius.pill,
   },
-  nombre: {
+  cuerpo: {
     flex: 1,
+    gap: spacing.xs,
   },
   meta: {
+    gap: 2,
+  },
+  filaFranja: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.lg,
+    gap: spacing.sm,
   },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
+  diaFranja: {
+    width: 40,
+    textTransform: 'uppercase',
   },
-  profesor: {
-    flexShrink: 1,
-  },
-  divisor: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.border.subtle,
-  },
-  cortes: {
-    flexDirection: 'row',
-    gap: spacing.xl,
-    marginTop: spacing.xs,
-  },
-  columnaCorte: {
-    gap: spacing.xs,
-  },
-  etiquetaCorte: {
-    flexDirection: 'row',
-  },
-  ponderacion: {
-    color: colors.brand.primary,
-  },
-  acumulada: {
-    marginLeft: 'auto',
-    alignItems: 'flex-end',
-    gap: spacing.xs,
+  // Columna de hora con ancho mínimo: los dígitos proporcionales de
+  // Montserrat hacen que "11:50" pese menos que "10:20" (unos estrechos)
+  // y el aula se desalinee; así todas las horas rellenan al mismo ancho
+  // y el aula cae en la misma x. minWidth > width fijo: sin recorte si
+  // el usuario agranda la fuente del sistema.
+  horaFranja: {
+    minWidth: 84,
   },
 });

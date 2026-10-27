@@ -330,10 +330,28 @@ lateral 3px).
 - **CampanaConBadge:** campana Phosphor 24 sobre contenido claro (tono
   `claro`) o sobre azul (blanca); punto naranja absoluto 8px cuando hay
   no leídas.
-- **Tarjetas de estado (Materia/Evento):** fila con bloque de fecha (día en
-  cifras 22 bold + mes caption) precedida de barra lateral vertical 3px color
-  de estado (azul OFICIAL / gris PERSONAL / rojo…) — la firma visual de
-  "esto es un documento con estado".
+- **Tarjetas de estado (Materia/Evento):** fila precedida de barra lateral
+  vertical 3px color de estado (azul OFICIAL / azul en curso / gris
+  PERSONAL / rojo…) — la firma visual de "esto es un documento con estado".
+  El evento añade el bloque de fecha (día en cifras 22 bold + mes caption);
+  la materia en curso es cuerpo tipográfico puro — nombre `subtitle` 600,
+  profesor `bodySm` y horario `caption` en gris metadato, sin badge de
+  código ni cortes (el código, las notas y la acumulada viven en el
+  detalle). Por ser todas "en curso", su barra es semántica de
+  proximidad: azul sólido si la materia tiene clase hoy, azul sello al
+  30% en lo contrario (sin franjas, azul sólido por defecto).
+  Con franjas estructuradas el horario es una mini-tabla: una
+  fila `caption` por franja con columna de día fija (40, semibold, "MIÉ")
+  + hora (columna `minWidth: 92` — los dígitos proporcionales de
+  Montserrat desalinean el aula de otro modo) + aula en gris — la
+  receta de columnas duras de `AgendaDia`
+  (`hora: width 52`) y del bloque de fecha del evento; el día de HOY se
+  distingue en azul semibold (el vocabulario de la cifra "hoy" del grid).
+  Sin franjas hace fallback al `horario` plano de la wire. En el tab
+  Clases el grupo se corona con el sobretítulo `MATERIAS EN CURSO` — la
+  receta eyebrow de la casa (`EtiquetaCategoria.mayusculas`: caption +
+  MAYÚSCULAS + tracking 0.8) en gris metadato, que reemplaza al
+  `SectionHeader` completo.
 - **Grid de calendario (GridMes):** voz del calendario académico publicado.
   Membrete LUN–DOM en cápsula gris suave (`background.sunken`, pill) con
   abreviaturas caption semibold (tracking 0.5) centradas por columna; celdas
