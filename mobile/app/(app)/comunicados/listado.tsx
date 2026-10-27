@@ -3,42 +3,40 @@ import {
   FlatList,
   RefreshControl,
   StyleSheet,
-  Pressable,
+  View,
   type ListRenderItemInfo,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useLocalSearchParams } from 'expo-router';
-import { MagnifyingGlassIcon, XCircleIcon } from 'phosphor-react-native';
+import { useLocalSearchParams, router } from 'expo-router';
+import { ArrowLeftIcon } from 'phosphor-react-native';
 
 import { aplanarPaginas } from '@/shared/lib/paginar';
-import { useDebounced } from '@/shared/lib/useDebounced';
-import { colors, radius, spacing } from '@/shared/ui';
+import { colors, spacing } from '@/shared/ui';
 import {
   CargandoSeccion,
+  Chip,
   EmptyState,
   HeaderTab,
-  TextField,
   ThemedButton,
   ThemedText,
   ThemedView,
+  BotonCircular,
 } from '@/shared/ui';
 import { useComunicadosFeed } from '@/features/comunicaciones/hooks/useComunicadosFeed';
 import { NoticiaCompacta } from '@/features/comunicaciones/components/NoticiaCompacta';
 import type { Comunicado } from '@/features/comunicaciones/types';
 
 /**
- * Historial completo de noticias PUBLICADO visibles por RLS: búsqueda
- * textual (q del BFF, ILIKE en el título con debounce de 300 ms), chips de
- * categoría y scroll infinito (offset del contrato, recientes primero).
+ * Historial completo de noticias PUBLICADO visibles por RLS: chips de
+ * categoría (se van con el scroll, en el ListHeaderComponent) y scroll
+ * infinito (offset del contrato, recientes primero).
  */
 export default function ListadoNoticiasScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ categoria?: string }>();
-  const [busqueda, setBusqueda] = useState('');
   const [categoria, setCategoria] = useState<string | null>(params.categoria ?? null);
-  const q = useDebounced(busqueda.trim(), 300);
 
-  const feed = useComunicadosFeed(categoria, q || null);
+  const feed = useComunicadosFeed(categoria);
   const noticias = useMemo(
     () => (feed.data ? aplanarPaginas(feed.data.pages) : []),
     [feed.data],
@@ -50,30 +48,14 @@ export default function ListadoNoticiasScreen() {
 
   return (
     <ThemedView variant="base" style={estilos.pantalla}>
-      <HeaderTab titulo="Noticias" />
-
-      <ThemedView variant="base" style={estilos.filtros}>
-        <TextField
-          placeholder="Buscar por título..."
-          value={busqueda}
-          onChangeText={setBusqueda}
-          accessibilityLabel="Buscar noticias por título"
-          rightElement={
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Limpiar búsqueda"
-              hitSlop={8}
-              onPress={() => setBusqueda('')}>
-              {busqueda.length > 0 ? (
-                <XCircleIcon size={20} color={colors.text.secondary} weight="fill" />
-              ) : (
-                <MagnifyingGlassIcon size={20} color={colors.text.secondary} />
-              )}
-            </Pressable>
-          }
-        />
-      </ThemedView>
-      <ChipsCategoria seleccion={categoria} onSeleccionar={cambiarCategoria} />
+      <View style={estilos.encabezado}>
+        <View style={estilos.filaEncabezado}>
+          <BotonCircular label="Volver" onPress={() => router.back()}>
+            <ArrowLeftIcon size={20} color={colors.brand.primary} weight="bold" />
+          </BotonCircular>
+          <HeaderTab titulo="Noticias" />
+        </View>
+      </View>
 
       {feed.isPending ? (
         <CargandoSeccion />
@@ -98,15 +80,17 @@ export default function ListadoNoticiasScreen() {
             estilos.contenido,
             { paddingBottom: insets.bottom + spacing.lg },
           ]}
+          // Los selectores viven en el header del scroll: al bajar quedan
+          // atrás y la lista ocupa toda la pantalla. El título (HeaderTab)
+          // se queda fijo.
+          ListHeaderComponent={
+            <ChipsCategoria seleccion={categoria} onSeleccionar={cambiarCategoria} />
+          }
           // El separador lo pone cada NoticiaCompacta (borderBottom editorial).
           ListEmptyComponent={
             <EmptyState
-              title={q ? 'Sin resultados' : 'Sin noticias'}
-              message={
-                q
-                  ? 'Ninguna noticia coincide con tu búsqueda para esta categoría.'
-                  : 'Cuando se publiquen noticias para tu audiencia, aparecerán aquí.'
-              }
+              title="Sin noticias"
+              message="Cuando se publiquen noticias para tu audiencia, aparecerán aquí."
             />
           }
           ListFooterComponent={
@@ -139,6 +123,8 @@ const CHIPS: { valor: string | null; etiqueta: string }[] = [
   { valor: 'INSTITUCIONAL', etiqueta: 'Institucional' },
 ];
 
+/** Selectores de categoría: el Chip compartido del sistema (activa = tinte
+ *  azul sobre tinta azul; inactiva = pill blanca). */
 function ChipsCategoria({
   seleccion,
   onSeleccionar,
@@ -153,18 +139,14 @@ function ChipsCategoria({
       data={CHIPS}
       keyExtractor={(chip) => chip.etiqueta}
       contentContainerStyle={estilos.chips}
-      renderItem={({ item }) => {
-        const activo = item.valor === seleccion;
-        return (
-          <Pressable onPress={() => onSeleccionar(item.valor)} accessibilityRole="button">
-            <ThemedView variant={activo ? 'sunken' : 'elevated'} style={estilos.chip}>
-              <ThemedText variant="caption" weight={activo ? 'semibold' : 'regular'}>
-                {item.etiqueta}
-              </ThemedText>
-            </ThemedView>
-          </Pressable>
-        );
-      }}
+      renderItem={({ item }) => (
+        <Chip
+          etiqueta={item.etiqueta}
+          activa={item.valor === seleccion}
+          size="sm"
+          onPress={() => onSeleccionar(item.valor)}
+        />
+      )}
     />
   );
 }
@@ -174,19 +156,25 @@ const estilos = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg.canvas,
   },
-  filtros: {
+  /** El aire fijo y el margen horizontal del header viven aquí: los tabs
+   *  hermanos heredan la convención distinta (padding en su scroll), así
+   *  que HeaderTab no debe traer padding propio. */
+  encabezado: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
+    paddingTop: spacing.lg,
+  },
+  filaEncabezado: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
   },
   chips: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
+    // Sin padding horizontal: vive dentro del contentContainer de la lista
+    // (estilos.contenido), que ya alinea con el margen estándar — un
+    // paddingHorizontal propio duplicaba la sangría inicial de los chips.
+    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
     gap: spacing.sm,
-  },
-  chip: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
   },
   contenido: {
     paddingHorizontal: spacing.lg,

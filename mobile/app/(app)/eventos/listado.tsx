@@ -3,11 +3,9 @@ import {
   FlatList,
   RefreshControl,
   StyleSheet,
-  Pressable,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CalendarPlusIcon, CalendarCheckIcon } from 'phosphor-react-native';
 
 import { aplanarPaginas } from '@/shared/lib/paginar';
 import { colors, layout, spacing } from '@/shared/ui';
@@ -21,20 +19,18 @@ import {
   ThemedView,
 } from '@/shared/ui';
 import { useEventosListado } from '@/features/calendario/hooks/useEventosListado';
-import { useParticipacion } from '@/features/calendario/hooks/useParticipacion';
 import { TarjetaProximoEvento } from '@/features/calendario/components/TarjetaProximoEvento';
 import type { Evento } from '@/features/calendario/types';
 
 /**
  * Discovery de eventos del campus: OFICIALES visibles por audiencia/RLS +
- * INSTITUCIONALES (fechas fijas), próximos, en orden cronológico, con
- * "agregar a mi agenda" (pivot participar) por tarjeta. El rango de 90
- * días del contrato se recorre con scroll infinito.
+ * INSTITUCIONALES (fechas fijas), próximos, en orden cronológico. La
+ * participación (agregar/quitar agenda) vive SOLO en el detalle
+ * (/eventos/[id]) para no recargar el listado.
  */
 export default function ListadoEventosScreen() {
   const insets = useSafeAreaInsets();
   const { eventos: porVentana, paginar } = useEventosListado();
-  const participacion = useParticipacion();
 
   const eventos = useMemo(
     () => (porVentana.data ? aplanarPaginas(porVentana.data.pages) : []),
@@ -46,7 +42,9 @@ export default function ListadoEventosScreen() {
 
   return (
     <ThemedView variant="base" style={estilos.pantalla}>
-      <HeaderTab titulo="Eventos del campus" />
+      <View style={estilos.encabezado}>
+        <HeaderTab titulo="Eventos del campus" />
+      </View>
 
       {porVentana.isPending ? (
         <CargandoSeccion />
@@ -72,15 +70,7 @@ export default function ListadoEventosScreen() {
             <View key={item.clave} style={estilos.grupo}>
               <SectionHeader title={item.etiqueta} />
               {item.eventos.map((evento) => (
-                <FilaEvento
-                  key={evento.id}
-                  evento={evento}
-                  ocupado={
-                    participacion.agregar.isPending || participacion.quitar.isPending
-                  }
-                  onAgregar={() => participacion.agregar.mutate(evento.id)}
-                  onQuitar={() => participacion.quitar.mutate(evento.id)}
-                />
+                <TarjetaProximoEvento key={evento.id} evento={evento} />
               ))}
             </View>
           )}
@@ -113,54 +103,6 @@ export default function ListadoEventosScreen() {
   );
 }
 
-/**
- * Fila de evento del discovery: tarjeta unificada + botón de participación
- * (agregar/quitar). Los INSTITUCIONAL no se agregan (siempre en agenda) y
- * no muestran botón.
- */
-function FilaEvento({
-  evento,
-  ocupado,
-  onAgregar,
-  onQuitar,
-}: {
-  evento: Evento;
-  ocupado: boolean;
-  onAgregar: () => void;
-  onQuitar: () => void;
-}) {
-  const integrable = evento.tipo === 'OFICIAL';
-  return (
-    <View>
-      <TarjetaProximoEvento evento={evento} />
-      {integrable ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ busy: ocupado }}
-          accessibilityLabel={
-            evento.participo
-              ? `Quitar ${evento.titulo} de tu agenda`
-              : `Agregar ${evento.titulo} a tu agenda`
-          }
-          onPress={!ocupado ? (evento.participo ? onQuitar : onAgregar) : undefined}
-          style={[estilos.botonParticipar, evento.participo && estilos.botonParticipado]}>
-          {evento.participo ? (
-            <CalendarCheckIcon size={18} color={colors.status.success} weight="bold" />
-          ) : (
-            <CalendarPlusIcon size={18} color={colors.brand.primary} weight="bold" />
-          )}
-          <ThemedText
-            variant="bodySm"
-            weight="semibold"
-            style={evento.participo ? estilos.etiquetaParticipado : estilos.etiquetaParticipar}>
-            {evento.participo ? 'En tu agenda' : 'Agregar a mi agenda'}
-          </ThemedText>
-        </Pressable>
-      ) : null}
-    </View>
-  );
-}
-
 interface GrupoMes {
   clave: string;
   etiqueta: string;
@@ -190,8 +132,15 @@ const estilos = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg.canvas,
   },
+  /** Aire fijo y margen horizontal del header: HeaderTab no trae padding
+   *  propio (los tabs hermanos lo llevan en su scroll). */
+  encabezado: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+  },
   contenido: {
     paddingHorizontal: layout.screenPadding,
+    paddingTop: spacing.md,
     paddingBottom: spacing.lg,
     gap: 0,
   },
@@ -211,29 +160,5 @@ const estilos = StyleSheet.create({
   footer: {
     textAlign: 'center',
     paddingVertical: spacing.lg,
-  },
-  botonParticipar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    alignSelf: 'flex-start',
-    marginTop: -(spacing.md),
-    marginBottom: spacing.lg,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border.subtle,
-    backgroundColor: colors.bg.surface,
-  },
-  botonParticipado: {
-    backgroundColor: colors.brand.surfaceBlue,
-    borderColor: colors.brand.surfaceBlue,
-  },
-  etiquetaParticipar: {
-    color: colors.brand.primary,
-  },
-  etiquetaParticipado: {
-    color: colors.brand.primary,
   },
 });

@@ -109,17 +109,19 @@ const estilos = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
+    // paddingLeft simétrico al paddingRight: la fecha no pega contra la
+    // esquina redondeada.
+    paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    paddingRight: spacing.lg,
-    // Sombra pequeña (receta oficial del Card shared) para que la tarjeta
-    // destaque sobre el canvas sin hablar más fuerte que la destacada.
     ...elevation.sm,
-    // Resplandor superior institucional (mismo patrón que Card).
     ...highlight.sm,
   },
+  /** Ancho fijo de columna de fecha: "05"/"17" y el mes alinean entre
+   *  tarjetas para que la barra no salte de posición. */
   fecha: {
     alignItems: 'center',
     gap: 0,
+    minWidth: 44,
   },
   barra: {
     width: 3,

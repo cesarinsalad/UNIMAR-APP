@@ -60,7 +60,7 @@ const TAM_THUMB_ALTO = 66;
 
 const estilos = StyleSheet.create({
   fila: {
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     gap: spacing.xs,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border.subtle,

@@ -7,21 +7,24 @@ import { ThemedText } from './ThemedText';
 
 /**
  * Chip tonal estilo mock: pill con estado por peso óptico/TONO, no borde.
- * Activa = sunken (tinta azul, texto azul semibold); inactiva = tarjeta
+ * Activa = surfaceBlue (tinta azul, texto azul semibold); inactiva = tarjeta
  * blanca. El tinte cruza con una transición CSS de 150ms y el press
  * respira con scale 0.97 (120ms) — degradando a opacidad con motion
- * reducido. El conteo/filtros los maneja el screen.
+ * reducido. El conteo/filtros los maneja el screen. `size="sm"` compacta
+ * al texto caption con más aire interno (filtros de listas).
  */
 export function Chip({
   etiqueta,
   activa,
   onPress,
   style,
+  size = 'md',
 }: {
   etiqueta: string;
   activa: boolean;
   onPress?: () => void;
   style?: object;
+  size?: 'sm' | 'md';
 }) {
   const [presionada, setPresionada] = useState(false);
   const reducido = useReducedMotion();
@@ -37,13 +40,14 @@ export function Chip({
       <Animated.View
         style={[
           estilos.chip,
+          size === 'sm' && estilos.chipSm,
           !reducido && estilos.transicion,
           activa ? estilos.activa : estilos.inactiva,
           presionada && (reducido ? estilos.presionReducida : estilos.presionada),
           style,
         ]}>
         <ThemedText
-          variant="bodySm"
+          variant={size === 'sm' ? 'caption' : 'bodySm'}
           weight={activa ? 'semibold' : 'medium'}
           style={{ color: activa ? colors.brand.primary : colors.text.primary }}>
           {etiqueta}
@@ -59,6 +63,11 @@ const estilos = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.xs,
     transform: [{ scale: 1 }],
+  },
+  /** Variante compacta de filtros: texto caption, pill más baja. */
+  chipSm: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
   },
   transicion: {
     transitionProperty: 'transform, background-color',
