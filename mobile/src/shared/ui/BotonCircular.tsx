@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { colors, elevation, radius, spacing } from './theme';
+import { colors, elevation, radius } from './theme';
 
 /**
  * Botón circular blanco con elevación (back/share) flotante sobre el
@@ -33,17 +33,20 @@ export function BotonCircular({
 }
 
 const styles = StyleSheet.create({
+  // Círculo 40×40 fijado: sin ancho fijo el exterior envolvía a la zona
+  // interior más los márgenes y quedaba 44×40 → pill redondeaba al lado
+  // menor y la forma se veía cápsula (alargada) en los headers.
   circulo: {
+    width: 40,
+    height: 40,
     borderRadius: radius.pill,
     backgroundColor: colors.bg.surface,
     overflow: 'hidden',
   },
   zona: {
-    width: 40,
-    height: 40,
+    flex: 1,
     borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: spacing.xs / 2,
   },
 });

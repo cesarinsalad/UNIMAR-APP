@@ -35,36 +35,48 @@ const FORMATO_MES_CORTO = new Intl.DateTimeFormat('es-VE', { month: 'short' });
  * mes en tinta azul, barra lateral de color por tipo, hora y lugar. Única
  * forma para la entidad — la repetición entre Inicio/Noticias/Agenda es la
  * firma. `compacta` la reduce a una fila para listas densas.
+ * `presionable=false` reutiliza la MISMA receta cuando el card es la
+ * cabecera del propio detalle (sin PressableScale ni navegación recursiva).
  */
-export function TarjetaProximoEvento({ evento }: { evento: EventoResumen }) {
+export function TarjetaProximoEvento({
+  evento,
+  presionable = true,
+}: {
+  evento: EventoResumen;
+  presionable?: boolean;
+}) {
   const inicio = new Date(evento.inicioAt);
+  const tarjeta = (
+    <ThemedView variant="card" style={estilos.tarjeta}>
+      <View style={estilos.fecha}>
+        <ThemedText variant="title" weight="bold">
+          {inicio.getDate().toString().padStart(2, '0')}
+        </ThemedText>
+        <ThemedText variant="caption" tone="secondary">
+          {FORMATO_MES_CORTO.format(inicio).replace('.', '')}
+        </ThemedText>
+      </View>
+      <View style={[estilos.barra, { backgroundColor: colorBarra(evento.tipo) }]} />
+      <View style={estilos.cuerpo}>
+        <ThemedText variant="bodySm" weight="medium" numberOfLines={1}>
+          {evento.titulo}
+        </ThemedText>
+        <View style={estilos.meta}>
+          <FilaMeta texto={evento.diaCompleto ? 'Todo el día' : horaRango(evento)} icono={<ClockIcon size={14} color={colors.text.secondary} />} />
+          {evento.lugar ? (
+            <FilaMeta texto={evento.lugar} icono={<MapPinIcon size={14} color={colors.text.secondary} />} />
+          ) : null}
+        </View>
+      </View>
+    </ThemedView>
+  );
+  if (!presionable) return tarjeta;
   return (
     <PressableScale
       accessibilityRole="button"
       accessibilityLabel={`Detalle de ${evento.titulo}`}
       onPress={() => router.push(`/eventos/${evento.id}` as never)}>
-      <ThemedView variant="card" style={estilos.tarjeta}>
-        <View style={estilos.fecha}>
-          <ThemedText variant="title" weight="bold">
-            {inicio.getDate().toString().padStart(2, '0')}
-          </ThemedText>
-          <ThemedText variant="caption" tone="secondary">
-            {FORMATO_MES_CORTO.format(inicio).replace('.', '')}
-          </ThemedText>
-        </View>
-        <View style={[estilos.barra, { backgroundColor: colorBarra(evento.tipo) }]} />
-        <View style={estilos.cuerpo}>
-          <ThemedText variant="bodySm" weight="medium" numberOfLines={1}>
-            {evento.titulo}
-          </ThemedText>
-          <View style={estilos.meta}>
-            <FilaMeta texto={evento.diaCompleto ? 'Todo el día' : horaRango(evento)} icono={<ClockIcon size={14} color={colors.text.secondary} />} />
-            {evento.lugar ? (
-              <FilaMeta texto={evento.lugar} icono={<MapPinIcon size={14} color={colors.text.secondary} />} />
-            ) : null}
-          </View>
-        </View>
-      </ThemedView>
+      {tarjeta}
     </PressableScale>
   );
 }
@@ -82,7 +94,10 @@ function FilaMeta({ texto, icono }: { texto: string; icono: React.ReactNode }) {
 
 const FORMATO_HORA = new Intl.DateTimeFormat('es-VE', { timeStyle: 'short' });
 
-function horaRango(evento: EventoResumen): string {
+/** Rango corto de horas del card: "Todo el día", "HH:mm" o "HH:mm - HH:mm".
+ *  Exportado: el header del detalle-documento lo reutiliza para no duplicar
+ *  el formato. */
+export function horaRango(evento: EventoResumen): string {
   if (evento.diaCompleto) return 'Todo el día';
   const inicio = new Date(evento.inicioAt);
   if (!evento.finAt) return FORMATO_HORA.format(inicio);

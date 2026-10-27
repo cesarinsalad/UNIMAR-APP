@@ -1,74 +1,116 @@
-import { useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeftIcon, MapPinIcon, ClockIcon } from 'phosphor-react-native';
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion as useReanimatedReducedMotion,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { eliminarEvento } from '@/features/calendario/api/eventos.api';
 import { etiquetaAudiencia } from '@/shared/lib/etiquetas';
 import { accionesPermitidasEvento } from '@/features/calendario/hooks/eventos-permisos';
-import { etiquetaRecordatorioMinutos } from '@/features/calendario/hooks/formulario-evento';
 import { useEventoDetalle } from '@/features/calendario/hooks/useEventoDetalle';
 import { useMutacionEvento } from '@/features/calendario/hooks/useMutacionEvento';
 import { useParticipacion } from '@/features/calendario/hooks/useParticipacion';
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
-import type { Evento, TipoEvento } from '@/features/calendario/types';
-import { colorBarra } from '@/features/calendario/components/TarjetaProximoEvento';
+import type { Evento } from '@/features/calendario/types';
+import { colorBarra, horaRango } from '@/features/calendario/components/TarjetaProximoEvento';
 import { ApiError } from '@/shared/api/axios';
-import { colors, radius, spacing } from '@/shared/ui';
+import { colors, elevation, highlight, radius, spacing } from '@/shared/ui';
 import {
   BotonCircular,
-  Card,
   SectionHeader,
   ThemedButton,
   ThemedText,
   ThemedView,
 } from '@/shared/ui';
 
-const FORMATO_MES_CORTO = new Intl.DateTimeFormat('es-VE', { month: 'short' });
-const FORMATO_HORA = new Intl.DateTimeFormat('es-VE', { timeStyle: 'short' });
+/** Altura del BotonCircular (40) + respiro (sm) entre él y el documento. */
+const ESPACIO_PARA_VOLVER = 40 + spacing.sm;
 
-/** Detalle de evento estilo mock: back circular + "Detalles" centrado,
- *  tarjeta de fecha con barra por tipo, descripción y organización. Sin
- *  asistentes/RSVP (fuera del alcance de la tesis) ni acciones fantasma. */
+/**
+ * Detalle de evento como DOCUMENTO ("El Registro Institucional"): el card
+ * unificado del sistema "se expande" a una sola superficie blanca que
+ * cubre la pantalla y contiene todo — el contenido del card vive como
+ * header del documento (día grande + barra de color + título + hora +
+ * lugar) y las secciones (descripción, organizador, CTA, acciones staff)
+ * dentro. El botón Volver flota JUSTO ENCIMA del documento (fuera de su
+ * borde superior, sin "atravesarlo"), y el safe-area inferior se respeta
+ * para no quedar bajo la barra de control de Android. Entrada con
+ * expansión sutil (scale 0.96→1 + fade, solo fade con motion reducido).
+ * Sin asistentes/RSVP (fuera de alcance de la tesis) ni acciones fantasma.
+ */
 export default function EventoDetalleScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const query = useEventoDetalle(id);
+  const insets = useSafeAreaInsets();
 
   return (
     <ThemedView variant="base" style={estilos.container}>
-      <SafeAreaView style={estilos.flex}>
-        <View style={estilos.cabecera}>
-          <BotonCircular label="Volver" onPress={() => router.back()}>
-            <ArrowLeftIcon size={20} color={colors.brand.primary} weight="bold" />
-          </BotonCircular>
-          <ThemedText variant="subtitle" weight="semibold" style={estilos.tituloCabecera}>
-            Detalles
+      {query.isPending ? (
+        <Centrado>
+          <ActivityIndicator color={colors.brand.primary} />
+        </Centrado>
+      ) : query.isError ? (
+        <Centrado gap>
+          <ThemedText variant="subtitle" weight="semibold">
+            {query.error instanceof ApiError && query.error.status === 404
+              ? 'Este evento ya no está disponible.'
+              : 'No se pudo cargar el evento.'}
           </ThemedText>
-          <View style={estilos.espacioSimetrico} />
-        </View>
-
-        {query.isPending ? (
-          <Centrado>
-            <ActivityIndicator color={colors.brand.primary} />
-          </Centrado>
-        ) : query.isError ? (
-          <Centrado gap>
-            <ThemedText variant="subtitle" weight="semibold">
-              {query.error instanceof ApiError && query.error.status === 404
-                ? 'Este evento ya no está disponible.'
-                : 'No se pudo cargar el evento.'}
-            </ThemedText>
-          </Centrado>
-        ) : query.data ? (
-          <Contenido evento={query.data} eventoId={id} />
-        ) : null}
-      </SafeAreaView>
+        </Centrado>
+      ) : query.data ? (
+        <Documento evento={query.data} eventoId={id} insets={insets} />
+      ) : null}
+      <BotonCircular
+        label="Volver"
+        onPress={() => router.back()}
+        style={[estilos.backFlotante, { top: insets.top + spacing.sm }]}>
+        <ArrowLeftIcon size={20} color={colors.brand.primary} weight="bold" />
+      </BotonCircular>
     </ThemedView>
   );
 }
 
-function Contenido({ evento, eventoId }: { evento: Evento; eventoId: string }) {
+/** Entrada "expansión" del documento: scale 0.96→1 + fade en 180 ms;
+ *  con motion reducido del sistema, solo fade. */
+function useAnimacionEntrada() {
+  const reducido = useReanimatedReducedMotion();
+  const escala = useSharedValue(0.96);
+  const opacidad = useSharedValue(0);
+
+  useEffect(() => {
+    opacidad.value = withTiming(1, { duration: reducido ? 0 : 180 });
+    escala.value = withTiming(1, { duration: reducido ? 0 : 180 });
+  }, [escala, opacidad, reducido]);
+
+  return useAnimatedStyle(() => ({
+    opacity: opacidad.value,
+    transform: [{ scale: escala.value }],
+  }));
+}
+
+function Documento({
+  evento,
+  eventoId,
+  insets,
+}: {
+  evento: Evento;
+  eventoId: string;
+  insets: { top: number; bottom: number };
+}) {
+  const animEntrada = useAnimacionEntrada();
+  const inicio = new Date(evento.inicioAt);
   const usuario = useSesionStore((s) => s.usuario);
   const acciones = accionesPermitidasEvento({
     rol: usuario?.rol ?? null,
@@ -80,9 +122,6 @@ function Contenido({ evento, eventoId }: { evento: Evento; eventoId: string }) {
   const eliminar = useMutacionEvento(() => eliminarEvento(eventoId));
   const participar = useParticipacion();
   const [errorMutacion, setErrorMutacion] = useState<string | null>(null);
-
-  const recordatorio = etiquetaRecordatorioMinutos(evento.recordatorioMinutos);
-  const inicio = new Date(evento.inicioAt);
 
   function confirmarEliminacion() {
     Alert.alert('Eliminar evento', `¿Eliminar "${evento.titulo}"? Esta acción no se puede deshacer.`, [
@@ -110,135 +149,119 @@ function Contenido({ evento, eventoId }: { evento: Evento; eventoId: string }) {
   }
 
   return (
-    <ScrollView
-      contentContainerStyle={estilos.scroll}
-      showsVerticalScrollIndicator={false}>
-      <Card style={estilos.tarjetaFecha}>
-        <View style={estilos.fecha}>
-          <ThemedText variant="subtitle" weight="bold">
-            {inicio.getDate().toString().padStart(2, '0')}
-          </ThemedText>
-          <ThemedText variant="caption" tone="secondary">
-            {FORMATO_MES_CORTO.format(inicio).replace('.', '')}
-          </ThemedText>
-        </View>
-        <View style={[estilos.barra, { backgroundColor: colorBarra(evento.tipo) }]} />
-        <View style={estilos.datosEvento}>
-          <View style={estilos.filaDato}>
-            <ClockIcon size={14} color={colors.text.secondary} />
+    <Animated.View
+      style={[
+        estilos.documento,
+        {
+          marginTop: insets.top + spacing.sm + ESPACIO_PARA_VOLVER,
+          marginBottom: insets.bottom + spacing.md,
+        },
+        animEntrada,
+      ]}>
+      <ScrollView
+        contentContainerStyle={[
+          estilos.contenidoDoc,
+          { paddingBottom: insets.bottom + spacing.lg },
+        ]}
+        showsVerticalScrollIndicator={false}>
+        {/* ── Header = el contenido del card, a escala documento ── */}
+        <View style={estilos.headerFila}>
+          <View style={estilos.fecha}>
+            <ThemedText variant="title" weight="bold">
+              {inicio.getDate().toString().padStart(2, '0')}
+            </ThemedText>
             <ThemedText variant="caption" tone="secondary">
-              {rangoHoras(evento)}
+              {FORMATO_MES_CORTO.format(inicio).replace('.', '')}
             </ThemedText>
           </View>
-          {evento.lugar ? (
-            <View style={estilos.filaDato}>
-              <MapPinIcon size={14} color={colors.text.secondary} />
-              <ThemedText variant="caption" tone="secondary" numberOfLines={1}>
-                {evento.lugar}
-              </ThemedText>
-            </View>
-          ) : null}
-        </View>
-      </Card>
-
-      <ThemedText variant="title" weight="semibold">
-        {evento.titulo}
-      </ThemedText>
-
-      <View style={estilos.metaFila}>
-        <ThemedView variant="sunken" style={estilos.chip}>
-          <ThemedText variant="caption" weight="semibold">
-            {tituloTipo(evento.tipo)}
-          </ThemedText>
-        </ThemedView>
-        {recordatorio ? (
-          <ThemedView variant="sunken" style={estilos.chip}>
-            <ThemedText variant="caption" weight="semibold">
-              {recordatorio}
+          <View style={[estilos.barra, { backgroundColor: colorBarra(evento.tipo) }]} />
+          <View style={estilos.headerCuerpo}>
+            <ThemedText variant="subtitle" weight="semibold" numberOfLines={3}>
+              {evento.titulo}
             </ThemedText>
-          </ThemedView>
+            <FilaMeta texto={evento.diaCompleto ? 'Todo el día' : horaRango(evento)} icono={<ClockIcon size={14} color={colors.text.secondary} />} />
+            {evento.lugar ? (
+              <FilaMeta texto={evento.lugar} icono={<MapPinIcon size={14} color={colors.text.secondary} />} />
+            ) : null}
+          </View>
+        </View>
+
+        {/* ── Cuerpo del documento ── */}
+        {evento.descripcion ? (
+          <View style={estilos.seccion}>
+            <SectionHeader title="Descripción" />
+            <ThemedText variant="body">{evento.descripcion}</ThemedText>
+          </View>
         ) : null}
-      </View>
 
-      {evento.descripcion ? (
-        <View style={estilos.seccion}>
-          <SectionHeader title="Descripción" />
-          <ThemedText variant="body">{evento.descripcion}</ThemedText>
-        </View>
-      ) : null}
+        {evento.tipo === 'OFICIAL' ? (
+          <View style={estilos.seccion}>
+            <SectionHeader title="Organizado por" />
+            <ThemedText variant="body" tone="secondary">
+              {etiquetaAudiencia(evento.decanatoIds)}
+            </ThemedText>
+          </View>
+        ) : null}
 
-      {evento.tipo === 'OFICIAL' ? (
-        <View style={estilos.seccion}>
-          <SectionHeader title="Organizado por" />
-          <ThemedText variant="body" tone="secondary">
-            {etiquetaAudiencia(evento.decanatoIds)}
+        {evento.tipo === 'OFICIAL' ? (
+          <ThemedButton
+            title={evento.participo ? 'Quitar de mi agenda' : 'Agregar a mi agenda'}
+            variant={evento.participo ? 'secondary' : 'primary'}
+            size="md"
+            loading={participar.agregar.isPending || participar.quitar.isPending}
+            onPress={() =>
+              evento.participo ? participar.quitar.mutate(evento.id) : participar.agregar.mutate(evento.id)
+            }
+          />
+        ) : null}
+
+        {hayAcciones ? (
+          <View style={estilos.acciones}>
+            {acciones.puedeEditar ? (
+              <ThemedButton
+                title="Editar"
+                variant="secondary"
+                size="sm"
+                onPress={() => router.push(`/eventos/nuevo?id=${evento.id}` as never)}
+              />
+            ) : null}
+            {acciones.puedeEliminar ? (
+              <ThemedButton
+                title="Eliminar"
+                variant="secondary"
+                size="sm"
+                loading={eliminar.isPending}
+                disabled={eliminar.isPending}
+                onPress={confirmarEliminacion}
+              />
+            ) : null}
+          </View>
+        ) : null}
+
+        {errorMutacion ? (
+          <ThemedText variant="caption" style={estilos.errorTexto}>
+            {errorMutacion}
           </ThemedText>
-        </View>
-      ) : null}
-
-      {evento.tipo === 'OFICIAL' ? (
-        <ThemedButton
-          title={evento.participo ? 'Quitar de mi agenda' : 'Agregar a mi agenda'}
-          variant={evento.participo ? 'secondary' : 'primary'}
-          size="md"
-          loading={participar.agregar.isPending || participar.quitar.isPending}
-          onPress={() =>
-            evento.participo ? participar.quitar.mutate(evento.id) : participar.agregar.mutate(evento.id)
-          }
-        />
-      ) : null}
-
-      {hayAcciones ? (
-        <View style={estilos.acciones}>
-          {acciones.puedeEditar ? (
-            <ThemedButton
-              title="Editar"
-              variant="secondary"
-              size="sm"
-              onPress={() => router.push(`/eventos/nuevo?id=${evento.id}` as never)}
-            />
-          ) : null}
-          {acciones.puedeEliminar ? (
-            <ThemedButton
-              title="Eliminar"
-              variant="secondary"
-              size="sm"
-              loading={eliminar.isPending}
-              disabled={eliminar.isPending}
-              onPress={confirmarEliminacion}
-            />
-          ) : null}
-        </View>
-      ) : null}
-
-      {errorMutacion ? (
-        <ThemedText variant="caption" style={estilos.errorTexto}>
-          {errorMutacion}
-        </ThemedText>
-      ) : null}
-    </ScrollView>
+        ) : null}
+      </ScrollView>
+    </Animated.View>
   );
 }
 
-function tituloTipo(tipo: TipoEvento): string {
-  if (tipo === 'OFICIAL') return 'Evento oficial';
-  if (tipo === 'INSTITUCIONAL') return 'Evento institucional';
-  return 'Personal';
+function FilaMeta({ texto, icono }: { texto: string; icono: React.ReactNode }) {
+  return (
+    <View style={estilos.filaMeta}>
+      {icono}
+      <ThemedText variant="caption" tone="secondary" numberOfLines={1}>
+        {texto}
+      </ThemedText>
+    </View>
+  );
 }
 
-const FORMATO_FECHA_COMPLETA = new Intl.DateTimeFormat('es-VE', { dateStyle: 'full' });
+const FORMATO_MES_CORTO = new Intl.DateTimeFormat('es-VE', { month: 'short' });
 
-function rangoHoras(evento: Evento): string {
-  const inicio = new Date(evento.inicioAt);
-  if (evento.diaCompleto) {
-    return `${FORMATO_FECHA_COMPLETA.format(inicio)} — todo el día`;
-  }
-  if (evento.finAt) {
-    return `${FORMATO_HORA.format(inicio)} - ${FORMATO_HORA.format(new Date(evento.finAt))}`;
-  }
-  return FORMATO_HORA.format(inicio);
-}
-
+/** Pantalla de carga/error: centrado en el canvas, sin documento. */
 function Centrado({
   children,
   gap = false,
@@ -258,59 +281,54 @@ const estilos = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg.canvas,
   },
-  flex: { flex: 1 },
-  cabecera: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+  // Volver flotante JUSTO ENCIMA del documento: bottom del botón toca el
+  // borde superior del paper (documento marginTop lo garantiza) y sobra
+  // respiro sm; sin solapes ni bordes atravesados. left alineado con la
+  // esquina del documento; top final lo manda el render con insets.
+  backFlotante: {
+    position: 'absolute',
+    left: spacing.lg,
+    zIndex: 2,
   },
-  tituloCabecera: {
+  // EL documento: un solo papel bond expandido a pantalla (4 esquinas
+  // redondeadas sobre el canvas, receta oficial del Card). El margen
+  // inferior local respeta el safe-area de la barra de control Android.
+  documento: {
     flex: 1,
-    textAlign: 'center',
+    backgroundColor: colors.bg.surface,
+    borderRadius: radius.card,
+    marginHorizontal: spacing.lg,
+    gap: spacing.md,
+    ...elevation.sm,
+    ...highlight.sm,
   },
-  espacioSimetrico: {
-    width: 40,
-  },
-  scroll: {
+  contenidoDoc: {
     padding: spacing.lg,
     gap: spacing.md,
   },
-  tarjetaFecha: {
+  // Header del documento = el card expandido: fila día + barra + cuerpo.
+  headerFila: {
     flexDirection: 'row',
-    alignItems: 'center',
     gap: spacing.md,
   },
   fecha: {
     alignItems: 'center',
-    gap: 2,
+    alignSelf: 'center',
+    gap: 0,
   },
   barra: {
     width: 3,
     alignSelf: 'stretch',
     borderRadius: radius.pill,
   },
-  datosEvento: {
+  headerCuerpo: {
     flex: 1,
-    gap: 2,
+    gap: spacing.xs,
   },
-  filaDato: {
+  filaMeta: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-  },
-  metaFila: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    flexWrap: 'wrap',
-  },
-  chip: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.sm,
   },
   seccion: {
     gap: spacing.xs,
