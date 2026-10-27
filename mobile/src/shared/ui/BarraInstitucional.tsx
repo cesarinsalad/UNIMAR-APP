@@ -39,13 +39,15 @@ const estilos = StyleSheet.create({
   franjaStatus: { backgroundColor: colors.brand.primary },
   chapa: {
     height: ALTURA_CHAPA,
-    justifyContent: 'center',
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
     alignItems: 'center',
+    paddingHorizontal: spacing.md,
     borderBottomLeftRadius: radius.xl,
     borderBottomRightRadius: radius.xl,
     backgroundColor: colors.brand.primary,
   },
-  logo: { width: 148, height: 32 },
+  logo: { width: 107, height: 36 },
   action: {
     position: 'absolute',
     right: spacing.sm,
