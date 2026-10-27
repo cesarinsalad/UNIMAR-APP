@@ -6,6 +6,8 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { ArrowLeftIcon } from 'phosphor-react-native';
 
 import { aplanarPaginas } from '@/shared/lib/paginar';
 import { colors, layout, spacing } from '@/shared/ui';
@@ -17,6 +19,7 @@ import {
   ThemedButton,
   ThemedText,
   ThemedView,
+  BotonCircular,
 } from '@/shared/ui';
 import { useEventosListado } from '@/features/calendario/hooks/useEventosListado';
 import { TarjetaProximoEvento } from '@/features/calendario/components/TarjetaProximoEvento';
@@ -43,7 +46,12 @@ export default function ListadoEventosScreen() {
   return (
     <ThemedView variant="base" style={estilos.pantalla}>
       <View style={estilos.encabezado}>
-        <HeaderTab titulo="Eventos del campus" />
+        <View style={estilos.filaEncabezado}>
+          <BotonCircular label="Volver" onPress={() => router.back()}>
+            <ArrowLeftIcon size={20} color={colors.brand.primary} weight="bold" />
+          </BotonCircular>
+          <HeaderTab titulo="Eventos" />
+        </View>
       </View>
 
       {porVentana.isPending ? (
@@ -109,6 +117,11 @@ interface GrupoMes {
   eventos: Evento[];
 }
 
+/** Primera letra en mayúscula (los meses de es-VE bajan en minúscula). */
+function capitalizar(texto: string): string {
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
 /** Agrupa por mes para las franjas del listado. */
 function agrupar(eventos: Evento[]): GrupoMes[] {
   const mapa = new Map<string, GrupoMes>();
@@ -118,7 +131,8 @@ function agrupar(eventos: Evento[]): GrupoMes[] {
     const grupo = mapa.get(claveMes) ??
       {
         clave: claveMes,
-        etiqueta: fecha.toLocaleDateString('es-VE', { month: 'long', year: 'numeric' }),
+        // Franja solo con el mes (capitalizado: el locale lo trae minúscula).
+        etiqueta: capitalizar(fecha.toLocaleDateString('es-VE', { month: 'long' })),
         eventos: [],
       };
     grupo.eventos.push(evento);
@@ -137,6 +151,12 @@ const estilos = StyleSheet.create({
   encabezado: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
+  filaEncabezado: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
   },
   contenido: {
     paddingHorizontal: layout.screenPadding,
