@@ -162,6 +162,7 @@ const estilos = StyleSheet.create({
   encabezado: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
   },
   filaEncabezado: {
     flexDirection: 'row',
