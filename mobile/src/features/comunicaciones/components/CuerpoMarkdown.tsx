@@ -1,34 +1,68 @@
 import Markdown from 'react-native-markdown-display';
 
-import { colors, radius, spacing, typography } from '@/shared/ui';
+import { colors, fontFamily, radius, spacing, typography } from '@/shared/ui';
 
 /**
  * Tema Markdown mapeado a los tokens de marca (STYLE.md):
- * textos en Gris Oscuro, links en Azul Corporativo, blockquote con borde
- * izquierdo azul, código monoespaciado sobre fondo sunken. El naranja nunca
- * va en tipografía (STYLE.md §1).
+ * toda la tipografía es Montserrat (la misma de ThemedText en el resto
+ * del app) — sin `fontFamily` el cuerpo caería a la fuente del sistema
+ * y cada bloque con formato se vería distinto entre sí. Textos en Gris
+ * Oscuro, links en Azul Corporativo, blockquote con borde izquierdo
+ * azul, código monoespaciado sobre fondo sunken (monospace sí es
+ * intencional: es la convención para código). El naranja nunca va en
+ * tipografía (STYLE.md §1).
  */
 const estilosMarkdown = {
   body: {
     color: colors.text.primary,
+    fontFamily: typography.family.body,
     fontSize: typography.size.bodyLg,
     lineHeight: typography.size.bodyLg * typography.lineHeight.normal,
   },
   heading1: {
     fontSize: typography.size.title,
-    fontWeight: typography.weight.bold,
+    fontFamily: fontFamily.bold,
     color: colors.text.primary,
     marginTop: spacing.six,
     marginBottom: spacing.two,
   },
   heading2: {
     fontSize: typography.size.subtitle,
+    fontFamily: typography.family.heading,
     fontWeight: typography.weight.semibold,
     color: colors.text.primary,
     marginTop: spacing.five,
     marginBottom: spacing.two,
   },
-  strong: { color: colors.text.primary },
+  heading3: {
+    fontSize: typography.size.bodyLg,
+    fontFamily: typography.family.heading,
+    color: colors.text.primary,
+    marginTop: spacing.four,
+    marginBottom: spacing.two,
+  },
+  heading4: {
+    fontSize: typography.size.bodyLg,
+    fontFamily: typography.family.heading,
+    color: colors.text.primary,
+    marginTop: spacing.three,
+    marginBottom: spacing.two,
+  },
+  heading5: {
+    fontSize: typography.size.bodyLg,
+    fontFamily: typography.family.heading,
+    color: colors.text.primary,
+    marginTop: spacing.three,
+    marginBottom: spacing.two,
+  },
+  heading6: {
+    fontSize: typography.size.bodyLg,
+    fontFamily: typography.family.heading,
+    color: colors.text.primary,
+    marginTop: spacing.three,
+    marginBottom: spacing.two,
+  },
+  strong: { color: colors.text.primary, fontFamily: typography.family.heading },
   em: { fontStyle: 'italic' },
   bullet_list: { marginTop: spacing.two, marginBottom: spacing.two },
   ordered_list: { marginTop: spacing.two, marginBottom: spacing.two },
