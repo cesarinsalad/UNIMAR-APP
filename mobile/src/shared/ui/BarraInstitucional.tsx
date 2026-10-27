@@ -47,7 +47,7 @@ const estilos = StyleSheet.create({
     borderBottomRightRadius: radius.xl,
     backgroundColor: colors.brand.primary,
   },
-  logo: { width: 107, height: 36 },
+  logo: { width: 107, height: 36, marginLeft: spacing.xs },
   action: {
     position: 'absolute',
     right: spacing.sm,
