@@ -42,7 +42,7 @@ export function NoticiaCompacta({ comunicado }: { comunicado: Comunicado }) {
             peso="medium"
             color="tinta"
           />
-          <ThemedText variant="body" weight="bold" numberOfLines={3}>
+          <ThemedText variant="body" weight="semibold" numberOfLines={3}>
             {comunicado.titulo}
           </ThemedText>
         </View>
@@ -60,7 +60,8 @@ const TAM_THUMB_ALTO = 66;
 
 const estilos = StyleSheet.create({
   fila: {
-    paddingVertical: spacing.sm,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
     gap: spacing.xs,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border.strong,
