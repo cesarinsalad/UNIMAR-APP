@@ -1,16 +1,16 @@
 import {
+  agruparHistoriasPorAno,
   agruparPorTrimestre,
   colorNota,
   etiquetaEstadoHistorica,
-  filtrarPorPeriodo,
   formatearPeriodo,
   formatoNota2,
   marcarAprobadas,
   notaAcumulada,
   particionarMaterias,
-  periodosDisponibles,
+  partesPeriodo,
 } from './helpers';
-import type { CorteDTO, MateriaDTO, MateriaHistoricaDTO, PensumMateriaDTO } from './types';
+import type { CorteDTO, MateriaDTO, PensumMateriaDTO } from './types';
 
 const EN_CURSO = {
   id: 'mat-1',
@@ -43,6 +43,15 @@ const HIST_2025_1 = {
   periodo: '2025-1',
   nota_final: 7,
   estado: 'REPROBADA' as const,
+};
+
+const HIST_2026_1 = {
+  ...HIST_2025_2,
+  id: 'mat-hist-3',
+  codigo: 'IS-301',
+  nombre: 'Estructuras de Datos',
+  periodo: '2026-1',
+  nota_final: 16,
 };
 
 describe('colorNota (escala UNIMAR 0–20)', () => {
@@ -84,29 +93,30 @@ describe('particionarMaterias (narrowing por es_actual)', () => {
   });
 });
 
-describe('periodosDisponibles', () => {
-  it('únicos y descendentes para el selector', () => {
-    expect(periodosDisponibles([HIST_2025_2, HIST_2025_1, HIST_2025_2])).toEqual([
-      '2025-2',
-      '2025-1',
+describe('agruparHistoriasPorAno (índice por año del historial)', () => {
+  it('agrupa por año descendente y por período descendente dentro de cada año', () => {
+    const anios = agruparHistoriasPorAno([
+      HIST_2025_2,
+      HIST_2026_1,
+      HIST_2025_1,
+      HIST_2025_2,
     ]);
+    expect(anios.map((a) => a.anio)).toEqual(['2026', '2025']);
+    expect(anios[0]?.grupos.map((g) => g.periodo)).toEqual(['2026-1']);
+    expect(anios[1]?.grupos.map((g) => g.periodo)).toEqual(['2025-2', '2025-1']);
+    expect(anios[1]?.grupos[0]?.materias.length).toBe(2);
+    expect(anios[1]?.grupos[1]?.materias.map((m) => m.id)).toEqual(['mat-hist-2']);
   });
 
-  it('sin historial → sin opciones', () => {
-    const vacias: MateriaHistoricaDTO[] = [];
-    expect(periodosDisponibles(vacias)).toEqual([]);
-  });
-});
-
-describe('filtrarPorPeriodo', () => {
-  const lista = [HIST_2025_2, HIST_2025_1];
-
-  it('null → todo el historial', () => {
-    expect(filtrarPorPeriodo(lista, null)).toHaveLength(2);
+  it('formato ajeno → bucket por año con el término crudo', () => {
+    const ajena = { ...HIST_2025_2, id: 'mat-hist-4', periodo: '2025-4' };
+    const anios = agruparHistoriasPorAno([HIST_2026_1, ajena]);
+    expect(anios.map((a) => a.anio)).toEqual(['2026', '2025']);
+    expect(anios[1]?.grupos.map((g) => g.periodo)).toEqual(['2025-4']);
   });
 
-  it('período concreto → solo sus materias', () => {
-    expect(filtrarPorPeriodo(lista, '2025-1').map((m) => m.id)).toEqual(['mat-hist-2']);
+  it('sin historial → sin años', () => {
+    expect(agruparHistoriasPorAno([])).toEqual([]);
   });
 });
 
@@ -207,5 +217,21 @@ describe('formatearPeriodo (tríada UNIMAR)', () => {
   it('formato ajeno → crudo', () => {
     expect(formatearPeriodo('2025-4')).toBe('2025-4');
     expect(formatearPeriodo('X')).toBe('X');
+  });
+});
+
+describe('partesPeriodo (ancla del acordeón)', () => {
+  it.each([
+    ['2026-1', '2026', 'Enero-Abril'],
+    ['2026-2', '2026', 'Abril-Julio'],
+    ['2026-3', '2026', 'Septiembre-Diciembre'],
+    ['2023-0', '2023', 'Agosto (Intensivo)'],
+  ])('%s → %s / %s', (periodo, anio, termino) => {
+    expect(partesPeriodo(periodo)).toEqual({ anio, termino });
+  });
+
+  it('formato ajeno → sin término (cae a etiqueta plana)', () => {
+    expect(partesPeriodo('2025-4')).toEqual({ anio: '2025', termino: null });
+    expect(partesPeriodo('X')).toEqual({ anio: 'X', termino: null });
   });
 });

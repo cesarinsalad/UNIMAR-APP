@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import {
   RefreshControl,
   ScrollView,
@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, layout, spacing } from '@/shared/ui';
 import {
+  CargandoSeccion,
   EmptyState,
   HeaderTab,
   SectionHeader,
@@ -16,43 +17,38 @@ import {
   ThemedView,
 } from '@/shared/ui';
 import {
-  filtrarPorPeriodo,
+  agruparHistoriasPorAno,
   particionarMaterias,
-  periodosDisponibles,
 } from '@/features/academico/helpers';
 import { useMaterias } from '@/features/academico/hooks/useMaterias';
+import { AcordeonAno } from '@/features/academico/components/AcordeonAno';
 import { MateriaActualCard } from '@/features/academico/components/MateriaActualCard';
-import { SelectorPeriodo } from '@/features/academico/components/SelectorPeriodo';
-import { TarjetaHistorial } from '@/features/academico/components/TarjetaHistorial';
 
 /**
  * Tab Clases (mock aprobado): header con campana, materias en curso como
  * filas de registro (nombre, profesor, horario) + historial académico
- * filtrable por período. El filtrado es local (helpers puros): una sola
- * query, sin refetch.
+ * indexado por año —acordeón anidado: cabecera presionable con badge azul
+ * sello que despliega los trimestres de ese año (la receta de la casa
+ * para anclas temporales)—. La agrupación es local (helpers puros): una
+ * sola query, sin refetch.
  */
 export default function AcademicoScreen() {
   const insets = useSafeAreaInsets();
   const materias = useMaterias();
-  const [periodoActivo, setPeriodoActivo] = useState<string | null>(null);
 
   const particion = useMemo(
     () => particionarMaterias(materias.data ?? []),
     [materias.data],
   );
-  const periodos = useMemo(
-    () => periodosDisponibles(particion.historicas),
+  const gruposPorAno = useMemo(
+    () => agruparHistoriasPorAno(particion.historicas),
     [particion.historicas],
-  );
-  const historicasVisibles = useMemo(
-    () => filtrarPorPeriodo(particion.historicas, periodoActivo),
-    [periodoActivo, particion],
   );
 
   if (materias.isPending) {
     return (
       <EstadoCentrado>
-        <ThemedText tone="secondary">Cargando clases...</ThemedText>
+        <CargandoSeccion />
       </EstadoCentrado>
     );
   }
@@ -118,21 +114,15 @@ export default function AcademicoScreen() {
         )}
 
         <SectionHeader title="Historial académico" style={estilos.seccionHistorial} />
-        {particion.historicas.length > 0 ? (
-          <View style={estilos.tarjetasMaterias}>
-            <SelectorPeriodo
-              periodos={periodos}
-              activo={periodoActivo}
-              onSeleccionar={setPeriodoActivo}
-            />
-            {historicasVisibles.length > 0 ? (
-              <TarjetaHistorial historicas={historicasVisibles} />
-            ) : (
-              <EmptyState
-                title="Sin historial en este período"
-                message="Prueba con otro período académico."
-              />
-            )}
+        {gruposPorAno.length > 0 ? (
+          <View>
+            {gruposPorAno.map((ano, indice) => (
+              <View
+                key={ano.anio}
+                style={[estilos.bloqueAno, indice > 0 && estilos.bloqueAnoDespues]}>
+                <AcordeonAno ano={ano} />
+              </View>
+            ))}
           </View>
         ) : (
           <EmptyState
@@ -167,9 +157,15 @@ const estilos = StyleSheet.create({
   scroll: {
     padding: spacing.lg,
   },
-  tarjetasMaterias: {
-    gap: spacing.lg,
+  // Aire del índice de años: el primer año se separa del título de
+  // sección con 16px (menos que el 24 entre años, y que el 24 sobre el
+  // título: arriba > abajo). La proximidad interna (badge → primer
+  // trimestre a 8px, trimestres a 12px entre sí) vive en AcordeonAno.
+  bloqueAno: {
     marginTop: spacing.lg,
+  },
+  bloqueAnoDespues: {
+    marginTop: spacing.xl,
   },
   // Sobretítulo del grupo vivo: la receta eyebrow de la casa
   // (EtiquetaCategoria.mayusculas — caption + MAYÚSCULAS + tracking 0.8),

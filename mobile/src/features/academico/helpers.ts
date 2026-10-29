@@ -83,13 +83,10 @@ export function particionarMaterias(materias: MateriaDTO[]): MateriasParticionad
   return { actuales, historicas };
 }
 
-/**
- * Períodos distintos presentes en el historial, ordenados descendente
- * ("2025-2" antes que "2025-1"): alimenta el selector de período.
- */
-export function periodosDisponibles(historicas: MateriaHistoricaDTO[]): string[] {
-  const unicos = new Set(historicas.map((m) => m.periodo));
-  return [...unicos].sort().reverse();
+export interface GrupoPeriodo {
+  /** Clave wire cruda ("2025-2"); la UI la etiqueta con `formatearPeriodo`. */
+  periodo: string;
+  materias: MateriaHistoricaDTO[];
 }
 
 /**
@@ -135,12 +132,59 @@ export function formatearPeriodo(periodo: string): string {
   return `Trimestre ${etiqueta} ${anio}`;
 }
 
-export function filtrarPorPeriodo(
+/**
+ * Partes del período wire para el ancla del acordeón de historial: año
+ * ("2026") y término legible ("Abril-Julio"); `termino === null` para
+ * formatos ajenos — el acordeón cae a su etiqueta plana anterior.
+ */
+export function partesPeriodo(periodo: string): {
+  anio: string;
+  termino: string | null;
+} {
+  const anio = periodo.split('-')[0] ?? '';
+  const termino = periodo.split('-')[1] ?? '';
+  const etiqueta =
+    termino === '0' ? 'Agosto (Intensivo)' : TRIMESTRES[termino];
+  return { anio, termino: etiqueta ?? null };
+}
+
+/** Agrupa materias por período wire ("2026-2"); índice interno del año. */
+function agruparPorPeriodo(historicas: MateriaHistoricaDTO[]): GrupoPeriodo[] {
+  const mapa = new Map<string, MateriaHistoricaDTO[]>();
+  for (const materia of historicas) {
+    const grupo = mapa.get(materia.periodo) ?? [];
+    grupo.push(materia);
+    mapa.set(materia.periodo, grupo);
+  }
+  return [...mapa.entries()]
+    .sort(([a], [b]) => (a < b ? 1 : a > b ? -1 : 0))
+    .map(([periodo, materias]) => ({ periodo, materias }));
+}
+
+export interface GrupoAno {
+  /** Año lectivo ("2026"); ancla de sección no interactiva en la UI. */
+  anio: string;
+  grupos: GrupoPeriodo[];
+}
+
+/**
+ * Historial indexado por año para la tab Clases: años descendentes
+ * ("2026" antes que "2025") y, dentro de cada año, períodos descendentes
+ * ("2026-2" antes que "2026-1"); materias en el orden original de la wire.
+ */
+export function agruparHistoriasPorAno(
   historicas: MateriaHistoricaDTO[],
-  periodo: string | null,
-): MateriaHistoricaDTO[] {
-  if (periodo === null) return historicas;
-  return historicas.filter((m) => m.periodo === periodo);
+): GrupoAno[] {
+  const porAno = new Map<string, MateriaHistoricaDTO[]>();
+  for (const materia of historicas) {
+    const anio = materia.periodo.split('-')[0] ?? '';
+    const materiasAno = porAno.get(anio) ?? [];
+    materiasAno.push(materia);
+    porAno.set(anio, materiasAno);
+  }
+  return [...porAno.entries()]
+    .sort(([a], [b]) => (a < b ? 1 : a > b ? -1 : 0))
+    .map(([anio, materias]) => ({ anio, grupos: agruparPorPeriodo(materias) }));
 }
 
 export interface PensumItem extends PensumMateriaDTO {
