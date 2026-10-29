@@ -3,15 +3,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Logo from '../../../assets/images/unimar/logo-horizontal-blanco.png';
 
-import { colors, radius, spacing } from './theme';
+import { colors, spacing } from './theme';
 
 /**
  * Barra superior institucional persistente. Estructura en dos zonas con
  * fondos correctos: franja azul full-bleed SOLO a la altura del inset de
  * la status bar (tint light lo fija el layout raíz), y sobre blanco puro
  * (bg.surface — el mismo que pintan las pantallas debajo) una "chapa"
- * azul con esquinas inferiores redondeadas. Sin sombra a propósito: la
- * nativa la tapaba el Stack y el degradado se retiró por decisión de
+ * azul full-bleed recta (sin esquinas redondeadas). Sin sombra a propósito:
+ * la nativa la tapaba el Stack y el degradado se retiró por decisión de
  * diseño (silueta limpia, la profundidad la dan las esquinas). El slot
  * de acción va sobre el azul con el badge naranja intacto.
  *
@@ -43,8 +43,6 @@ const estilos = StyleSheet.create({
     justifyContent: 'flex-start',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
-    borderBottomLeftRadius: radius.xl,
-    borderBottomRightRadius: radius.xl,
     backgroundColor: colors.brand.primary,
   },
   logo: { width: 107, height: 36, marginLeft: spacing.xs },
