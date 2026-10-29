@@ -55,9 +55,8 @@ export class MockUniversityAcademicService implements IUniversityAcademicService
           { dia_semana: 4, aula: 'A40', hora_inicio: '11:50', hora_fin: '13:35' },
         ],
         cortes: [
-          { nombre: 'Parcial 1', fecha: '2026-09-15', ponderacion: 30, nota: 14 },
-          { nombre: 'Parcial 2', fecha: '2026-10-20', ponderacion: 30, nota: null },
-          { nombre: 'Final', fecha: '2026-12-01', ponderacion: 40, nota: null },
+          { nombre: 'Corte 1', fecha: '2026-09-15', ponderacion: 40, nota: 14 },
+          { nombre: 'Corte 2', fecha: '2026-10-20', ponderacion: 60, nota: null },
         ],
       },
       {
@@ -78,9 +77,8 @@ export class MockUniversityAcademicService implements IUniversityAcademicService
           { dia_semana: 4, aula: 'L04', hora_inicio: '10:20', hora_fin: '11:50' },
         ],
         cortes: [
-          { nombre: 'Parcial 1', fecha: '2026-09-30', ponderacion: 30, nota: null },
-          { nombre: 'Parcial 2', fecha: '2026-11-10', ponderacion: 30, nota: null },
-          { nombre: 'Final', fecha: '2026-12-05', ponderacion: 40, nota: null },
+          { nombre: 'Corte 1', fecha: '2026-09-30', ponderacion: 40, nota: null },
+          { nombre: 'Corte 2', fecha: '2026-11-10', ponderacion: 60, nota: null },
         ],
       },
       {
@@ -101,9 +99,8 @@ export class MockUniversityAcademicService implements IUniversityAcademicService
           { dia_semana: 2, aula: 'A40', hora_inicio: '11:05', hora_fin: '13:35' },
         ],
         cortes: [
-          { nombre: 'Parcial 1', fecha: '2026-09-30', ponderacion: 30, nota: null },
-          { nombre: 'Parcial 2', fecha: '2026-11-10', ponderacion: 30, nota: null },
-          { nombre: 'Final', fecha: '2026-12-05', ponderacion: 40, nota: null },
+          { nombre: 'Corte 1', fecha: '2026-09-30', ponderacion: 40, nota: null },
+          { nombre: 'Corte 2', fecha: '2026-11-10', ponderacion: 60, nota: null },
         ],
       },
       ...historicas(),

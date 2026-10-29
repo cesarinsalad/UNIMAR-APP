@@ -312,7 +312,12 @@ cliente debe representar esto (p. ej. etiqueta "Toda la universidad").
     { "dia_semana": 3, "aula": "A21", "hora_inicio": "10:20", "hora_fin": "12:35" },
     { "dia_semana": 4, "aula": "A40", "hora_inicio": "11:50", "hora_fin": "13:35" }
   ],
-  "cortes": [ { "nombre": "Parcial 1", "fecha": "2026-09-15", "ponderacion": 30, "nota": 14 } ]
+  // Plan UNIMAR: DOS cortes (Corte 1 · 40% + Corte 2 · 60%); al
+  // calificarse ambos la acta cierra y la Nota final = Σ nota·ponderación/100.
+  "cortes": [
+    { "nombre": "Corte 1", "fecha": "2026-09-15", "ponderacion": 40, "nota": 14 },
+    { "nombre": "Corte 2", "fecha": "2026-10-20", "ponderacion": 60, "nota": null }
+  ]
 }
 // Incluye también KARDEX histórico (~70 materias, 13 períodos "AAAA-T";
 // término 0 = intensivo de Agosto). Regla de estado: nota ≥10 → APROBADA,

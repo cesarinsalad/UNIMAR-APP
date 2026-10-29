@@ -315,9 +315,12 @@ lateral 3px).
   + semibold, inactivo = `{colors.neutral-text-primary}`.
 - **Headers de tab:** en contenido; `headline` 600 "Papel Bond" + campana
   `CampanaConBadge` (bell Phosphor, punto naranja `{colors.accent.urgent}`
-  con unread > 0); navegación a detalle con botón circular blanco flotante
-  (40px, `elevation.sm`, icono `ArrowLeft` azul institucional) + título
-  centrado `subtitle` 600.
+  con unread > 0). **Detalles:** el título vive EN CONTENIDO — nunca en
+  barra centrada — sobre el back circular blanco flotante (40px,
+  `elevation.sm`, icono `ArrowLeft` azul institucional con fallback a la
+  tab de origen en deep-links fríos): `headline` 28 como cabecera del
+  documento (detalle de materia) o `subtitle` 600 dentro del documento
+  (detalle de evento).
 - **Header de mes (Agenda):** badge azul sello 44px (`radius.button`) con el
   número de mes a 2 dígitos en `subtitle` 600 blanco + nombre del mes en
   MAYÚSCULAS `title` 600 azul institucional (tracking 0.5) y año en

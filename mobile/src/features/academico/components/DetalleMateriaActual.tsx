@@ -2,74 +2,65 @@ import { Fragment } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
   CalendarBlankIcon,
+  CertificateIcon,
   ClockIcon,
+  HashIcon,
   MapPinIcon,
+  SquaresFourIcon,
   UserIcon,
 } from 'phosphor-react-native';
 
-import { colors, radius, spacing } from '@/shared/ui';
+import { colors, elevation, highlight, spacing } from '@/shared/ui';
 import { ThemedText, ThemedView } from '@/shared/ui';
 import { colorNotaClases } from './MateriaActualCard';
-import { formatoNota2, nombreDia, notaAcumulada } from '../helpers';
+import {
+  esNotaCerrada,
+  etiquetaAccesibleNota,
+  nombreDia,
+  notaAcumulada,
+  ponderacionEvaluada,
+} from '../helpers';
 import type { CorteDTO, MateriaActualDTO } from '../types';
 
-const FORMATO_FECHA = new Intl.DateTimeFormat('es-VE', { dateStyle: 'medium' });
-
 /**
- * Variante en curso (`es_actual: true`): el documento de notas con la
- * firma visual de las tarjetas de Clases (fileRule azul, semáforo real de
- * notas: azul aprobada / rojo baja / gris pendiente) — cabecera con
- * Acumulada y progreso de cortes, una fila por corte con divisor, y el
- * contexto del aula en filas-ícono (profesor, horario/franjas, aula).
+ * Variante en curso (`es_actual: true`): el acta de notas como LIBRO DE
+ * REGISTRO — tabla del documento, no métrica héroe. Filas por corte con
+ * columnas duras (receta de AgendaDia: CORTE · NOTA), hairline simple
+ * entre filas y cierre contable: doble hairline antes de la fila
+ * total ("Nota acumulada" mientras el acta está abierta —con el caption
+ * del % evaluado—, "Nota final" al cerrar los dos cortes; el acta cierra
+ * solo con Σ = 100). Sin fileRule ni pills: la tabla ES el documento, la
+ * sombra es la estándar de tarjeta al reposo. Encima, "Información de la
+ * clase" abre el detalle: subtítulo, hairline y el documento como filas
+ * uniformes (código, créditos, sección —condicional—, profesor y aula) —
+ * ningún dato flota. El acta de notas cierra con su propio subtítulo —
+ * voces iguales en ambas tarjetas.
  */
 export function DetalleMateriaActual({ materia }: { materia: MateriaActualDTO }) {
-  const calificados = materia.cortes.filter(
-    (corte) => corte.nota !== null,
-  ).length;
+  const cortes = materia.cortes;
+  const acumulada = notaAcumulada(cortes);
+  const cerrada = esNotaCerrada(cortes);
 
   return (
     <View style={estilos.bloque}>
-      <ThemedView variant="card" style={estilos.tarjetaNotas}>
-        <View style={estilos.fileRule} />
-
-        <View style={estilos.cabeceraNotas}>
-          <View style={estilos.bloqueAcumulada}>
-            <ThemedText variant="caption" tone="secondary">
-              Nota acumulada
-            </ThemedText>
-            <ThemedText
-              variant="headline"
-              weight="bold"
-              style={{ color: colorNotaClases(notaAcumulada(materia.cortes)) }}>
-              {formatoNota2(notaAcumulada(materia.cortes))}
-            </ThemedText>
-          </View>
-          <ThemedText variant="caption" tone="secondary" style={estilos.progreso}>
-            {calificados} de {materia.cortes.length} cortes evaluados
-          </ThemedText>
-        </View>
-
-        {materia.cortes.length > 0 ? (
-          <View>
-            <View style={estilos.divisor} />
-            {materia.cortes.map((corte, indice) => (
-              <Fragment key={corte.nombre}>
-                {indice > 0 ? <View style={estilos.divisor} /> : null}
-                <FilaCorte corte={corte} />
-              </Fragment>
-            ))}
-          </View>
-        ) : (
-          <ThemedText variant="caption" tone="secondary">
-            Aún no hay cortes evaluativos publicados.
-          </ThemedText>
-        )}
-      </ThemedView>
-
       <ThemedView variant="card" style={estilos.tarjetaInfo}>
         <ThemedText variant="subtitle" weight="semibold">
           Información de la clase
         </ThemedText>
+        <View style={estilos.divisor} />
+        <FilaInfo icono={HashIcon} etiqueta="Código" valor={materia.codigo} />
+        <FilaInfo
+          icono={CertificateIcon}
+          etiqueta="Créditos"
+          valor={materia.creditos.toString()}
+        />
+        {materia.seccion ? (
+          <FilaInfo
+            icono={SquaresFourIcon}
+            etiqueta="Sección"
+            valor={materia.seccion}
+          />
+        ) : null}
         <FilaInfo icono={UserIcon} etiqueta="Profesor" valor={materia.profesor} />
         {materia.franjas && materia.franjas.length > 0 ? (
           materia.franjas.map((franja) => (
@@ -91,41 +82,96 @@ export function DetalleMateriaActual({ materia }: { materia: MateriaActualDTO })
           </>
         )}
       </ThemedView>
+
+      <ThemedView variant="card" style={estilos.tarjeta}>
+        <ThemedText variant="subtitle" weight="semibold">
+          Notas
+        </ThemedText>
+        <View style={estilos.filaEncabezado}>
+          <ThemedText
+            variant="caption"
+            weight="semibold"
+            tone="secondary"
+            style={[estilos.colCorte, estilos.mayusculas]}>
+            Corte
+          </ThemedText>
+          <ThemedText
+            variant="caption"
+            weight="semibold"
+            tone="secondary"
+            style={[estilos.colNota, estilos.mayusculas]}>
+            Nota
+          </ThemedText>
+        </View>
+        <View style={estilos.divisor} />
+
+        {cortes.length > 0 ? (
+          cortes.map((corte, indice) => (
+            <Fragment key={corte.nombre}>
+              {indice > 0 ? <View style={estilos.divisor} /> : null}
+              <FilaCorte corte={corte} />
+            </Fragment>
+          ))
+        ) : (
+          <ThemedText variant="caption" tone="secondary">
+            Aún no hay cortes evaluativos publicados.
+          </ThemedText>
+        )}
+
+        {cortes.length > 0 ? (
+          <>
+            <View style={estilos.dobleDivisor} />
+            <View style={estilos.filaTotal}>
+              <View style={estilos.titulosTotal}>
+                <ThemedText variant="body" weight="semibold">
+                  {cerrada ? 'Nota final' : 'Nota acumulada'}
+                </ThemedText>
+              </View>
+              <ThemedText
+                variant="title"
+                weight="bold"
+                accessibilityLabel={etiquetaAccesibleNota(acumulada)}
+                style={{ color: colorNotaClases(acumulada) }}>
+                {acumulada === null ? '—' : Math.trunc(acumulada).toString()}
+              </ThemedText>
+            </View>
+          </>
+        ) : null}
+      </ThemedView>
     </View>
   );
 }
 
-/** Fila de corte: nombre + fecha + ponderación a la izquierda, nota derecha. */
+/**
+ * Fila de corte del libro: nombre en la columna flexible —el peso vive
+ * aparte, separado por margen en tono metadato, sin punto medio— y cifra
+ * con semáforo real a la derecha — "—" en tinte gris para el corte sin
+ * publicar. La cifra anuncia estado y número para quien escucha
+ * (VoiceOver/TalkBack).
+ */
 function FilaCorte({ corte }: { corte: CorteDTO }) {
   return (
     <View style={estilos.filaCorte}>
-      <View style={estilos.titulosCorte}>
-        <ThemedText variant="body" weight="semibold">
+      <View style={estilos.colCorte}>
+        <ThemedText variant="bodySm" weight="medium" numberOfLines={2} style={estilos.nombreCorte}>
           {corte.nombre}
         </ThemedText>
-        <ThemedText variant="caption" tone="secondary" numberOfLines={1}>
-          {FORMATO_FECHA.format(new Date(corte.fecha))} · {corte.ponderacion}%
-          de la nota
+        <ThemedText variant="bodySm" tone="secondary" style={estilos.pesoCorte}>
+          {corte.ponderacion}%
         </ThemedText>
       </View>
-      <View style={estilos.notaCorte}>
-        <ThemedText
-          variant="title"
-          weight="bold"
-          style={{ color: colorNotaClases(corte.nota) }}>
-          {formatoNota2(corte.nota)}
-        </ThemedText>
-        {corte.nota === null ? (
-          <ThemedText variant="caption" tone="tertiary">
-            Pendiente
-          </ThemedText>
-        ) : null}
-      </View>
+      <ThemedText
+        variant="subtitle"
+        weight="bold"
+        accessibilityLabel={etiquetaAccesibleNota(corte.nota)}
+        style={[estilos.colNota, { color: colorNotaClases(corte.nota) }]}>
+        {corte.nota === null ? '—' : Math.trunc(corte.nota).toString()}
+      </ThemedText>
     </View>
   );
 }
 
-/** Fila de contexto: ícono gris + etiqueta caption + valor medium. */
+/** Fila de contexto a una línea: ícono azul sello + etiqueta en columna dura + valor. */
 function FilaInfo({
   icono: Icono,
   etiqueta,
@@ -137,15 +183,13 @@ function FilaInfo({
 }) {
   return (
     <View style={estilos.filaInfo}>
-      <Icono size={20} color={colors.text.secondary} />
-      <View style={estilos.titulosInfo}>
-        <ThemedText variant="caption" tone="secondary">
-          {etiqueta}
-        </ThemedText>
-        <ThemedText variant="body" weight="medium">
-          {valor}
-        </ThemedText>
-      </View>
+      <Icono size={20} color={colors.brand.primary} />
+      <ThemedText variant="caption" tone="secondary" style={estilos.etiquetaInfo}>
+        {etiqueta}
+      </ThemedText>
+      <ThemedText variant="bodySm" weight="medium" numberOfLines={1} style={estilos.valorInfo}>
+        {valor}
+      </ThemedText>
     </View>
   );
 }
@@ -154,51 +198,71 @@ const estilos = StyleSheet.create({
   bloque: {
     gap: spacing.lg,
   },
-  tarjetaNotas: {
-    gap: spacing.md,
-    overflow: 'hidden',
+  // Sombra de tarjeta al reposo (vocabulario de Card.tsx): elevation.sm +
+  // resplandor superior. Sin fileRule: la tabla es la voz del documento.
+  tarjeta: {
+    ...elevation.sm,
+    ...highlight.sm,
+    gap: spacing.sm,
   },
-  fileRule: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 3,
-    backgroundColor: colors.brand.primary,
-    borderTopLeftRadius: radius.card,
-    borderTopRightRadius: radius.card,
+  mayusculas: {
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
   },
-  cabeceraNotas: {
+  filaEncabezado: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    gap: spacing.md,
-  },
-  bloqueAcumulada: {
-    gap: spacing.xs,
-  },
-  progreso: {
-    flexShrink: 1,
+    alignItems: 'center',
+    paddingBottom: spacing.xs,
   },
   divisor: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.border.subtle,
   },
+  // Cierre contable del libro: dos hairlines con 3px de aire.
+  dobleDivisor: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    height: 3,
+    borderColor: colors.border.subtle,
+  },
   filaCorte: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
   },
-  titulosCorte: {
+  colCorte: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  nombreCorte: {
+    flexShrink: 1,
+  },
+  pesoCorte: {
+    marginLeft: spacing.sm,
+  },
+  colNota: {
+    width: 48,
+    textAlign: 'right',
+  },
+  filaTotal: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    paddingTop: spacing.sm,
+  },
+  titulosTotal: {
     flex: 1,
     gap: spacing.xs,
   },
-  notaCorte: {
-    alignItems: 'flex-end',
-    gap: spacing.half,
-  },
+  // La voz del info card es la misma que la del acta: tarjeta al reposo
+  // (elevation.sm + resplandor) — ninguna tarjeta del documento queda
+  // plana al lado de otra levantada.
   tarjetaInfo: {
+    ...elevation.sm,
+    ...highlight.sm,
     gap: spacing.md,
   },
   filaInfo: {
@@ -206,8 +270,10 @@ const estilos = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
   },
-  titulosInfo: {
+  etiquetaInfo: {
+    width: 72,
+  },
+  valorInfo: {
     flex: 1,
-    gap: spacing.one,
   },
 });

@@ -1,60 +1,83 @@
 import {
   ActivityIndicator,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeftIcon } from 'phosphor-react-native';
 
 import { DetalleMateriaActual } from '@/features/academico/components/DetalleMateriaActual';
 import { DetalleMateriaHistorica } from '@/features/academico/components/DetalleMateriaHistorica';
-import { tonalidadesCodigo } from '@/features/academico/components/MateriaActualCard';
-import { formatearPeriodo } from '@/features/academico/helpers';
 import { useMateriaDetalle } from '@/features/academico/hooks/useMateriaDetalle';
 import type { MateriaDTO } from '@/features/academico/types';
-import { colors, radius, spacing } from '@/shared/ui';
-import { BotonCircular, ThemedText, ThemedView } from '@/shared/ui';
+import { colors, spacing } from '@/shared/ui';
+import { BotonCircular, ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
 import { ApiError } from '@/shared/api/axios';
 
 /**
- * Detalle de materia (patrón lector): back circular flotante sobre el
- * contenido; cabecera con badge de código tintado, nombre headline y meta
- * caption. El narrowing por `es_actual` delega a la variante que muestra
- * el documento con su semáforo de notas. Recibe el deep-link del push
- * NOTA_PUBLICADA.
+ * Detalle de materia (patrón lector): back circular flotante bajo el safe
+ * area del teléfono (`insets.top`, la convención del detalle de evento),
+ * con fallback a la tab Clases si el push llegó a una app en frío (sin
+ * stack). La cabecera es solo el nombre headline — el metadato vive en el
+ * cuadro de información. El narrowing por `es_actual` delega a la
+ * variante que muestra el acta como libro de registro. Recibe el
+ * deep-link del push NOTA_PUBLICADA; el error ofrece salida (Reintentar)
+ * y el contenido soporta pull-to-refresh.
  */
 export default function MateriaDetalleScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const query = useMateriaDetalle(id);
+  const insets = useSafeAreaInsets();
 
   return (
     <ThemedView variant="base" style={estilos.container}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View style={estilos.filaBotones}>
-        <BotonCircular label="Volver" onPress={() => router.back()}>
+      <View style={[estilos.filaBotones, { top: insets.top + spacing.sm }]}>
+        <BotonCircular label="Volver" onPress={volver}>
           <ArrowLeftIcon size={20} color={colors.brand.primary} weight="bold" />
         </BotonCircular>
       </View>
 
       {query.isPending ? (
-        <Centrado>
+        <Centrado a11yLabel="Cargando la materia">
           <ActivityIndicator color={colors.brand.primary} />
         </Centrado>
       ) : query.isError ? (
         <Centrado gap>
           <ThemedText variant="subtitle" weight="semibold">
-            {query.error instanceof ApiError &&
-            (query.error.status === 404 || query.error.status === 503)
-              ? 'Esta materia ya no está disponible.'
-              : 'No se pudo cargar la materia.'}
+            {mensajeError(query.error)}
           </ThemedText>
+          <ThemedButton
+            title="Reintentar"
+            variant="secondary"
+            onPress={() => void query.refetch()}
+          />
         </Centrado>
       ) : query.data ? (
         <ScrollView
-          contentContainerStyle={estilos.scroll}
-          showsVerticalScrollIndicator={false}>
+          contentContainerStyle={[
+            estilos.scroll,
+            {
+              paddingTop: insets.top + ESPACIO_PARA_VOLVER + spacing.md,
+              paddingBottom: insets.bottom + spacing.xl,
+            },
+          ]}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              accessibilityLabel="Actualizando la materia"
+              refreshing={query.isRefetching}
+              onRefresh={() => {
+                void query.refetch();
+              }}
+              colors={[colors.brand.primary]}
+              tintColor={colors.brand.primary}
+            />
+          }>
           <CabeceraMateria data={query.data} />
           {query.data.es_actual ? (
             <DetalleMateriaActual materia={query.data} />
@@ -67,30 +90,38 @@ export default function MateriaDetalleScreen() {
   );
 }
 
-/** Cabecera en contenido: badge de código (tono determinístico) + nombre + meta. */
-function CabeceraMateria({ data }: { data: MateriaDTO }) {
-  const tonos = tonalidadesCodigo(data.codigo);
-  const meta = data.es_actual
-    ? `${data.creditos} créd.${
-        data.seccion ? ` · Sección ${data.seccion}` : ''
-      }`
-    : `${formatearPeriodo(data.periodo)} · ${data.creditos} créd.`;
+/**
+ * El back circular del detalle de evento, blindado: en un deep-link de
+ * arranque en frío (push NOTA_PUBLICADA con la app cerrada) no hay stack
+ * del que volver — se aterriza en la tab Clases en vez de quedar atrapado.
+ */
+function volver() {
+  if (router.canGoBack()) {
+    router.back();
+  } else {
+    router.replace('/academico');
+  }
+}
 
+/** Copia de error por estado: 404 y 503 no dicen lo mismo. */
+function mensajeError(error: unknown): string {
+  if (error instanceof ApiError) {
+    if (error.status === 404) return 'Esta materia ya no está disponible.';
+    if (error.status === 503)
+      return 'El servicio no está disponible ahora. Intenta de nuevo.';
+  }
+  return 'No se pudo cargar la materia.';
+}
+
+/** Altura del BotonCircular (40) + respiro (sm) — receta del detalle de evento. */
+const ESPACIO_PARA_VOLVER = 40 + spacing.sm;
+
+/** Cabecera en contenido: solo el nombre — el metadato vive en el cuadro de información. */
+function CabeceraMateria({ data }: { data: MateriaDTO }) {
   return (
     <View style={estilos.cabecera}>
-      <View style={[estilos.badgeCodigo, { backgroundColor: tonos.fondo }]}>
-        <ThemedText
-          variant="caption"
-          weight="semibold"
-          style={{ color: tonos.texto }}>
-          {data.codigo}
-        </ThemedText>
-      </View>
       <ThemedText variant="headline" weight="bold" numberOfLines={2}>
         {data.nombre}
-      </ThemedText>
-      <ThemedText variant="caption" tone="secondary">
-        {meta}
       </ThemedText>
     </View>
   );
@@ -99,12 +130,19 @@ function CabeceraMateria({ data }: { data: MateriaDTO }) {
 function Centrado({
   children,
   gap = false,
+  a11yLabel,
 }: {
   children: React.ReactNode;
   gap?: boolean;
+  /** Etiqueta accesible para estados sin texto propio (el spinner). */
+  a11yLabel?: string;
 }) {
   return (
-    <ThemedView variant="base" style={[estilos.centro, gap && estilos.centroConGap]}>
+    <ThemedView
+      variant="base"
+      accessible={a11yLabel ? true : undefined}
+      accessibilityLabel={a11yLabel}
+      style={[estilos.centro, gap && estilos.centroConGap]}>
       {children}
     </ThemedView>
   );
@@ -117,27 +155,17 @@ const estilos = StyleSheet.create({
   },
   filaBotones: {
     position: 'absolute',
-    left: spacing.md,
-    right: spacing.md,
-    top: spacing.md,
+    left: spacing.lg,
     zIndex: 2,
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   scroll: {
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.twelve,
-    paddingBottom: spacing.xl,
     gap: spacing.lg,
   },
   cabecera: {
     gap: spacing.sm,
-  },
-  badgeCodigo: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.pill,
-    alignSelf: 'flex-start',
   },
   centro: {
     flex: 1,

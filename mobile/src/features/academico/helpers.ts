@@ -106,10 +106,52 @@ export function notaAcumulada(cortes: CorteDTO[]): number | null {
   return Math.trunc(suma / pond);
 }
 
-/** Nota con 2 dígitos para la columna "Acumulada" (9 → "09"); null → "—". */
-export function formatoNota2(nota: number | null): string {
-  if (nota === null) return '—';
-  return Math.trunc(nota).toString().padStart(2, '0');
+/**
+ * Σ de ponderaciones de los cortes ya calificados — "Cuánto del 100% aún
+ * pesa la nota abierta" (Corte 1 con nota en un plan 40/60 → 40).
+ */
+export function ponderacionEvaluada(cortes: CorteDTO[]): number {
+  let suma = 0;
+  for (const corte of cortes) {
+    if (corte.nota !== null) suma += corte.ponderacion;
+  }
+  return suma;
+}
+
+/**
+ * true si el acta está COMPLETA: todos los cortes calificados y sus
+ * ponderaciones suman 100 (plan UNIMAR: Corte 1 · 40% + Corte 2 · 60%).
+ * Con la acta cerrada la UI cambia "Nota acumulada" por "Nota final":
+ * el número deja de ser proyección y pasa a ser definitivo.
+ */
+export function esNotaCerrada(cortes: CorteDTO[]): boolean {
+  return (
+    cortes.length > 0 &&
+    cortes.every((corte) => corte.nota !== null) &&
+    cortes.reduce((suma, corte) => suma + corte.ponderacion, 0) === 100
+  );
+}
+
+/** Estado verbal de la nota, mismo criterio que `colorNota` (aprobado ≥ 10). */
+export function palabraNota(nota: number | null): string {
+  switch (colorNota(nota)) {
+    case 'success':
+      return 'aprobada';
+    case 'danger':
+      return 'reprobada';
+    case 'muted':
+      return 'sin calificar';
+  }
+}
+
+/**
+ * Voz accesible de una nota para screen readers: cifra + estado verbal
+ * ("16 puntos, aprobada"; "Sin nota") — el usuario de VoiceOver escucha
+ * el estado además del número, sin depender del color.
+ */
+export function etiquetaAccesibleNota(nota: number | null): string {
+  if (nota === null) return 'Sin nota';
+  return `${Math.trunc(nota)} puntos, ${palabraNota(nota)}`;
 }
 
 const TRIMESTRES: Record<string, string> = {

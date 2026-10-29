@@ -2,11 +2,14 @@ import {
   agruparHistoriasPorAno,
   agruparPorTrimestre,
   colorNota,
+  etiquetaAccesibleNota,
   etiquetaEstadoHistorica,
+  esNotaCerrada,
   formatearPeriodo,
-  formatoNota2,
   marcarAprobadas,
   notaAcumulada,
+  palabraNota,
+  ponderacionEvaluada,
   particionarMaterias,
   partesPeriodo,
 } from './helpers';
@@ -190,14 +193,51 @@ describe('notaAcumulada (promedio ponderado truncado)', () => {
   });
 });
 
-describe('formatoNota2 (dos dígitos)', () => {
+describe('ponderacionEvaluada (Σ de cortes calificados)', () => {
+  it('suma solo lo calificado (14 en Corte 1 40% → 40)', () => {
+    expect(ponderacionEvaluada([CORTE(14, 40), CORTE(null, 60)])).toBe(40);
+  });
+
+  it('sin notas → 0', () => {
+    expect(ponderacionEvaluada([CORTE(null, 40)])).toBe(0);
+    expect(ponderacionEvaluada([])).toBe(0);
+  });
+});
+
+describe('esNotaCerrada (acta completa del plan UNIMAR 40/60)', () => {
+  it('cortes 1 y 2 calificados con Σ 100 → cerrada', () => {
+    expect(esNotaCerrada([CORTE(14, 40), CORTE(16, 60)])).toBe(true);
+  });
+
+  it('falta un corte → abierta', () => {
+    expect(esNotaCerrada([CORTE(14, 40), CORTE(null, 60)])).toBe(false);
+  });
+
+  it('cortes calificados pero Σ ≠ 100 → abierta', () => {
+    expect(esNotaCerrada([CORTE(14, 30), CORTE(16, 30)])).toBe(false);
+  });
+
+  it('sin cortes → abierta', () => {
+    expect(esNotaCerrada([])).toBe(false);
+  });
+});
+
+describe('palabraNota / etiquetaAccesibleNota (voz accesible del semáforo)', () => {
   it.each([
-    [9, '09'],
-    [17, '17'],
-    [15.2, '15'],
-    [null, '—'],
-  ] as const)('%v → %s', (nota, esperado) => {
-    expect(formatoNota2(nota)).toBe(esperado);
+    [16, 'aprobada'],
+    [10, 'aprobada'],
+    [9.9, 'reprobada'],
+    [null, 'sin calificar'],
+  ] as const)('palabraNota(%v) → %s', (nota, esperado) => {
+    expect(palabraNota(nota)).toBe(esperado);
+  });
+
+  it.each([
+    [16, '16 puntos, aprobada'],
+    [9.5, '9 puntos, reprobada'],
+    [null, 'Sin nota'],
+  ] as const)('etiquetaAccesibleNota(%v) → %s', (nota, esperado) => {
+    expect(etiquetaAccesibleNota(nota)).toBe(esperado);
   });
 });
 
