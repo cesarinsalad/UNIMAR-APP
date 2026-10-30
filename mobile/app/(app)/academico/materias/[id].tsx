@@ -36,7 +36,7 @@ export default function MateriaDetalleScreen() {
     <ThemedView variant="base" style={estilos.container}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View style={[estilos.filaBotones, { top: insets.top + spacing.sm }]}>
+      <View style={[estilos.filaBotones, { top: insets.top }]}>
         <BotonCircular label="Volver" onPress={volver}>
           <ArrowLeftIcon size={20} color={colors.brand.primary} weight="bold" />
         </BotonCircular>
@@ -62,9 +62,9 @@ export default function MateriaDetalleScreen() {
           contentContainerStyle={[
             estilos.scroll,
             {
-              // Compacto: el back (40) flota sobre el título con 8 de
-              // respiro — el detalle debe caber sin scroll en la mayoría
-              // de pantallas.
+              // Compacto: el back (40) queda al ras del safe area y el
+              // título arranca 8px debajo de él — el detalle debe caber
+              // sin scroll en la mayoría de pantallas.
               paddingTop: insets.top + 40 + spacing.sm,
               paddingBottom: insets.bottom + spacing.lg,
             },
