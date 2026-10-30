@@ -172,6 +172,13 @@ export default function CalendarioScreen() {
           </View>
         </Card>
 
+        <Card style={estilos.seccionDia} paddingV="md">
+          <ThemedText variant="body" weight="semibold">
+            {tituloDia(seleccion)}
+          </ThemedText>
+          <EventosDelDia eventos={eventosDelDia(grupos, seleccion)} />
+        </Card>
+
         <SectionHeader
           title="Próximos eventos"
           action={
@@ -215,13 +222,6 @@ export default function CalendarioScreen() {
             message="Tus eventos personales, los oficiales que agregues y las fechas institucionales aparecerán aquí."
           />
         )}
-
-        <Card style={estilos.seccionDia} paddingV="md">
-          <ThemedText variant="body" weight="semibold">
-            {tituloDia(seleccion)}
-          </ThemedText>
-          <EventosDelDia eventos={eventosDelDia(grupos, seleccion)} />
-        </Card>
 
         {agenda.isFetchingNextPage ? (
           <ThemedText variant="caption" tone="tertiary" style={estilos.footer}>
