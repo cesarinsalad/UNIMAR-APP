@@ -7,6 +7,7 @@ import {
   colors,
   elevation,
   highlight,
+  radius,
   spacing,
   touchTarget,
 } from '@/shared/ui';
@@ -14,6 +15,7 @@ import { ThemedText, ThemedView } from '@/shared/ui';
 import type { MateriaHistoricaDTO } from '../types';
 import { formatearPeriodo, partesPeriodo, etiquetaEstadoHistorica } from '../helpers';
 import { colorNotaClases } from './MateriaActualCard';
+import { SelloUsoPersonal } from './SelloUsoPersonal';
 
 /**
  * Acordeón del historial académico por período (un grupo = un período).
@@ -112,6 +114,7 @@ export function AcordeonPeriodo({
               </View>
             </Fragment>
           ))}
+          <SelloUsoPersonal />
         </Animated.View>
       ) : null}
     </ThemedView>
@@ -154,8 +157,13 @@ const estilos = StyleSheet.create({
   caretAbierto: {
     transform: [{ rotate: '180deg' }],
   },
+  // El sello de referencia se recorta aquí (nunca en la tarjeta con
+  // sombra): radios inferiores al redondeo de la tarjeta.
   contenido: {
     paddingBottom: spacing.xs,
+    overflow: 'hidden',
+    borderBottomLeftRadius: radius.card,
+    borderBottomRightRadius: radius.card,
   },
   fila: {
     flexDirection: 'row',

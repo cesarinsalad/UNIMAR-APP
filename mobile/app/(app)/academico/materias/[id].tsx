@@ -62,8 +62,11 @@ export default function MateriaDetalleScreen() {
           contentContainerStyle={[
             estilos.scroll,
             {
-              paddingTop: insets.top + ESPACIO_PARA_VOLVER + spacing.md,
-              paddingBottom: insets.bottom + spacing.xl,
+              // Compacto: el back (40) flota sobre el título con 8 de
+              // respiro — el detalle debe caber sin scroll en la mayoría
+              // de pantallas.
+              paddingTop: insets.top + 40 + spacing.sm,
+              paddingBottom: insets.bottom + spacing.lg,
             },
           ]}
           showsVerticalScrollIndicator={false}
@@ -113,9 +116,6 @@ function mensajeError(error: unknown): string {
   return 'No se pudo cargar la materia.';
 }
 
-/** Altura del BotonCircular (40) + respiro (sm) — receta del detalle de evento. */
-const ESPACIO_PARA_VOLVER = 40 + spacing.sm;
-
 /** Cabecera en contenido: solo el nombre — el metadato vive en el cuadro de información. */
 function CabeceraMateria({ data }: { data: MateriaDTO }) {
   return (
@@ -162,7 +162,7 @@ const estilos = StyleSheet.create({
   },
   scroll: {
     paddingHorizontal: spacing.lg,
-    gap: spacing.lg,
+    gap: spacing.md,
   },
   cabecera: {
     gap: spacing.sm,

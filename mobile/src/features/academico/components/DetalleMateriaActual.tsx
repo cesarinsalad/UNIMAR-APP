@@ -13,12 +13,12 @@ import {
 import { colors, elevation, highlight, spacing } from '@/shared/ui';
 import { ThemedText, ThemedView } from '@/shared/ui';
 import { colorNotaClases } from './MateriaActualCard';
+import { SelloUsoPersonal } from './SelloUsoPersonal';
 import {
   esNotaCerrada,
   etiquetaAccesibleNota,
   nombreDia,
   notaAcumulada,
-  ponderacionEvaluada,
 } from '../helpers';
 import type { CorteDTO, MateriaActualDTO } from '../types';
 
@@ -30,11 +30,11 @@ import type { CorteDTO, MateriaActualDTO } from '../types';
  * total ("Nota acumulada" mientras el acta está abierta —con el caption
  * del % evaluado—, "Nota final" al cerrar los dos cortes; el acta cierra
  * solo con Σ = 100). Sin fileRule ni pills: la tabla ES el documento, la
- * sombra es la estándar de tarjeta al reposo. Encima, "Información de la
- * clase" abre el detalle: subtítulo, hairline y el documento como filas
+ * sombra es la estándar de tarjeta al reposo. "Información de la clase"
+ * abre el detalle: subtítulo, hairline y el documento como filas
  * uniformes (código, créditos, sección —condicional—, profesor y aula) —
- * ningún dato flota. El acta de notas cierra con su propio subtítulo —
- * voces iguales en ambas tarjetas.
+ * ningún dato flota. "Notas" cierra el documento con su disclaimer y el
+ * sello de referencia. Voces iguales en ambas tarjetas.
  */
 export function DetalleMateriaActual({ materia }: { materia: MateriaActualDTO }) {
   const cortes = materia.cortes;
@@ -84,59 +84,65 @@ export function DetalleMateriaActual({ materia }: { materia: MateriaActualDTO })
       </ThemedView>
 
       <ThemedView variant="card" style={estilos.tarjeta}>
-        <ThemedText variant="subtitle" weight="semibold">
+        <ThemedText
+          variant="subtitle"
+          weight="semibold"
+          accessibilityLabel="Notas, referencia de uso personal">
           Notas
         </ThemedText>
-        <View style={estilos.filaEncabezado}>
-          <ThemedText
-            variant="caption"
-            weight="semibold"
-            tone="secondary"
-            style={[estilos.colCorte, estilos.mayusculas]}>
-            Corte
-          </ThemedText>
-          <ThemedText
-            variant="caption"
-            weight="semibold"
-            tone="secondary"
-            style={[estilos.colNota, estilos.mayusculas]}>
-            Nota
-          </ThemedText>
-        </View>
-        <View style={estilos.divisor} />
+        <View style={estilos.zonaTabla}>
+          <View style={estilos.filaEncabezado}>
+            <ThemedText
+              variant="caption"
+              weight="semibold"
+              tone="secondary"
+              style={[estilos.colCorte, estilos.mayusculas]}>
+              Corte
+            </ThemedText>
+            <ThemedText
+              variant="caption"
+              weight="semibold"
+              tone="secondary"
+              style={[estilos.colNota, estilos.mayusculas]}>
+              Nota
+            </ThemedText>
+          </View>
+          <View style={estilos.divisor} />
 
-        {cortes.length > 0 ? (
-          cortes.map((corte, indice) => (
-            <Fragment key={corte.nombre}>
-              {indice > 0 ? <View style={estilos.divisor} /> : null}
-              <FilaCorte corte={corte} />
-            </Fragment>
-          ))
-        ) : (
-          <ThemedText variant="caption" tone="secondary">
-            Aún no hay cortes evaluativos publicados.
-          </ThemedText>
-        )}
+          {cortes.length > 0 ? (
+            cortes.map((corte, indice) => (
+              <Fragment key={corte.nombre}>
+                {indice > 0 ? <View style={estilos.divisor} /> : null}
+                <FilaCorte corte={corte} />
+              </Fragment>
+            ))
+          ) : (
+            <ThemedText variant="caption" tone="secondary">
+              Aún no hay cortes evaluativos publicados.
+            </ThemedText>
+          )}
 
-        {cortes.length > 0 ? (
-          <>
-            <View style={estilos.dobleDivisor} />
-            <View style={estilos.filaTotal}>
-              <View style={estilos.titulosTotal}>
-                <ThemedText variant="body" weight="semibold">
-                  {cerrada ? 'Nota final' : 'Nota acumulada'}
+          {cortes.length > 0 ? (
+            <>
+              <View style={estilos.dobleDivisor} />
+              <View style={estilos.filaTotal}>
+                <View style={estilos.titulosTotal}>
+                  <ThemedText variant="body" weight="semibold">
+                    {cerrada ? 'Nota final' : 'Nota acumulada'}
+                  </ThemedText>
+                </View>
+                <ThemedText
+                  variant="title"
+                  weight="bold"
+                  accessibilityLabel={etiquetaAccesibleNota(acumulada)}
+                  style={{ color: colorNotaClases(acumulada) }}>
+                  {acumulada === null ? '—' : Math.trunc(acumulada).toString()}
                 </ThemedText>
               </View>
-              <ThemedText
-                variant="title"
-                weight="bold"
-                accessibilityLabel={etiquetaAccesibleNota(acumulada)}
-                style={{ color: colorNotaClases(acumulada) }}>
-                {acumulada === null ? '—' : Math.trunc(acumulada).toString()}
-              </ThemedText>
-            </View>
-          </>
-        ) : null}
+            </>
+          ) : null}
+          <SelloUsoPersonal />
+        </View>
       </ThemedView>
     </View>
   );
@@ -156,7 +162,7 @@ function FilaCorte({ corte }: { corte: CorteDTO }) {
         <ThemedText variant="bodySm" weight="medium" numberOfLines={2} style={estilos.nombreCorte}>
           {corte.nombre}
         </ThemedText>
-        <ThemedText variant="bodySm" tone="secondary" style={estilos.pesoCorte}>
+        <ThemedText variant="bodySm" weight="medium" tone="secondary" style={estilos.pesoCorte}>
           {corte.ponderacion}%
         </ThemedText>
       </View>
@@ -196,7 +202,7 @@ function FilaInfo({
 
 const estilos = StyleSheet.create({
   bloque: {
-    gap: spacing.lg,
+    gap: spacing.md,
   },
   // Sombra de tarjeta al reposo (vocabulario de Card.tsx): elevation.sm +
   // resplandor superior. Sin fileRule: la tabla es la voz del documento.
@@ -218,6 +224,14 @@ const estilos = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.border.subtle,
   },
+  // El sello de referencia se recorta aquí (nunca en la tarjeta con
+  // sombra). Sin radios: el wrapper está 16px adentro de la tarjeta —
+  // sus esquinas son interiores y un radio curvo recortaba la cifra del
+  // total pegada al borde inferior.
+  zonaTabla: {
+    overflow: 'hidden',
+    paddingBottom: spacing.xs,
+  },
   // Cierre contable del libro: dos hairlines con 3px de aire.
   dobleDivisor: {
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -229,6 +243,8 @@ const estilos = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
+    // Compacto para el detalle (que debe caber sin scroll): el acordeón
+    // del tab Clases conserva su 12 — superficie distinta.
     paddingVertical: spacing.sm,
   },
   colCorte: {
@@ -263,7 +279,7 @@ const estilos = StyleSheet.create({
   tarjetaInfo: {
     ...elevation.sm,
     ...highlight.sm,
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   filaInfo: {
     flexDirection: 'row',

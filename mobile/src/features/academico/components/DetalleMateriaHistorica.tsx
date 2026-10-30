@@ -4,6 +4,7 @@ import { colors, elevation, highlight, spacing } from '@/shared/ui';
 import { ThemedText, ThemedView } from '@/shared/ui';
 import { etiquetaEstadoHistorica } from '../helpers';
 import { colorNotaClases } from './MateriaActualCard';
+import { SelloUsoPersonal } from './SelloUsoPersonal';
 import type { EstadoHistorica, MateriaHistoricaDTO } from '../types';
 
 /**
@@ -26,30 +27,33 @@ export function DetalleMateriaHistorica({ materia }: { materia: MateriaHistorica
   return (
     <View style={estilos.bloque}>
       <ThemedView variant="card" style={estilos.tarjeta}>
-        <View style={estilos.fila}>
-          <ThemedText variant="body" weight="semibold">
-            Nota final
-          </ThemedText>
-          <ThemedText
-            variant="title"
-            weight="bold"
-            style={{ color: colorNotaClases(materia.nota_final) }}>
-            {materia.nota_final === null
-              ? '—'
-              : Math.round(materia.nota_final).toString()}
-          </ThemedText>
-        </View>
-        <View style={estilos.divisor} />
-        <View style={estilos.fila}>
-          <ThemedText variant="body" weight="semibold">
-            Estado
-          </ThemedText>
-          <ThemedText
-            variant="body"
-            weight="semibold"
-            style={{ color: COLOR_ESTADO[materia.estado] }}>
-            {etiquetaEstadoHistorica(materia.estado)}
-          </ThemedText>
+        <View style={estilos.zonaTabla}>
+          <View style={estilos.fila}>
+            <ThemedText variant="body" weight="semibold">
+              Nota final
+            </ThemedText>
+            <ThemedText
+              variant="title"
+              weight="bold"
+              style={{ color: colorNotaClases(materia.nota_final) }}>
+              {materia.nota_final === null
+                ? '—'
+                : Math.round(materia.nota_final).toString()}
+            </ThemedText>
+          </View>
+          <View style={estilos.divisor} />
+          <View style={estilos.fila}>
+            <ThemedText variant="body" weight="semibold">
+              Estado
+            </ThemedText>
+            <ThemedText
+              variant="body"
+              weight="semibold"
+              style={{ color: COLOR_ESTADO[materia.estado] }}>
+              {etiquetaEstadoHistorica(materia.estado)}
+            </ThemedText>
+          </View>
+          <SelloUsoPersonal />
         </View>
       </ThemedView>
     </View>
@@ -61,6 +65,7 @@ const estilos = StyleSheet.create({
   tarjeta: {
     ...elevation.sm,
     ...highlight.sm,
+    gap: spacing.sm,
   },
   fila: {
     flexDirection: 'row',
@@ -68,6 +73,12 @@ const estilos = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.md,
     paddingVertical: spacing.sm,
+  },
+  // El sello de referencia se recorta aquí (nunca en la tarjeta con
+  // sombra). Sin radios: el wrapper está 16px adentro de la tarjeta —
+  // sus esquinas son interiores y el radio rozaba la cifra de la nota.
+  zonaTabla: {
+    overflow: 'hidden',
   },
   divisor: {
     height: StyleSheet.hairlineWidth,

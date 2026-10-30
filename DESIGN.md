@@ -355,6 +355,18 @@ lateral 3px).
   receta eyebrow de la casa (`EtiquetaCategoria.mayusculas`: caption +
   MAYÚSCULAS + tracking 0.8) en gris metadato, que reemplaza al
   `SectionHeader` completo.
+- **Sello de referencia (uso personal):** "PARA USO PERSONAL" en `title`
+  700 (el sello es un SELLO, no un título — la excepción al Bold
+  reservado a mayúsculas sostenidas, junto al logotipo), tracking 1.5,
+  `{colors.status.danger}` al 15% de alpha, rotado
+  −15° y centrado sobre el contenido de notas (acordeón de historial
+  abierto, acta del detalle de materia) — la traducción al sistema del
+  artefacto institucional de los corte de notas. Estado del DOCUMENTO,
+  no de los datos: clase visual distinta al rojo de reprobadas (bloque
+  grande translúcido vs cifra sólida en celda); Regla Naranja y
+  presupuesto azul intactos. `pointerEvents: none`; oculto a lectores de
+  pantalla. Se recorta en un wrapper interior (overflow
+  hidden + radios inferiores), nunca en la tarjeta con sombra.
 - **Grid de calendario (GridMes):** voz del calendario académico publicado.
   Membrete LUN–DOM en cápsula gris suave (`background.sunken`, pill) con
   abreviaturas caption semibold (tracking 0.5) centradas por columna; celdas
