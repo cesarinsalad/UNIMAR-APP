@@ -9,8 +9,9 @@ export {
   highlight,
   touchTarget,
   layout,
+  PALETA_CALENDARIO_UNIMAR,
 } from './theme';
-export type { Theme } from './theme';
+export type { Theme, TipoEventoCalendario } from './theme';
 export { ThemedText, type ThemedTextVariant } from './ThemedText';
 export { ThemedButton } from './ThemedButton';
 export { ThemedView } from './ThemedView';

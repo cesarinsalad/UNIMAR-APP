@@ -17,6 +17,8 @@ import type { CrearEventoInput, Evento } from '../domain/evento';
  *  - ADMIN puede crear OFICIAL GLOBAL (audiencia vacía) o local.
  *  - INSTITUCIONAL: solo ADMIN, sin audiencia (siempre GLOBAL: son fechas
  *    fijas del calendario académico visibles a toda la universidad).
+ *  - FERIADO: mismo régimen que INSTITUCIONAL (solo ADMIN, GLOBAL sin
+ *    audiencia); la diferencia es presentacional (color propio en la agenda).
  *
  * Si el evento es OFICIAL y se inyecta un `EventBus`, se emite
  * `EVENTO_OFICIAL_CREADO` durante el tx para que Notificaciones haga el
@@ -80,13 +82,13 @@ export class CrearEvento {
   }
 
   private validarPermisos(claims: Claims, input: CrearEventoInput): void {
-    if (input.tipo === 'INSTITUCIONAL') {
+    if (input.tipo === 'INSTITUCIONAL' || input.tipo === 'FERIADO') {
       if (claims.role !== 'ADMIN') {
-        throw new ForbiddenError('Solo ADMIN puede crear eventos institucionales');
+        throw new ForbiddenError('Solo ADMIN puede crear eventos institucionales o feriados');
       }
       if (input.decanatoIds && input.decanatoIds.length > 0) {
         throw new BadRequestError(
-          'Los eventos institucionales son globales: no aceptan audiencia',
+          'Los eventos institucionales y feriados son globales: no aceptan audiencia',
         );
       }
       return;

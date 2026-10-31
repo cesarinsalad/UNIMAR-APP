@@ -6,7 +6,7 @@ interface EventoRow {
   id: string;
   titulo: string;
   descripcion: string | null;
-  tipo: 'OFICIAL' | 'PERSONAL' | 'INSTITUCIONAL';
+  tipo: 'OFICIAL' | 'PERSONAL' | 'INSTITUCIONAL' | 'FERIADO';
   usuario_id: string;
   inicio_at: Date;
   fin_at: Date | null;
@@ -58,7 +58,7 @@ export class PostgresEventoRepository implements IEventoRepository {
     input: {
       titulo: string;
       descripcion: string | null;
-      tipo: 'OFICIAL' | 'PERSONAL' | 'INSTITUCIONAL';
+      tipo: 'OFICIAL' | 'PERSONAL' | 'INSTITUCIONAL' | 'FERIADO';
       usuarioId: string;
       inicioAt: string;
       finAt: string | null;
@@ -121,8 +121,8 @@ export class PostgresEventoRepository implements IEventoRepository {
     const where: string[] = ['e.inicio_at >= $1', 'e.inicio_at <= $2'];
 
     // Agenda opt-in: los OFICIALES solo entran si el usuario los agregó
-    // (`evento_participantes`); PERSONAL e INSTITUCIONAL siguen entrando
-    // según los deje RLS.
+    // (`evento_participantes`); PERSONAL, INSTITUCIONAL y FERIADO siguen
+    // entrando según los deje RLS.
     if (filtro.incluirOficiales === 'agregados') {
       params.push(filtro.usuarioId);
       where.push(
@@ -293,9 +293,9 @@ export class PostgresEventoRepository implements IEventoRepository {
       );
       return r.rows.map((row) => row.usuario_id);
     }
-    // INSTITUCIONAL: audiencia GLOBAL = todos los usuarios; específica =
-    // usuarios de esos decanatos. Excluye al creador (patrón preexistente
-    // para no duplicar notificaciones con el fan-out inicial).
+    // INSTITUCIONAL/FERIADO: audiencia GLOBAL = todos los usuarios;
+    // específica = usuarios de esos decanatos. Excluye al creador (patrón
+    // preexistente para no duplicar notificaciones con el fan-out inicial).
     if (evento.decanatoIds.length === 0) {
       const r = await tx.query<{ id: string }>(
         'SELECT id FROM usuarios WHERE id <> $1',

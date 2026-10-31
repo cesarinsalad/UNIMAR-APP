@@ -174,7 +174,7 @@ function Documento({
               {FORMATO_MES_CORTO.format(inicio).replace('.', '')}
             </ThemedText>
           </View>
-          <View style={[estilos.barra, { backgroundColor: colorBarra(evento.tipo) }]} />
+          <View style={[estilos.barra, { backgroundColor: colorBarra(evento) }]} />
           <View style={estilos.headerCuerpo}>
             <ThemedText variant="subtitle" weight="semibold" numberOfLines={3}>
               {evento.titulo}

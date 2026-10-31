@@ -2,13 +2,21 @@ import { StyleSheet, View } from 'react-native';
 import { MapPinIcon, ClockIcon } from 'phosphor-react-native';
 import { router } from 'expo-router';
 
-import { colors, elevation, highlight, spacing, radius } from '@/shared/ui';
+import {
+  PALETA_CALENDARIO_UNIMAR,
+  colors,
+  elevation,
+  highlight,
+  spacing,
+  radius,
+} from '@/shared/ui';
+import { clasificarEventoVisual } from '../colores-evento';
 import { PressableScale, ThemedText, ThemedView } from '@/shared/ui';
 
 export interface EventoResumen {
   id: string;
   titulo: string;
-  tipo: 'OFICIAL' | 'PERSONAL' | 'INSTITUCIONAL';
+  tipo: 'OFICIAL' | 'PERSONAL' | 'INSTITUCIONAL' | 'FERIADO';
   inicioAt: string;
   finAt?: string | null;
   diaCompleto: boolean;
@@ -20,12 +28,12 @@ export interface EventoResumen {
   participo?: boolean;
 }
 
-/** Barra lateral de la tarjeta: azul corporativo (OFICIAL), pálido
- *  (INSTITUCIONAL) o gris (PERSONAL). */
-export function colorBarra(tipo: 'OFICIAL' | 'PERSONAL' | 'INSTITUCIONAL'): string {
-  if (tipo === 'OFICIAL') return colors.brand.primary;
-  if (tipo === 'INSTITUCIONAL') return colors.brand.surfaceBlue;
-  return colors.border.strong;
+/** Barra lateral de la tarjeta: el color fuerte de la paleta UNIMAR según
+ *  la naturaleza visual del evento (institucional azul, campus verde,
+ *  decanato dorado, feriado terracota, personal violeta). */
+export function colorBarra(evento: Pick<EventoResumen, 'tipo' | 'decanatoIds'>): string {
+  const visual = clasificarEventoVisual({ ...evento, decanatoIds: evento.decanatoIds ?? [] });
+  return PALETA_CALENDARIO_UNIMAR[visual].color;
 }
 
 const FORMATO_MES_CORTO = new Intl.DateTimeFormat('es-VE', { month: 'short' });
@@ -56,7 +64,7 @@ export function TarjetaProximoEvento({
           {FORMATO_MES_CORTO.format(inicio).replace('.', '')}
         </ThemedText>
       </View>
-      <View style={[estilos.barra, { backgroundColor: colorBarra(evento.tipo) }]} />
+      <View style={[estilos.barra, { backgroundColor: colorBarra(evento) }]} />
       <View style={estilos.cuerpo}>
         <ThemedText variant="bodySm" weight="medium" numberOfLines={1}>
           {evento.titulo}

@@ -506,6 +506,67 @@ describe.skipIf(!RUN_DB_TESTS)('RLS Calendario (ABAC)', () => {
   });
 
   // ──────────────────────────────────────────────────────────
+  // FERIADO: mismo régimen RLS que INSTITUCIONAL
+  // ──────────────────────────────────────────────────────────
+  describe('eventos FERIADO', () => {
+    it('ESTUDIANTE de otro decanato ve el FERIADO (visible a todos)', async () => {
+      await withTx(async (c) => {
+        const u = await seedUsuarios(c);
+        await setClaims(c, claimsFor(u.adminId, 'ADMIN', null, 'Admin'));
+        const fer = await c.query<{ id: string }>(
+          "INSERT INTO eventos (titulo, tipo, usuario_id, inicio_at) VALUES ('Receso de Semana Santa', 'FERIADO', $1, now() + interval '10 day') RETURNING id",
+          [u.adminId],
+        );
+        const ferId = fer.rows[0]!.id;
+
+        await setClaims(c, claimsFor(u.est3, 'ESTUDIANTE', 3, 'EST3'));
+        const result = await c.query<{ id: string }>(
+          "SELECT id FROM eventos WHERE tipo = 'FERIADO'",
+        );
+        expect(result.rows.map((r) => r.id)).toContain(ferId);
+      });
+    });
+
+    it('ESTUDIANTE intenta insertar FERIADO -> 42501', async () => {
+      await withTx(async (c) => {
+        const u = await seedUsuarios(c);
+        await setClaims(c, claimsFor(u.est5, 'ESTUDIANTE', 5, 'EST5'));
+        await expect(
+          c.query(
+            "INSERT INTO eventos (titulo, tipo, usuario_id, inicio_at) VALUES ('t', 'FERIADO', $1, now() + interval '1 day')",
+            [u.est5],
+          ),
+        ).rejects.toMatchObject({ code: '42501' });
+      });
+    });
+
+    it('COMUNICADOR intenta insertar FERIADO -> 42501', async () => {
+      await withTx(async (c) => {
+        const u = await seedUsuarios(c);
+        await setClaims(c, claimsFor(u.com5, 'COMUNICADOR', 5, 'COM5'));
+        await expect(
+          c.query(
+            "INSERT INTO eventos (titulo, tipo, usuario_id, inicio_at) VALUES ('t', 'FERIADO', $1, now() + interval '1 day')",
+            [u.com5],
+          ),
+        ).rejects.toMatchObject({ code: '42501' });
+      });
+    });
+
+    it('ADMIN inserta FERIADO OK', async () => {
+      await withTx(async (c) => {
+        const u = await seedUsuarios(c);
+        await setClaims(c, claimsFor(u.adminId, 'ADMIN', null, 'Admin'));
+        const result = await c.query<{ id: string }>(
+          "INSERT INTO eventos (titulo, tipo, usuario_id, inicio_at) VALUES ('t', 'FERIADO', $1, now() + interval '1 day') RETURNING id",
+          [u.adminId],
+        );
+        expect(result.rows[0]!.id).toBeDefined();
+      });
+    });
+  });
+
+  // ──────────────────────────────────────────────────────────
   // evento_participantes: pivot "agregar a mi agenda"
   // ──────────────────────────────────────────────────────────
   describe('evento_participantes', () => {

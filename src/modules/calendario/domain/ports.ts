@@ -18,7 +18,7 @@ export interface IEventoRepository {
     input: {
       titulo: string;
       descripcion: string | null;
-      tipo: 'OFICIAL' | 'PERSONAL' | 'INSTITUCIONAL';
+      tipo: 'OFICIAL' | 'PERSONAL' | 'INSTITUCIONAL' | 'FERIADO';
       usuarioId: string;
       inicioAt: string;
       finAt: string | null;
@@ -89,10 +89,9 @@ export interface IEventoRepository {
    * Resuelve los ids de usuario destinatarios de un evento a efectos de
    * recordatorio. PERSONALES: solo el dueño. OFICIALES: únicamente los
    * usuarios que lo agregaron a su agenda (`evento_participantes`) — desde
-   * que la agenda es opt-in, el recordatorio la sigue. INSTITUCIONALES:
-   * audiencia GLOBAL = todos los usuarios; audiencia específica = usuarios
-   * de esos decanatos. En INSTITUCIONAL el creador se excluye para no
-   * duplicar con el fan-out inicial.
+   * que la agenda es opt-in, el recordatorio la sigue. INSTITUCIONALES y
+   * FERIADO: audiencia GLOBAL = todos los usuarios. En INSTITUCIONAL/FERIADO
+   * el creador se excluye para no duplicar con el fan-out inicial.
    */
   destinatariosDeEvento(tx: DbTx, evento: Evento): Promise<string[]>;
 

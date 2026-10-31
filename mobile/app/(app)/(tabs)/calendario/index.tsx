@@ -9,7 +9,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { CaretLeftIcon, CaretRightIcon, PlusIcon } from 'phosphor-react-native';
-import { type TipoEvento } from '@/features/calendario/types';
 
 import {
   agruparPorDia,
@@ -21,16 +20,21 @@ import {
   claveDia,
   type GrupoDia,
 } from '@/features/calendario/calendario-calculo';
+import {
+  clasificarEventoVisual,
+  ORDEN_PUNTOS,
+} from '@/features/calendario/colores-evento';
 import { aplanarPaginas } from '@/shared/lib/paginar';
 import { useAgenda } from '@/features/calendario/hooks/useAgenda';
 import { EventosDelDia } from '@/features/calendario/components/EventosDelDia';
-import { GridMes, colorBloque, type InfoDia } from '@/features/calendario/components/GridMes';
+import { GridMes, type InfoDia } from '@/features/calendario/components/GridMes';
 import { TarjetaProximoEvento } from '@/features/calendario/components/TarjetaProximoEvento';
 import { colors, layout, radius, spacing } from '@/shared/ui';
 import {
   Card,
   EmptyState,
   HeaderTab,
+  PALETA_CALENDARIO_UNIMAR,
   PressableScale,
   SectionHeader,
   ThemedButton,
@@ -41,10 +45,11 @@ import {
 /**
  * Tab Agenda con la voz del calendario académico institucional: header de
  * impacto (badge azul del número de mes + nombre en mayúsculas), cápsula
- * gris del membrete semanal y grid infográfico donde RELLENO = dato
- * (bloque azul/naranja/pálido por tipo) y CONTORNO = acción (anillo de
- * selección). Agenda opt-in: tus PERSONAL + los OFICIALES que agregaste
- * desde la pantalla de eventos + los INSTITUCIONAL (fechas fijas).
+ * gris del membrete semanal y grid infográfico donde el DATO vive en PUNTOS
+ * de color (uno por naturaleza presente: institucional/campus/decanato/
+ * feriado/personal — clasificación visual en colores-evento.ts) y la ACCIÓN
+ * en el anillo de selección. Agenda opt-in: tus PERSONAL + los OFICIALES
+ * que agregaste desde la pantalla de eventos + INSTITUCIONAL/FERIADO.
  */
 export default function CalendarioScreen() {
   const insets = useSafeAreaInsets();
@@ -63,17 +68,11 @@ export default function CalendarioScreen() {
   const puntos = useMemo(() => {
     const mapa = new Map<string, InfoDia>();
     for (const grupo of grupos) {
-      const hayPor = (tipo: TipoEvento) => grupo.eventos.some((e) => e.tipo === tipo);
-      const oficial = hayPor('OFICIAL');
-      const institucional = hayPor('INSTITUCIONAL');
-      const personal = hayPor('PERSONAL');
-      const tiposActivos = [oficial, institucional, personal].filter(Boolean).length;
-      mapa.set(grupo.clave, {
-        // Precedencia: el color del tipo más "fuerte" presente; mixto marca días con varios.
-        tipo: oficial ? 'OFICIAL' : institucional ? 'INSTITUCIONAL' : 'PERSONAL',
-        mixto: tiposActivos > 1,
-        cantidad: grupo.eventos.length,
-      });
+      // Naturalezas visuales presentes ese día, sin repetir y en el orden
+      // canónico de la paleta: un punto de color por tipo en el grid.
+      const presentes = new Set(grupo.eventos.map(clasificarEventoVisual));
+      const tipos = ORDEN_PUNTOS.filter((t) => presentes.has(t));
+      mapa.set(grupo.clave, { tipos, cantidad: grupo.eventos.length });
     }
     return mapa;
   }, [grupos]);
@@ -170,9 +169,15 @@ export default function CalendarioScreen() {
             onSeleccionar={setDiaSeleccionado}
           />
           <View style={estilos.leyenda}>
-            <ItemLeyenda color={colors.brand.primary} etiqueta="Eventos UNIMAR" />
-            <ItemLeyenda color={colorBloque('PERSONAL')} etiqueta="Personales" />
-            <ItemLeyenda color={colorBloque('INSTITUCIONAL')} etiqueta="Institucionales" />
+            {(Object.keys(PALETA_CALENDARIO_UNIMAR) as (keyof typeof PALETA_CALENDARIO_UNIMAR)[]).map(
+              (tipo) => (
+                <ItemLeyenda
+                  key={tipo}
+                  color={PALETA_CALENDARIO_UNIMAR[tipo].color}
+                  etiqueta={PALETA_CALENDARIO_UNIMAR[tipo].nombre}
+                />
+              ),
+            )}
           </View>
         </Card>
 
@@ -259,12 +264,11 @@ function eventosDelDia(grupos: GrupoDia[], clave: string) {
 }
 
 function ItemLeyenda({ color, etiqueta }: { color: string; etiqueta: string }) {
-  const tinta = color === colors.brand.primary ? 'azul' : 'naranja';
   return (
     <View
       style={estilos.itemLeyenda}
       accessible
-      accessibilityLabel={`${etiqueta}: bloque ${tinta}`}>
+      accessibilityLabel={`${etiqueta}: punto ${etiqueta.toLowerCase()}`}>
       <View style={[estilos.muestraLeyenda, { backgroundColor: color }]} />
       <ThemedText variant="caption" tone="secondary">
         {etiqueta}
@@ -300,6 +304,9 @@ const estilos = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
+    // Respiro entre el "Agenda" del HeaderTab y la fila del mes: sin él
+    // el headline y el badge quedan amontonados.
+    marginTop: spacing.md,
     marginBottom: spacing.lg,
   },
   identidadMes: {
@@ -343,8 +350,8 @@ const estilos = StyleSheet.create({
     gap: spacing.xs,
   },
   muestraLeyenda: {
-    width: 8,
-    height: 8,
+    width: 6,
+    height: 6,
     borderRadius: 3,
   },
   seccionProximos: {

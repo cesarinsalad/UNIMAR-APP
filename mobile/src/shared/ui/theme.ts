@@ -54,6 +54,50 @@ export const colors = {
   },
 } as const;
 
+/**
+ * Paleta del calendario (agenda) por naturaleza del evento. Traduce la
+ * taxonomía del wire (OFICIAL/PERSONAL/INSTITUCIONAL/FERIADO) a 5 etiquetas
+ * visuales: los OFICIALES se despliegan según audiencia (global → CAMPUS;
+ * por decanatos → DECANATO). Cada entrada trae el color fuerte, el tinte
+ * pálido (bgLight) y el borde (border) que la UI consume por separado:
+ * el tinte existe para fondos con texto en el color fuerte (regla AA:
+ * el color puro nunca es fondo de texto pequeño).
+ */
+export const PALETA_CALENDARIO_UNIMAR = {
+  INSTITUCIONAL: {
+    nombre: 'Institucional',
+    color: '#0D4D98', // Azul UNIMAR / Manto de la Virgen
+    bgLight: '#EEF4FF',
+    border: '#BFDBFE',
+  },
+  CAMPUS: {
+    nombre: 'Campus',
+    color: '#059669', // Verde Cerro El Copey
+    bgLight: '#ECFDF5',
+    border: '#A7F3D0',
+  },
+  DECANATO: {
+    nombre: 'Decanato',
+    color: '#D97706', // Dorado Perla
+    bgLight: '#FFFBEB',
+    border: '#FDE68A',
+  },
+  FERIADO: {
+    nombre: 'Feriado',
+    color: '#C2410C', // Terracota Colonial
+    bgLight: '#FEF2F2',
+    border: '#FECACA',
+  },
+  PERSONAL: {
+    nombre: 'Personal',
+    color: '#7C3AED', // Violeta Trinitaria
+    bgLight: '#F5F3FF',
+    border: '#DDD6FE',
+  },
+} as const;
+
+export type TipoEventoCalendario = keyof typeof PALETA_CALENDARIO_UNIMAR;
+
 export const spacing = {
   zero: 0,
   xs: 4,

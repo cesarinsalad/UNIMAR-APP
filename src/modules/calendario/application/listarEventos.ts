@@ -10,7 +10,7 @@ import type { Evento } from '../domain/evento';
  * La visibilidad real la decide RLS en la base de datos; este caso de uso
  * solo aplica el filtro de rango, el filtro de agenda (`incluirOficiales =
  * 'agregados'` para la pestaña Agenda: solo tus PERSONAL + OFICIALES
- * agregados + INSTITUCIONAL) y la paginación. Decorar cada evento con
+ * agregados + INSTITUCIONAL/FERIADO) y la paginación. Decorar cada evento con
  * `participo` lo hace el repositorio en la misma transacción. El caller
  * (HTTP) es responsable de acotar el rango a un máximo razonable.
  */

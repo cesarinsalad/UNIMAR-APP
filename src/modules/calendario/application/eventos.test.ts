@@ -570,6 +570,60 @@ describe('CrearEvento: INSTITUCIONAL', () => {
   });
 });
 
+describe('CrearEvento: FERIADO', () => {
+  it('ADMIN crea FERIADO OK (sin audiencias ni fan-out, como INSTITUCIONAL)', async () => {
+    const { repo, calls } = makeRepo();
+    let publicarLlamado = false;
+    const bus = { publicar: async () => { publicarLlamado = true; return []; } } as unknown as EventBus;
+    const uc = new CrearEvento(repo, makeUnitOfWork(), bus);
+    await uc.ejecutar(makeAdminClaims(), {
+      titulo: 'Receso de Semana Santa',
+      tipo: 'FERIADO',
+      inicioAt: '2030-04-14T00:00:00Z',
+    });
+    expect(calls.some((c) => c.method === 'crear')).toBe(true);
+    expect(calls.some((c) => c.method === 'agregarAudiencias')).toBe(false);
+    expect(publicarLlamado).toBe(false);
+  });
+
+  it('ESTUDIANTE crea FERIADO -> ForbiddenError', async () => {
+    const { repo } = makeRepo();
+    const uc = new CrearEvento(repo, makeUnitOfWork());
+    await expect(
+      uc.ejecutar(makeEstClaims(), {
+        titulo: 't',
+        tipo: 'FERIADO',
+        inicioAt: '2030-04-14T00:00:00Z',
+      }),
+    ).rejects.toThrow(ForbiddenError);
+  });
+
+  it('COMUNICADOR crea FERIADO -> ForbiddenError', async () => {
+    const { repo } = makeRepo();
+    const uc = new CrearEvento(repo, makeUnitOfWork());
+    await expect(
+      uc.ejecutar(makeComClaims('uuid-c', 5), {
+        titulo: 't',
+        tipo: 'FERIADO',
+        inicioAt: '2030-04-14T00:00:00Z',
+      }),
+    ).rejects.toThrow(ForbiddenError);
+  });
+
+  it('FERIADO con audiencia -> BadRequestError', async () => {
+    const { repo } = makeRepo();
+    const uc = new CrearEvento(repo, makeUnitOfWork());
+    await expect(
+      uc.ejecutar(makeAdminClaims(), {
+        titulo: 't',
+        tipo: 'FERIADO',
+        inicioAt: '2030-04-14T00:00:00Z',
+        decanatoIds: [5],
+      }),
+    ).rejects.toThrow(BadRequestError);
+  });
+});
+
 describe('ParticiparEvento', () => {
   it('agrega un OFICIAL visible a la agenda (delega con claims.sub)', async () => {
     const { repo, calls } = makeRepo(makeEvento({ tipo: 'OFICIAL', decanatoIds: [5] }));
@@ -601,6 +655,15 @@ describe('ParticiparEvento', () => {
 
   it('evento INSTITUCIONAL -> BadRequestError (siempre está en la agenda)', async () => {
     const { repo, calls } = makeRepo(makeEvento({ tipo: 'INSTITUCIONAL' }));
+    const uc = new ParticiparEvento(repo, makeUnitOfWork());
+    await expect(uc.ejecutar(makeEstClaims(), 'evt-id')).rejects.toThrow(
+      BadRequestError,
+    );
+    expect(calls.some((c) => c.method === 'participar')).toBe(false);
+  });
+
+  it('evento FERIADO -> BadRequestError (siempre está en la agenda)', async () => {
+    const { repo, calls } = makeRepo(makeEvento({ tipo: 'FERIADO' }));
     const uc = new ParticiparEvento(repo, makeUnitOfWork());
     await expect(uc.ejecutar(makeEstClaims(), 'evt-id')).rejects.toThrow(
       BadRequestError,

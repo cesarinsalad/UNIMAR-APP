@@ -1,22 +1,27 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { colors, radius, spacing } from '@/shared/ui';
+import {
+  PALETA_CALENDARIO_UNIMAR,
+  colors,
+  radius,
+  spacing,
+  type TipoEventoCalendario,
+} from '@/shared/ui';
 import { ThemedText } from '@/shared/ui';
-import { type CeldaDia, type TipoPunto, desdeClave } from '../calendario-calculo';
+import { type CeldaDia, desdeClave } from '../calendario-calculo';
 
 const DIAS_SEMANA = ['LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB', 'DOM'];
 
-/** Info del día para el bloque de color y el label de accesibilidad. */
+/** Info del día para los puntos de color y el label de accesibilidad. */
 export interface InfoDia {
-  tipo: TipoPunto;
-  /** Mezcla OFICIAL+PERSONAL: bloque por tipo + punto de estado naranja. */
-  mixto?: boolean;
+  /** Naturalezas visuales presentes ese día (orden canónico, sin repetir). */
+  tipos: TipoEventoCalendario[];
   cantidad: number;
 }
 
 interface Props {
   semanas: CeldaDia[][];
-  /** Info por día (OFICIAL azul / PERSONAL naranja + cantidad de eventos). */
+  /** Info por día: los tipos presentes (un punto de color por tipo). */
   puntos: ReadonlyMap<string, InfoDia>;
   seleccionado: string | null;
   onSeleccionar: (clave: string) => void;
@@ -52,7 +57,7 @@ export function GridMes({ semanas, puntos, seleccionado, onSeleccionar }: Props)
   );
 }
 
-/** "14 de octubre de 2026" (+ ", hoy" / ", 2 eventos") para VoiceOver. */
+/** "14 de octubre de 2026" (+ ", hoy" / ", 2 eventos" / tipos) para VoiceOver. */
 function etiquetaDia(celda: CeldaDia, info: InfoDia | undefined): string {
   const fecha = desdeClave(celda.clave).toLocaleDateString('es-VE', {
     day: 'numeric',
@@ -61,8 +66,18 @@ function etiquetaDia(celda: CeldaDia, info: InfoDia | undefined): string {
   });
   const partes = [fecha];
   if (celda.esHoy) partes.push('hoy');
-  if (info) partes.push(info.cantidad === 1 ? '1 evento' : `${info.cantidad} eventos`);
+  if (info) {
+    partes.push(info.cantidad === 1 ? '1 evento' : `${info.cantidad} eventos`);
+    if (info.tipos.length > 0) partes.push(nombresTipos(info.tipos));
+  }
   return partes.join(', ');
+}
+
+/** "institucional y personal" / "campus, decanato y personal". */
+function nombresTipos(tipos: TipoEventoCalendario[]): string {
+  const nombres = tipos.map((t) => PALETA_CALENDARIO_UNIMAR[t].nombre.toLowerCase());
+  if (nombres.length <= 2) return nombres.join(' y ');
+  return `${nombres.slice(0, -1).join(', ')} y ${nombres[nombres.length - 1]}`;
 }
 
 function Celda({
@@ -91,24 +106,13 @@ function Celda({
   }
   const esSeleccionado = celda.clave === seleccionado;
   const info = puntos.get(celda.clave);
-  // Semántica de la celda: RELLENO = dato (bloque de evento / tinte de hoy);
-  // CONTORNO = acción (anillo de selección). Nunca ambos hablan de lo mismo.
-  const fondoEstilo = info
-    ? { backgroundColor: colorBloque(info.tipo) }
-    : celda.esHoy
-      ? { backgroundColor: colors.brand.surfaceBlue }
-      : null;
-  // Dígito del bloque: blanco sobre azul sólido; tinta sobre los tintes
-  // naranja/institucional (regla AA: el tono pálido solo sirve de fondo,
-  // nunca de texto).
-  const colorTexto = info
-    ? info.tipo === 'OFICIAL'
-      ? colors.text.onPrimary
-      : colors.text.primary
-    : celda.esHoy
-      ? colors.brand.primary
-      : colors.text.primary;
-  const pesoTexto = info || celda.esHoy ? 'semibold' : 'regular';
+  // Semántica de la celda: los tipos hablan por PUNTOS (uno por naturaleza
+  // presente, en su color propio — no hay mezclas ni prioridades); el
+  // CONTORNO sigue siendo la acción (anillo de selección). El tinte de
+  // "hoy" queda: es un dato del día, no de tipo.
+  const fondoEstilo = celda.esHoy ? { backgroundColor: colors.brand.surfaceBlue } : null;
+  const destacado = Boolean(info) || celda.esHoy;
+  const colorTexto = celda.esHoy ? colors.brand.primary : colors.text.primary;
 
   return (
     <Pressable
@@ -118,25 +122,20 @@ function Celda({
       style={[estilos.celda, esSeleccionado && estilos.anilloSeleccion]}
       onPress={() => onSeleccionar(celda.clave)}>
       <View style={[estilos.contenidoCelda, fondoEstilo]}>
-        <ThemedText variant="body" weight={pesoTexto} style={{ color: colorTexto }}>
+        <ThemedText
+          variant="body"
+          weight={destacado ? 'semibold' : 'regular'}
+          style={{ color: colorTexto }}>
           {String(celda.dia).padStart(2, '0')}
         </ThemedText>
-        {info?.mixto ? <View style={estilos.puntoMixto} /> : null}
+        <View style={estilos.filaPuntos}>
+          {(info?.tipos ?? []).map((tipo) => (
+            <View key={tipo} style={[estilos.punto, { backgroundColor: PALETA_CALENDARIO_UNIMAR[tipo].color }]} />
+          ))}
+        </View>
       </View>
     </Pressable>
   );
-}
-
-/** Bloque de estado del día: azul sólido (OFICIAL con dígito blanco);
- *  tinte naranja 12% (PERSONAL con dígito en tinta) — el naranja puro no
- *  alcanza AA con texto pequeño (~2.6:1), así que el color lo carga el
- *  fondo (patrón de tono al 12% de PALETA_CODIGO). INSTITUCIONAL usa el
- *  tinte azul pálido (surfaceBlue) con dígito azul para distinguirse del
- *  oficial sin meter un tercer color fuerte al grid. */
-export function colorBloque(tipo: TipoPunto): string {
-  if (tipo === 'OFICIAL') return colors.brand.primary;
-  if (tipo === 'INSTITUCIONAL') return colors.brand.surfaceBlue;
-  return `${colors.accent.urgent}1F`;
 }
 
 const estilos = StyleSheet.create({
@@ -174,22 +173,22 @@ const estilos = StyleSheet.create({
     color: colors.text.primary,
     letterSpacing: 0.5,
   },
-  // Selección = contorno (con respiro de 2px), el relleno queda para el dato.
+  // Selección = contorno (con respiro de 2px); el dato vive en los puntos.
   anilloSeleccion: {
     borderWidth: 2,
     borderColor: colors.brand.primary,
     padding: 2,
   },
-  // Día con tipos mezclados: punto de estado naranja con separación blanca
-  // sobre el bloque azul (defensa contra la vibración visual).
-  puntoMixto: {
-    width: 5,
-    height: 5,
+  filaPuntos: {
+    flexDirection: 'row',
+    gap: 3,
+    marginTop: 3,
+    minHeight: 6,
+  },
+  // Punto de naturaleza del evento: 6px redondo en el color de la paleta.
+  punto: {
+    width: 6,
+    height: 6,
     borderRadius: 3,
-    backgroundColor: colors.accent.urgent,
-    borderWidth: 1,
-    borderColor: colors.white,
-    position: 'absolute',
-    bottom: 3,
   },
 });

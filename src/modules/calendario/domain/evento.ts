@@ -12,13 +12,17 @@
  *  - INSTITUCIONAL: fechas fijas del calendario académico (solo ADMIN las
  *    crea). Visible para todos automáticamente; no se agrega ni se quita de
  *    la agenda: siempre está presente.
+ *  - FERIADO: día no laborable del calendario institucional (puentes,
+ *    recesos, efemérides). Mismo régimen que INSTITUCIONAL (solo ADMIN,
+ *    visible a todos, sin participantes) — la diferencia es solo presentacional:
+ *    la agenda y las tarjetas lo piden con su color propio.
  *
  * El campo `usuario_id` siempre está presente: es el "propietario/creador"
  * del evento, lo que permite que un ADMIN edite/elimine los oficiales que
- * él mismo creó (y los INSTITUCIONAL) sin necesidad de un campo
+ * él mismo creó (y los INSTITUCIONAL/FERIADO) sin necesidad de un campo
  * `creado_por` separado.
  */
-export const TIPOS_EVENTO = ['OFICIAL', 'PERSONAL', 'INSTITUCIONAL'] as const;
+export const TIPOS_EVENTO = ['OFICIAL', 'PERSONAL', 'INSTITUCIONAL', 'FERIADO'] as const;
 export type TipoEvento = (typeof TIPOS_EVENTO)[number];
 
 export interface Evento {

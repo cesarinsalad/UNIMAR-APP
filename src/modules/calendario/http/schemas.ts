@@ -48,7 +48,7 @@ export const editarEventoSchema = z
 export const listarEventosQuerySchema = z.object({
   desde: isoDateTime,
   hasta: isoDateTime,
-  /** 'agregados': solo PERSONAL propios + OFICIALES agregados + INSTITUCIONAL (agenda). */
+  /** 'agregados': solo PERSONAL propios + OFICIALES agregados + INSTITUCIONAL/FERIADO (agenda). */
   incluir_oficiales: z.enum(['todos', 'agregados']).default('todos'),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   offset: z.coerce.number().int().min(0).default(0),

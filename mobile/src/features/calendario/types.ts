@@ -1,7 +1,12 @@
 /** Espejo del wire de /eventos (camelCase, fechas ISO-string). */
-export type TipoEvento = 'OFICIAL' | 'PERSONAL' | 'INSTITUCIONAL';
+export type TipoEvento = 'OFICIAL' | 'PERSONAL' | 'INSTITUCIONAL' | 'FERIADO';
 
-export const TIPOS_EVENTO: readonly TipoEvento[] = ['OFICIAL', 'PERSONAL', 'INSTITUCIONAL'] as const;
+export const TIPOS_EVENTO: readonly TipoEvento[] = [
+  'OFICIAL',
+  'PERSONAL',
+  'INSTITUCIONAL',
+  'FERIADO',
+] as const;
 
 export interface Evento {
   id: string;

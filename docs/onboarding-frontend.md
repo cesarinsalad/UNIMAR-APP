@@ -220,8 +220,8 @@ envío real; `mock` lo loguea.
 
 | Método | Ruta | Rol | Descripción |
 |--------|------|-----|-------------|
-| POST | `/eventos` | todos (PERSONAL), ADMIN/COMUNICADOR (OFICIAL), ADMIN (INSTITUCIONAL) | Body: `titulo`, `descripcion`?, `tipo` (`OFICIAL`\|`PERSONAL`\|`INSTITUCIONAL`), `inicio_at`, `fin_at`?, `dia_completo`?, `recordatorio_minutos`?, `lugar`?, `decanato_ids`? |
-| GET | `/eventos?desde=&hasta=&incluir_oficiales=&limit=&offset=` | todos | Listar en rango (máx. 90 días). `incluir_oficiales`: `todos` (default; el discovery) \| `agregados` (agenda: tus PERSONAL + OFICIALES con participar + INSTITUCIONAL). Los eventos traen `participo: boolean`. |
+| POST | `/eventos` | todos (PERSONAL), ADMIN/COMUNICADOR (OFICIAL), ADMIN (INSTITUCIONAL/FERIADO) | Body: `titulo`, `descripcion`?, `tipo` (`OFICIAL`\|`PERSONAL`\|`INSTITUCIONAL`\|`FERIADO`), `inicio_at`, `fin_at`?, `dia_completo`?, `recordatorio_minutos`?, `lugar`?, `decanato_ids`? |
+| GET | `/eventos?desde=&hasta=&incluir_oficiales=&limit=&offset=` | todos | Listar en rango (máx. 90 días). `incluir_oficiales`: `todos` (default; el discovery) \| `agregados` (agenda: tus PERSONAL + OFICIALES con participar + INSTITUCIONAL/FERIADO). Los eventos traen `participo: boolean`. |
 | GET | `/eventos/:id` | todos | Detalle (incluye `participo`) |
 | PATCH | `/eventos/:id` | dueño/ADMIN | Editar (no cambia `tipo`) |
 | DELETE | `/eventos/:id` | dueño/ADMIN | Eliminar |
@@ -237,6 +237,10 @@ envío real; `mock` lo loguea.
 - `INSTITUCIONAL`: fechas fijas del calendario académico; lo crea solo el
   ADMIN, sin audiencia (siempre global), y aparece en la agenda de todos
   automáticamente.
+- `FERIADO`: día no laborable del calendario institucional (recesos, puentes,
+  efemérides); mismo régimen que INSTITUCIONAL (solo ADMIN, global, sin
+  audiencia) — la diferencia es presentacional: la app lo pinta con su color
+  propio (terracota).
 - `recordatorio_minutos`: el job del BFF notifica a los involucrados N minutos
   antes del inicio. Para OFICIAL, involucrado = participante de agenda.
 - `lugar` (opcional, ≤120 chars): ubicación del evento (aula, sala, edificio).

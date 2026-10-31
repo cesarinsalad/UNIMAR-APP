@@ -104,8 +104,21 @@ INSERT INTO eventos (titulo, descripcion, tipo, usuario_id, inicio_at, fin_at, d
   ('Ferias de las Facultades',
    'Exposición de proyectos estudiantiles de cada Facultad en el patio central.',
    'INSTITUCIONAL', (SELECT id FROM usuarios WHERE cedula = '20123456'),
-   now() + interval '45 day', now() + interval '2 day', true, 'Patio central'),
+   now() + interval '45 day', now() + interval '2 day', true, 'Patio central');
+
+-- Eventos FERIADOS: días no laborables del calendario institucional.
+-- Mismo régimen que INSTITUCIONAL (ADMIN, visible a todos); la UI los pinta
+-- con su color propio (terracota) como puntos en la agenda.
+INSERT INTO eventos (titulo, descripcion, tipo, usuario_id, inicio_at, fin_at, dia_completo, lugar) VALUES
   ('Vacaciones escolares',
    'La universidad permanecerá cerrada durante las vacaciones de fin de semestre.',
-   'INSTITUCIONAL', (SELECT id FROM usuarios WHERE cedula = '20123456'),
-   now() + interval '60 day', now() + interval '5 day', true, NULL);
+   'FERIADO', (SELECT id FROM usuarios WHERE cedula = '20123456'),
+   now() + interval '60 day', now() + interval '5 day', true, NULL),
+  ('Receso de Semana Santa',
+   'La universidad permanecerá cerrada durante el asueto de Semana Santa según el calendario institucional.',
+   'FERIADO', (SELECT id FROM usuarios WHERE cedula = '20123456'),
+   now() + interval '22 day', now() + interval '26 day', true, NULL),
+  ('Feriado conmemorativo local',
+   'Día no laborable con motivo de la efeméride institucional (vigilado por Decanato de Asuntos Estudiantiles).',
+   'FERIADO', (SELECT id FROM usuarios WHERE cedula = '20123456'),
+   now() + interval '75 day', NULL, true, NULL);
