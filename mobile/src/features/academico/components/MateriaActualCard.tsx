@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { colors, elevation, highlight, radius, spacing } from '@/shared/ui';
 import { PressableScale, ThemedText, ThemedView } from '@/shared/ui';
 import { abrevDia, colorNota, diaIsoHoy } from '../helpers';
+import { colorBarra } from './tonos-barra';
 import type { FranjaDTO, MateriaActualDTO } from '../types';
 
 interface TonosCodigo {
@@ -69,13 +70,9 @@ export function MateriaActualCard({ materia }: { materia: MateriaActualDTO }) {
         <View
           style={[
             estilos.barra,
-            // No-hoy: azul sello al 30% — el tinte pálido del card sobre
-            // blanco desaparece; esta intensidad se nota sin gritar.
-            {
-              backgroundColor: tieneClaseHoy
-                ? colors.brand.primary
-                : `${colors.brand.primary}4D`,
-            },
+            // Tonos de tonos-barra: la fuente única que comparte con la
+            // leyenda del índice — simbología que no diverge.
+            { backgroundColor: colorBarra(tieneClaseHoy) },
           ]}
         />
         <View style={estilos.cuerpo}>

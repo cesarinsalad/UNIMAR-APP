@@ -23,6 +23,7 @@ import {
 import { useMaterias } from '@/features/academico/hooks/useMaterias';
 import { AcordeonAno } from '@/features/academico/components/AcordeonAno';
 import { MateriaActualCard } from '@/features/academico/components/MateriaActualCard';
+import { LeyendaActivo } from '@/features/academico/components/LeyendaActivo';
 
 /**
  * Tab Clases (mock aprobado): header con campana, materias en curso como
@@ -100,6 +101,10 @@ export default function AcademicoScreen() {
             <ThemedText variant="caption" weight="semibold" style={estilos.etiquetaGrupo}>
               MATERIAS EN CURSO
             </ThemedText>
+            {/* Sin franjas la barra siempre es sólida: la leyenda mentiría. */}
+            {particion.actuales.some((materia) => materia.franjas?.length) ? (
+              <LeyendaActivo />
+            ) : null}
             <View style={estilos.tarjetasActuales}>
               {particion.actuales.map((materia) => (
                 <MateriaActualCard key={materia.id} materia={materia} />
