@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeftIcon, CalendarBlankIcon, ClockIcon } from 'phosphor-react-native';
 
 import {
@@ -49,7 +49,7 @@ import {
 
 /** Tipos ofrecidos en el formulario según el rol del usuario. */
 function tiposDisponibles(rol: Rol | undefined): TipoEvento[] {
-  if (rol === 'ADMIN') return ['PERSONAL', 'OFICIAL', 'INSTITUCIONAL'];
+  if (rol === 'ADMIN') return ['PERSONAL', 'OFICIAL', 'INSTITUCIONAL', 'FERIADO'];
   if (rol === 'COMUNICADOR') return ['PERSONAL', 'OFICIAL'];
   return ['PERSONAL'];
 }
@@ -58,6 +58,7 @@ const ETIQUETA_TIPO: Record<TipoEvento, string> = {
   PERSONAL: 'Personal (solo tú lo ves)',
   OFICIAL: 'Oficial (para una audiencia)',
   INSTITUCIONAL: 'Institucional (fecha fija del campus)',
+  FERIADO: 'Feriado (día no laborable)',
 };
 export default function FormularioEventoScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -65,6 +66,7 @@ export default function FormularioEventoScreen() {
   const detalle = useEventoDetalle(id ?? 'nuevo');
   const decanatos = useDecanatos();
   const usuario = useSesionStore((s) => s.usuario);
+  const insets = useSafeAreaInsets();
 
   const [titulo, setTitulo] = useState('');
   const [descripcion, setDescripcion] = useState('');
@@ -76,7 +78,7 @@ export default function FormularioEventoScreen() {
   const [errorServidor, setErrorServidor] = useState<string | null>(null);
 
   // Elección de tipo (UI): por defecto PERSONAL para todos; oficiales solo
-  // COMUNICADOR/ADMIN; INSTITUCIONAL solo ADMIN (fechas fijas del calendario
+  // COMUNICADOR/ADMIN; INSTITUCIONAL/FERIADO solo ADMIN (calendario
   // académico, sin audiencia); en edición se congela (contrato lo prohíbe
   // cambiar).
   const [tipo, setTipo] = useState<TipoEvento>('PERSONAL');
@@ -203,12 +205,21 @@ export default function FormularioEventoScreen() {
   }
 
   return (
-    <SafeAreaView style={estilos.safe}>
+    // View plano (no SafeAreaView): el inset superior es de la
+    // BarraInstitucional fuera del Stack — SafeAreaView lo duplicaría
+    // como franja canvas fija bajo la barra azul. El inferior se suma
+    // al scroll para respetar el nav del sistema.
+    <View style={estilos.safe}>
       <Stack.Screen options={{ headerShown: false }} />
       <KeyboardAvoidingView
         style={estilos.flex}
         behavior="padding">
-        <ScrollView contentContainerStyle={estilos.scroll} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={[
+            estilos.scroll,
+            { paddingBottom: spacing.lg + Math.max(insets.bottom, spacing.lg) },
+          ]}
+          showsVerticalScrollIndicator={false}>
           <View style={estilos.cabecera}>
             <BotonCircular label="Volver" onPress={() => router.back()}>
               <ArrowLeftIcon size={20} color={colors.brand.primary} weight="bold" />
@@ -396,7 +407,7 @@ export default function FormularioEventoScreen() {
           />
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 

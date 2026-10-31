@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   asignarPortada,
@@ -43,6 +43,7 @@ export default function FormularioComunicadoScreen() {
   const detalle = useComunicadoDetalle(id ?? 'nuevo');
   const decanatos = useDecanatos();
   const usuario = useSesionStore((s) => s.usuario);
+  const insets = useSafeAreaInsets();
 
   const [titulo, setTitulo] = useState('');
   const [cuerpo, setCuerpo] = useState('');
@@ -188,7 +189,11 @@ export default function FormularioComunicadoScreen() {
   const adminSinElegir = usuario?.rol === 'ADMIN' && seleccionEfectiva === null && !esEdicion;
 
   return (
-    <SafeAreaView style={estilos.safe}>
+    // View plano (no SafeAreaView): esta pantalla arranca bajo la
+    // BarraInstitucional (inset superior ya consumido fuera del Stack);
+    // SafeAreaView lo duplicaría como franja fija. El inferior se suma
+    // al scroll para respetar el nav del sistema.
+    <View style={estilos.safe}>
       <Stack.Screen
         options={{
           headerShown: true,
@@ -200,7 +205,11 @@ export default function FormularioComunicadoScreen() {
       <KeyboardAvoidingView
         style={estilos.flex}
         behavior="padding">
-        <ScrollView contentContainerStyle={estilos.scroll}>
+        <ScrollView
+          contentContainerStyle={[
+            estilos.scroll,
+            { paddingBottom: spacing.four + Math.max(insets.bottom, spacing.four) },
+          ]}>
           <Campo label="Título" error={errores.titulo}>
             <TextInput
               value={titulo}
@@ -318,7 +327,7 @@ export default function FormularioComunicadoScreen() {
           />
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 

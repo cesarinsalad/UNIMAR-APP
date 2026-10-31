@@ -1,4 +1,5 @@
-import { SafeAreaView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
 import { colors, spacing } from '@/shared/ui';
@@ -15,6 +16,9 @@ export default function NotificacionesScreen() {
   const marcarLeida = useMarcarLeida();
   const marcarTodas = useMarcarTodasLeidas();
   const total = data?.total ?? 0;
+  // El inset superior es de la BarraInstitucional (fuera del Stack); el
+  // inferior se suma manual al contenido para respetar el nav del sistema.
+  const insets = useSafeAreaInsets();
 
   function abrir(notificacion: Notificacion) {
     if (!notificacion.leida) {
@@ -27,7 +31,7 @@ export default function NotificacionesScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <View style={styles.safe}>
       <ThemedView variant="base" style={styles.header}>
         <ThemedText variant="subtitle" weight="semibold">
           Bandeja
@@ -42,10 +46,10 @@ export default function NotificacionesScreen() {
           />
         ) : null}
       </ThemedView>
-      <View style={styles.contenido}>
+      <View style={[styles.contenido, { paddingBottom: insets.bottom }]}>
         <NotificacionesList onAbrir={abrir} />
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 

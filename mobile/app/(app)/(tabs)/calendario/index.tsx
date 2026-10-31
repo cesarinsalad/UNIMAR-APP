@@ -6,7 +6,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { CaretLeftIcon, CaretRightIcon, PlusIcon } from 'phosphor-react-native';
 import { type TipoEvento } from '@/features/calendario/types';
@@ -93,7 +93,11 @@ export default function CalendarioScreen() {
   }
 
   return (
-    <SafeAreaView style={estilos.safe}>
+    // View plano (no SafeAreaView): el inset superior es de la
+    // BarraInstitucional fuera del Stack — SafeAreaView lo duplicaría
+    // como franja canvas fija bajo la barra azul. El inferior se suma
+    // manual al scroll como en el resto de las tabs.
+    <View style={estilos.safe}>
       <ScrollView
         contentContainerStyle={[
           estilos.scroll,
@@ -229,7 +233,7 @@ export default function CalendarioScreen() {
           </ThemedText>
         ) : null}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
