@@ -34,7 +34,7 @@ La paleta se rige por los lineamientos corporativos institucionales y principios
 
 ### 1.3 Acento (urgencias)
 
-* `accent/urgent` — **`#FF7A00`**: reservado con exclusividad para puntos de notificación (badges), indicadores urgentes y puntos de estado del calendario. **Nunca** en tipografía, íconos de navegación ni rellenos decorativos.
+* `accent/urgent` — **`#FF7A00`**: reservado con exclusividad para puntos de notificación (badges) e indicadores urgentes. **Nunca** en tipografía, íconos de navegación ni rellenos decorativos; el grid del calendario carga los tipos de evento con la paleta UNIMAR de puntos (ver `theme.ts`).
 
 ## 2. Tipografía y Jerarquía
 

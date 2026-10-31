@@ -178,9 +178,9 @@ pantalla: se usa para aquello sobre lo que la estudiante puede actuar o lo que
 confirma su identidad; su rareza es la que hace que se vea.
 
 **La Regla Naranja Exclusiva.** `#FF7A00` es solo para puntos de
-notificación, indicadores urgentes y estado del calendario (puntos y
-bloques de días con eventos personales) — nunca tipografía, iconos de
-navegación ni rellenos decorativos.
+notificación e indicadores urgentes — nunca tipografía, iconos de
+navegación, rellenos decorativos ni el grid del calendario (que carga los
+tipos con la paleta UNIMAR de puntos).
 
 ## Typography
 
@@ -371,18 +371,19 @@ lateral 3px).
   Membrete LUN–DOM en cápsula gris suave (`background.sunken`, pill) con
   abreviaturas caption semibold (tracking 0.5) centradas por columna; celdas
   cuadradas flex (aspectRatio 1, margen 2), bloque interior `radius.lg` (12).
-  **Semántica infográfica: relleno = dato, contorno = acción.** Día con
-  evento = bloque por tipo con cifra semibold: OFICIAL azul sólido con
-  cifra blanca; PERSONAL tinte naranja 12% con cifra en tinta — el naranja
-  (`#FF7A00`, L≈0.35) no alcanza AA 4.5:1 como texto ni como fondo de
-  texto pequeño, así que el color lo carga el fondo y el dígito queda en
-  `{colors.neutral-text-primary}` (~8.9:1); el punto de estado naranja con
-  anillo blanco marca el día mixto (OFICIAL+PERSONAL) sobre el bloque
-  azul; "hoy" sin evento = tinte
-  `{colors.surface-tint-blue}` con cifra azul semibold; selección = anillo
-  azul con respiro de 2px (nunca rellenos); días de otro mes = cifra en
-  `{colors.neutral-text-secondary}`, no interactivos. Leyenda con muestras
-  cuadradas 8px por tipo.
+  **Semántica infográfica: el tipo habla por PUNTO, el contorno es la
+  acción.** Los días del mes llevan cifra **bold** uniforme en tinta
+  (`{colors.neutral-text-primary}`) — el estatus lo cargan los puntos, no el
+  peso; bajo el dígito, una fila de puntos redondos de 6px (uno por
+  naturaleza presente, sin mezclas ni prioridad entre tipos) con los colores
+  de `PALETA_CALENDARIO_UNIMAR` (`shared/ui/theme.ts`): Institucional azul
+  `#0D4D98` · Campus verde `#059669` · Decanato dorado `#D97706` · Feriado
+  terracota `#C2410C` · Personal violeta `#7C3AED`. Los eventos OFICIALES se
+  despliegan por audiencia (global → Campus, por decanatos → Decanato);
+  "hoy" conserva el tinte `{colors.surface-tint-blue}` con cifra azul; la
+  selección es anillo azul con respiro de 2px (nunca rellenos); días de otro
+  mes = cifra regular en `{colors.border.strong}` (gris claro), no
+  interactivos. Leyenda con puntos redondos de 6px por naturaleza.
 
 ## Do's and Don'ts
 
