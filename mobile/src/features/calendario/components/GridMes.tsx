@@ -97,7 +97,8 @@ function Celda({
     return (
       <View style={estilos.celda}>
         <View style={estilos.contenidoCelda}>
-          <ThemedText variant="body" style={{ color: colors.text.secondary }}>
+          {/* Gris más claro que la tinta de secundario: apagado sin desaparecer. */}
+          <ThemedText variant="body" style={{ color: colors.border.strong }}>
             {String(celda.dia).padStart(2, '0')}
           </ThemedText>
         </View>
@@ -111,7 +112,6 @@ function Celda({
   // CONTORNO sigue siendo la acción (anillo de selección). El tinte de
   // "hoy" queda: es un dato del día, no de tipo.
   const fondoEstilo = celda.esHoy ? { backgroundColor: colors.brand.surfaceBlue } : null;
-  const destacado = Boolean(info) || celda.esHoy;
   const colorTexto = celda.esHoy ? colors.brand.primary : colors.text.primary;
 
   return (
@@ -124,7 +124,11 @@ function Celda({
       <View style={[estilos.contenidoCelda, fondoEstilo]}>
         <ThemedText
           variant="body"
-          weight={destacado ? 'semibold' : 'regular'}
+          // Cifras del mes en bold: el dígito es el elemento estable del grid
+          // y el estatus lo cargan los puntos de color debajo (no hay peso
+          // diferencial entre día con y sin eventos). Fuera de mes: regular
+          // y atenuado para no competir.
+          weight={celda.delMes ? 'bold' : 'regular'}
           style={{ color: colorTexto }}>
           {String(celda.dia).padStart(2, '0')}
         </ThemedText>
