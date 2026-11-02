@@ -370,20 +370,32 @@ lateral 3px).
 - **Grid de calendario (GridMes):** voz del calendario académico publicado.
   Membrete LUN–DOM en cápsula gris suave (`background.sunken`, pill) con
   abreviaturas caption semibold (tracking 0.5) centradas por columna; celdas
-  cuadradas flex (aspectRatio 1, margen 2), bloque interior `radius.lg` (12).
+  cuadradas flex (aspectRatio 1, margen 2), bloque interior circular CONTENIDO
+  (air interior de 4px: anillo/tinte viven en ~70% de la celda — nunca
+  empujan a las cifras vecinas), radio `radius.pill`.
   **Semántica infográfica: el tipo habla por PUNTO, el contorno es la
   acción.** Los días del mes llevan cifra **bold** uniforme en tinta
   (`{colors.neutral-text-primary}`) — el estatus lo cargan los puntos, no el
-  peso; bajo el dígito, una fila de puntos redondos de 6px (uno por
+  peso; bajo el dígito, una fila de puntos redondos de 4px (uno por
   naturaleza presente, sin mezclas ni prioridad entre tipos) con los colores
   de `PALETA_CALENDARIO_UNIMAR` (`shared/ui/theme.ts`): Institucional azul
   `#0D4D98` · Campus verde `#059669` · Decanato dorado `#D97706` · Feriado
-  terracota `#C2410C` · Personal violeta `#7C3AED`. Los eventos OFICIALES se
+  terracota `#C2410C` · Personal violeta `#7C3AED`. El círculo es el HALO
+  del dígito (~88% de la celda) y los puntos viven en la banda inferior de
+  la celda, FUERA de la circunferencia. Los eventos OFICIALES se
   despliegan por audiencia (global → Campus, por decanatos → Decanato);
-  "hoy" conserva el tinte `{colors.surface-tint-blue}` con cifra azul; la
-  selección es anillo azul con respiro de 2px (nunca rellenos); días de otro
-  mes = cifra regular en `{colors.border.strong}` (gris claro), no
-  interactivos. Leyenda con puntos redondos de 6px por naturaleza.
+  "hoy" conserva el círculo tintado `{colors.surface-tint-blue}` con cifra
+  azul; la selección es el BORDE del propio círculo (un solo elemento, sin
+  capas que alinear): día solamente con borde, "hoy" con su tinte + borde
+  encima. Las celdas llevan BASE BLANCA real (invisible sobre el card):
+  Android solo dibuja el borde por la ruta redonda cuando la vista tiene
+  color de fondo — sin drawable lo recorta cuadrado; días
+  de otro
+  mes = cifra regular en `{colors.border.strong}` (gris claro), tocables
+  igual que cualquier día: tocarlos salta al calendario de ese mes y los
+  deja seleccionados. Leyenda con puntos redondos de 4px por naturaleza
+  (banda flotante bajo la cifra: los puntos nunca participan del layout de
+  la celda — el cuadrado se mantiene).
 
 ## Do's and Don'ts
 

@@ -18,6 +18,7 @@ import {
   tituloDia,
   ventanaMes,
   claveDia,
+  desdeClave,
   type GrupoDia,
 } from '@/features/calendario/calendario-calculo';
 import {
@@ -89,6 +90,22 @@ export default function CalendarioScreen() {
     const [y, m] = (delta === -1 ? mesAnterior : mesSiguiente)(posicion[0], posicion[1]);
     setPosicion([y, m]);
     setDiaSeleccionado(null);
+  }
+
+  /**
+   * Tocar un celda: del mes mostrado → selección directa; de otro mes →
+   * salta a ese mes dejándolo seleccionado (la agenda re-carga la ventana
+   * y sus puntos aparecen con el fetch). Las flechas del header no van por
+   * aquí: mantienen su propia navegación sin selección pre-cargada.
+   */
+  function seleccionar(clave: string) {
+    const fecha = desdeClave(clave);
+    if (fecha.getFullYear() === posicion[0] && fecha.getMonth() === posicion[1]) {
+      setDiaSeleccionado(clave);
+      return;
+    }
+    setPosicion([fecha.getFullYear(), fecha.getMonth()]);
+    setDiaSeleccionado(clave);
   }
 
   return (
@@ -166,7 +183,7 @@ export default function CalendarioScreen() {
             semanas={matriz}
             puntos={puntos}
             seleccionado={seleccion}
-            onSeleccionar={setDiaSeleccionado}
+            onSeleccionar={seleccionar}
           />
           <View style={estilos.leyenda}>
             {(Object.keys(PALETA_CALENDARIO_UNIMAR) as (keyof typeof PALETA_CALENDARIO_UNIMAR)[]).map(
