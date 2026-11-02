@@ -13,7 +13,6 @@ import { aplanarPaginas } from '@/shared/lib/paginar';
 import { colors, layout, spacing } from '@/shared/ui';
 import {
   CargandoSeccion,
-  Chip,
   EmptyState,
   HeaderTab,
   PressableScale,
@@ -22,7 +21,6 @@ import {
   ThemedView,
 } from '@/shared/ui';
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
-import { usePermisos } from '@/features/identidad/hooks/usePermisos';
 import { useComunicadosFeed } from '@/features/comunicaciones/hooks/useComunicadosFeed';
 import { seleccionarParaCarrusel } from '@/features/comunicaciones/carrusel';
 import { NoticiaCompacta } from '@/features/comunicaciones/components/NoticiaCompacta';
@@ -39,7 +37,6 @@ import { useAgenda } from '@/features/calendario/hooks/useAgenda';
  */
 export default function ComunicadosScreen() {
   const insets = useSafeAreaInsets();
-  const permisos = usePermisos();
   const decanatoId = useSesionStore((s) => s.usuario?.decanato_id ?? null);
   const feed = useComunicadosFeed();
 
@@ -97,20 +94,10 @@ export default function ComunicadosScreen() {
             colors={[colors.brand.primary]}
           />
         }>
-        {/* ── Encabezado: título + campana (+ Gestionar para staff) ── */}
+        {/* ── Encabezado: título + campana ── */}
         <HeaderTab
           titulo="Noticias"
         />
-
-        {/* ── Gestionar (COMUNICADOR/ADMIN): la puerta del flujo de staff ── */}
-        {permisos.puedeCrearComunicado ? (
-          <Chip
-            etiqueta="Gestionar mis comunicados"
-            activa={false}
-            onPress={() => router.push('/comunicados/mis')}
-            style={{ alignSelf: 'flex-start' }}
-          />
-        ) : null}
 
         {/* ── Carrusel destacadas ── */}
         {feed.isPending ? (

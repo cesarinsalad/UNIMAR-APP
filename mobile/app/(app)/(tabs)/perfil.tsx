@@ -8,10 +8,12 @@ import {
   CaretRightIcon,
   QrCodeIcon,
   SignOutIcon,
+  SquaresFourIcon,
 } from 'phosphor-react-native';
 
 import { api } from '@/shared/api/axios';
 import { aRomano, etiquetaEstatus, formatoCedula } from '@/features/identidad/carnet-helpers';
+import { usePermisos } from '@/features/identidad/hooks/usePermisos';
 import { useRegistrarDispositivo } from '@/features/notificaciones/hooks/useRegistrarDispositivo';
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import { usePerfil } from '@/features/academico/hooks/usePerfil';
@@ -44,6 +46,7 @@ export default function PerfilScreen() {
 
         <TarjetaIdentidad abreCarnet={() => setCarnetAbierto(true)} perfil={perfil} />
         <TarjetaPensum />
+        <TarjetaGestion />
         <TarjetaAjustes />
         <TarjetaCerrarSesion />
       </ScrollView>
@@ -245,6 +248,22 @@ function TarjetaCerrarSesion() {
           void logout();
         }}
         onCancelar={() => setConfirmar(false)}
+      />
+    </ThemedView>
+  );
+}
+
+/** Panel de gestión (COMUNICADOR/ADMIN): la consola de staff en /gestion. */
+function TarjetaGestion() {
+  const permisos = usePermisos();
+  if (!permisos.puedeCrearComunicado) return null;
+
+  return (
+    <ThemedView variant="card" style={estilos.tarjetaFilas}>
+      <FilaIcono
+        titulo="Panel de gestión"
+        icono={<SquaresFourIcon size={20} color={colors.brand.primary} weight="duotone" />}
+        onPress={() => router.push('/gestion' as never)}
       />
     </ThemedView>
   );

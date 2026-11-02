@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
-import { Tabs, router } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   CalendarBlankIcon,
@@ -12,7 +12,6 @@ import {
 
 import { colors, elevation, radius, spacing } from '@/shared/ui/theme';
 import { ThemedText } from '@/shared/ui/ThemedText';
-import { usePermisos } from '@/features/identidad/hooks/usePermisos';
 
 /** Contrato mínimo que consume el bar (evita deep-imports de internals). */
 interface TabBarProps {
@@ -77,8 +76,6 @@ function TabBarFlotante({ state, descriptors, navigation }: TabBarProps) {
 }
 
 export default function TabsLayout() {
-  const permisos = usePermisos();
-
   return (
     <Tabs
       tabBar={(props) => <TabBarFlotante {...props} />}
@@ -113,19 +110,6 @@ export default function TabsLayout() {
               weight={focused ? 'fill' : 'regular'}
             />
           ),
-          headerRight: permisos.puedeCrearComunicado
-            ? () => (
-                <Pressable onPress={() => router.push('/comunicados/mis')}>
-                  <ThemedText
-                    variant="body"
-                    weight="semibold"
-                    tone="onPrimary"
-                    style={{ paddingHorizontal: spacing.lg }}>
-                    Gestionar
-                  </ThemedText>
-                </Pressable>
-              )
-            : undefined,
         }}
       />
       <Tabs.Screen

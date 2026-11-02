@@ -12,10 +12,13 @@ const FORMATO_FECHA = new Intl.DateTimeFormat('es-VE', { dateStyle: 'long' });
 export function ComunicadoCard({
   comunicado,
   showEstado = false,
+  bandaRevisora,
 }: {
   comunicado: Comunicado;
   /** En mis.tsx: muestra el chip de estado (línea de audiencia se mantiene). */
   showEstado?: boolean;
+  /** Consola: franja de revisión (aprobar/rechazar) al pie de ESTA tarjeta. */
+  bandaRevisora?: React.ReactNode;
 }) {
   function abrir() {
     router.push(`/comunicados/${comunicado.id}` as Parameters<typeof router.push>[0]);
@@ -55,6 +58,7 @@ export function ComunicadoCard({
             </ThemedText>
           ) : null}
         </View>
+        {bandaRevisora ? <View style={styles.banda}>{bandaRevisora}</View> : null}
       </ThemedView>
     </Pressable>
   );
@@ -99,4 +103,10 @@ const styles = StyleSheet.create({
   },
   contenido: { gap: spacing.two },
   motivo: { color: colors.status.danger },
+  banda: {
+    marginTop: spacing.two,
+    paddingTop: spacing.three,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border.subtle,
+  },
 });

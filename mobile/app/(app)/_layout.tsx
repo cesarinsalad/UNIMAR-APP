@@ -1,17 +1,22 @@
 import { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Redirect, Stack, router } from 'expo-router';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Redirect, Stack, router, usePathname } from 'expo-router';
 
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
+import { usePermisos } from '@/features/identidad/hooks/usePermisos';
 import { RegistrarDispositivoBoot } from '@/features/notificaciones/components/RegistrarDispositivoBoot';
 import { CampanaConBadge } from '@/features/notificaciones/components/CampanaConBadge';
 import { useNoLeidas } from '@/features/notificaciones/hooks/useNoLeidas';
 import { tomarRutaPendiente } from '@/shared/notifications/pendingLink';
 import { BarraInstitucional } from '@/shared/ui/BarraInstitucional';
+import { colors, radius, spacing } from '@/shared/ui';
+import { ThemedText } from '@/shared/ui/ThemedText';
 
 export default function AppLayout() {
   const token = useSesionStore((s) => s.token);
   const totalNoLeidas = useNoLeidas();
+  const permisos = usePermisos();
+  const enGestion = usePathname().startsWith('/gestion');
 
   useEffect(() => {
     // Este layout solo está montado si hay sesión, así que al consumir la
@@ -33,12 +38,31 @@ export default function AppLayout() {
       <View style={estilos.col}>
         <BarraInstitucional
           action={
-            <CampanaConBadge
-              total={totalNoLeidas.data?.total ?? 0}
-              tono="azul"
-              compacto
-              tamano={20}
-            />
+            <View style={estilos.accionesBarra}>
+              {/* Gestión (COMUNICADOR/ADMIN): la puerta de la consola de
+                  staff. Se oculta dentro de la propia consola. */}
+              {permisos.puedeCrearComunicado && !enGestion ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Panel de gestión"
+                  onPress={() => router.push('/gestion' as never)}>
+                  <View style={estilos.botonGestion}>
+                    <ThemedText
+                      variant="caption"
+                      weight="semibold"
+                      style={estilos.botonGestionTexto}>
+                      Gestión
+                    </ThemedText>
+                  </View>
+                </Pressable>
+              ) : null}
+              <CampanaConBadge
+                total={totalNoLeidas.data?.total ?? 0}
+                tono="azul"
+                compacto
+                tamano={20}
+              />
+            </View>
           }
         />
         <Stack
@@ -55,4 +79,18 @@ export default function AppLayout() {
 const estilos = StyleSheet.create({
   col: { flex: 1 },
   stack: { flex: 1 },
+  accionesBarra: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  // Botón "Gestión" sobre el azul de la barra: contorno blanco translúcido.
+  botonGestion: {
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.6)',
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.one,
+  },
+  botonGestionTexto: { color: colors.text.onPrimary },
 });

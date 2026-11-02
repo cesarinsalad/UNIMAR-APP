@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import Animated, { useReducedMotion } from 'react-native-reanimated';
 
-import { colors, radius, spacing } from './theme';
+import { colors, radius, spacing, touchTarget } from './theme';
 import { ThemedText } from './ThemedText';
 
 /**
@@ -61,13 +61,16 @@ const estilos = StyleSheet.create({
   chip: {
     borderRadius: radius.pill,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xs,
+    paddingVertical: spacing.sm,
+    minHeight: touchTarget.min,
+    alignItems: 'center',
+    justifyContent: 'center',
     transform: [{ scale: 1 }],
   },
-  /** Variante compacta de filtros: texto caption, pill más baja. */
+  /** Variante compacta de filtros: texto caption, pill del mismo alto mínimo. */
   chipSm: {
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.two,
   },
   transicion: {
     transitionProperty: 'transform, background-color',
