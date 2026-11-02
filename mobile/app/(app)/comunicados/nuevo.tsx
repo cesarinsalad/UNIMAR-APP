@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   Image,
   KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
-  TextInput,
   View,
 } from 'react-native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
@@ -33,7 +33,17 @@ import { useDecanatos } from '@/features/identidad/hooks/useDecanatos';
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import { ApiError } from '@/shared/api/axios';
 import { colors, radius, spacing } from '@/shared/ui';
-import { ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
+import {
+  Chip,
+  ContenidoCentrado,
+  TextField,
+  ThemedButton,
+  ThemedText,
+  ThemedView,
+  useEsDesktop,
+} from '@/shared/ui';
+import { etiquetaAudiencia } from '@/shared/lib/etiquetas';
+import { CuerpoMarkdown } from '@/features/comunicaciones/components/CuerpoMarkdown';
 import { useQueryClient } from '@tanstack/react-query';
 import { CLAVES_COMUNICADOS } from '@/features/comunicaciones/hooks/queryKeys';
 
@@ -49,6 +59,9 @@ export default function FormularioComunicadoScreen() {
   const [cuerpo, setCuerpo] = useState('');
   const [seleccion, setSeleccion] = useState<number[] | null>(null);
   const [errorServidor, setErrorServidor] = useState<string | null>(null);
+  // Pestañas móvil: editor ↔ vista previa (en desktop ambas conviven).
+  const [pestana, setPestana] = useState<'editar' | 'vista'>('editar');
+  const esDesktop = useEsDesktop();
   // Portada: archivo local elegido (aún sin subir) o la API/servidor en edición.
   const [portadaLocal, setPortadaLocal] = useState<ArchivoAdjunto | null>(null);
   const [quitarPortadaActual, setQuitarPortadaActual] = useState(false);
@@ -188,6 +201,160 @@ export default function FormularioComunicadoScreen() {
   const pendiente = crear.isPending || editar.isPending;
   const adminSinElegir = usuario?.rol === 'ADMIN' && seleccionEfectiva === null && !esEdicion;
 
+  const etiquetaAudienciaPreview =
+    seleccionEfectiva !== null ? etiquetaAudiencia(seleccionEfectiva) : 'Sin audiencia aún';
+
+  const vistaPrevia = (
+    <VistaPreviaComunicado
+      titulo={titulo.trim()}
+      cuerpo={cuerpo}
+      uriPortada={portadaLocal?.uri ?? portadaApi.url ?? null}
+      audiencia={etiquetaAudienciaPreview}
+      autorNombre={usuario?.nombre ?? ''}
+    />
+  );
+
+  const formulario = (
+    <View style={estilos.forma}>
+      <TextField
+        label="Título"
+        error={errores.titulo ?? undefined}
+        value={titulo}
+        onChangeText={setTitulo}
+        maxLength={200}
+        editable={!pendiente}
+        placeholder="Ej. Suspensión de clases del viernes"
+      />
+
+      <TextField
+        label={`Cuerpo (Markdown) — ${cuerpo.length}/5000`}
+        error={errores.cuerpo ?? undefined}
+        hint="Puede usar **negritas**, listas y enlaces."
+        value={cuerpo}
+        onChangeText={setCuerpo}
+        multiline
+        maxLength={5000}
+        textAlignVertical="top"
+        editable={!pendiente}
+        style={estilos.textarea}
+      />
+
+      <Campo label="Portada (opcional)">
+        {tienePortadaActual ? (
+          <View style={estilos.wrapPortada}>
+            {portadaLocal ? (
+              <Image source={{ uri: portadaLocal.uri }} style={estilos.portada} resizeMode="cover" />
+            ) : portadaApi.url ? (
+              <Image source={{ uri: portadaApi.url }} style={estilos.portada} resizeMode="cover" />
+            ) : null}
+            <ThemedButton
+              title="Quitar portada"
+              variant="ghost"
+              size="sm"
+              onPress={eliminarPortadaElegida}
+            />
+          </View>
+        ) : (
+          <View style={estilos.filaPortada}>
+            <ThemedButton
+              title="Galería"
+              variant="secondary"
+              size="sm"
+              onPress={() => void elegirPortada(false)}
+            />
+            {Platform.OS !== 'web' ? (
+              <ThemedButton
+                title="Cámara"
+                variant="secondary"
+                size="sm"
+                onPress={() => void elegirPortada(true)}
+              />
+            ) : null}
+          </View>
+        )}
+        <ThemedText variant="caption" tone="secondary">
+          Recorte 3:2. Se sube al guardar.
+        </ThemedText>
+      </Campo>
+
+      <Campo
+        label="Audiencia"
+        error={
+          usuario?.rol === 'COMUNICADOR' && !usuario.decanato_id
+            ? 'Tu cuenta no tiene decanato asignado; no puedes crear comunicados.'
+            : null
+        }>
+        {usuario?.rol === 'COMUNICADOR' ? (
+          <ThemedText variant="body" tone="secondary">
+            Este comunicado irá únicamente a tu decanato (regla anti-global del sistema).
+          </ThemedText>
+        ) : (
+          <View style={estilos.audiencias}>
+            <Pressable onPress={toggleGlobal}>
+              <ThemedView
+                variant={seleccionEfectiva?.length === 0 ? 'sunken' : 'elevated'}
+                style={estilos.chip}>
+                <ThemedText
+                  variant="caption"
+                  weight={seleccionEfectiva?.length === 0 ? 'semibold' : 'regular'}>
+                  Toda la universidad
+                </ThemedText>
+              </ThemedView>
+            </Pressable>
+            {(decanatos.data ?? []).map((d) => (
+              <Pressable key={d.id} onPress={() => toggleDecanato(d.id)}>
+                <ThemedView
+                  variant={seleccionEfectiva?.includes(d.id) ? 'sunken' : 'elevated'}
+                  style={estilos.chip}>
+                  <ThemedText
+                    variant="caption"
+                    weight={seleccionEfectiva?.includes(d.id) ? 'semibold' : 'regular'}>
+                    {d.nombre}
+                  </ThemedText>
+                </ThemedView>
+              </Pressable>
+            ))}
+          </View>
+        )}
+      </Campo>
+
+      {errorServidor ? (
+        <ThemedText variant="caption" style={estilos.errorTexto}>
+          {errorServidor}
+        </ThemedText>
+      ) : null}
+
+      <ThemedButton
+        title={esEdicion ? 'Guardar cambios' : 'Crear borrador'}
+        onPress={guardar}
+        loading={pendiente}
+        disabled={pendiente || adminSinElegir}
+      />
+    </View>
+  );
+
+  // Desktop: formulario y preview lado a lado. Móvil: pestañas que
+  // alternan el editor con la vista previa.
+  const cuerpoPrincipal = (
+    <>
+      <View style={estilos.pestanas}>
+        <Chip
+          etiqueta="Editar"
+          activa={pestana === 'editar'}
+          onPress={() => setPestana('editar')}
+          size="sm"
+        />
+        <Chip
+          etiqueta="Vista previa"
+          activa={pestana === 'vista'}
+          onPress={() => setPestana('vista')}
+          size="sm"
+        />
+      </View>
+      {pestana === 'editar' ? formulario : vistaPrevia}
+    </>
+  );
+
   return (
     // View plano (no SafeAreaView): esta pantalla arranca bajo la
     // BarraInstitucional (inset superior ya consumido fuera del Stack);
@@ -210,121 +377,16 @@ export default function FormularioComunicadoScreen() {
             estilos.scroll,
             { paddingBottom: spacing.four + Math.max(insets.bottom, spacing.four) },
           ]}>
-          <Campo label="Título" error={errores.titulo}>
-            <TextInput
-              value={titulo}
-              onChangeText={setTitulo}
-              maxLength={200}
-              editable={!pendiente}
-              style={estilos.input}
-              placeholder="Ej. Suspensión de clases del viernes"
-              placeholderTextColor={colors.text.tertiary}
-            />
-          </Campo>
-
-          <Campo label={`Cuerpo (Markdown) — ${cuerpo.length}/5000`} error={errores.cuerpo}>
-            <TextInput
-              value={cuerpo}
-              onChangeText={setCuerpo}
-              multiline
-              maxLength={5000}
-              textAlignVertical="top"
-              editable={!pendiente}
-              style={[estilos.input, estilos.textarea]}
-              placeholder="Escribe el comunicado. Puede usar **negritas**, listas y enlaces."
-              placeholderTextColor={colors.text.tertiary}
-            />
-          </Campo>
-
-          <Campo label="Portada (opcional)">
-            {tienePortadaActual ? (
-              <View style={estilos.wrapPortada}>
-                {portadaLocal ? (
-                  <Image source={{ uri: portadaLocal.uri }} style={estilos.portada} resizeMode="cover" />
-                ) : portadaApi.url ? (
-                  <Image source={{ uri: portadaApi.url }} style={estilos.portada} resizeMode="cover" />
-                ) : null}
-                <ThemedButton
-                  title="Quitar portada"
-                  variant="ghost"
-                  size="sm"
-                  onPress={eliminarPortadaElegida}
-                />
+          <ContenidoCentrado style={estilos.anchoEditor}>
+            {esDesktop ? (
+              <View style={estilos.filaEditor}>
+                <View style={estilos.formaCol}>{formulario}</View>
+                <View style={estilos.previewCol}>{vistaPrevia}</View>
               </View>
             ) : (
-              <View style={estilos.filaPortada}>
-                <ThemedButton
-                  title="Galería"
-                  variant="secondary"
-                  size="sm"
-                  onPress={() => void elegirPortada(false)}
-                />
-                <ThemedButton
-                  title="Cámara"
-                  variant="secondary"
-                  size="sm"
-                  onPress={() => void elegirPortada(true)}
-                />
-              </View>
+              cuerpoPrincipal
             )}
-            <ThemedText variant="caption" tone="secondary">
-              Recorte 3:2. Se sube al guardar.
-            </ThemedText>
-          </Campo>
-
-          <Campo
-            label="Audiencia"
-            error={
-              usuario?.rol === 'COMUNICADOR' && !usuario.decanato_id
-                ? 'Tu cuenta no tiene decanato asignado; no puedes crear comunicados.'
-                : null
-            }>
-            {usuario?.rol === 'COMUNICADOR' ? (
-              <ThemedText variant="body" tone="secondary">
-                Este comunicado irá únicamente a tu decanato (regla anti-global del sistema).
-              </ThemedText>
-            ) : (
-              <View style={estilos.audiencias}>
-                <Pressable onPress={toggleGlobal}>
-                  <ThemedView
-                    variant={seleccionEfectiva?.length === 0 ? 'sunken' : 'elevated'}
-                    style={estilos.chip}>
-                    <ThemedText
-                      variant="caption"
-                      weight={seleccionEfectiva?.length === 0 ? 'semibold' : 'regular'}>
-                      Toda la universidad
-                    </ThemedText>
-                  </ThemedView>
-                </Pressable>
-                {(decanatos.data ?? []).map((d) => (
-                  <Pressable key={d.id} onPress={() => toggleDecanato(d.id)}>
-                    <ThemedView
-                      variant={seleccionEfectiva?.includes(d.id) ? 'sunken' : 'elevated'}
-                      style={estilos.chip}>
-                      <ThemedText
-                        variant="caption"
-                        weight={seleccionEfectiva?.includes(d.id) ? 'semibold' : 'regular'}>
-                        {d.nombre}
-                      </ThemedText>
-                    </ThemedView>
-                  </Pressable>
-                ))}
-              </View>
-            )}
-          </Campo>
-
-          {errorServidor ? (
-            <ThemedText variant="caption" style={estilos.errorTexto}>
-              {errorServidor}
-            </ThemedText>
-          ) : null}
-
-          <ThemedButton
-            title={esEdicion ? 'Guardar cambios' : 'Crear borrador'}
-            onPress={guardar}
-            loading={pendiente}
-            disabled={pendiente || adminSinElegir}
-          />
+          </ContenidoCentrado>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -355,6 +417,53 @@ function Campo({
   );
 }
 
+/**
+ * Vista previa del comunicado: cómo lo verán los estudiantes en el detalle
+ * (portada 3:2, titular, autor · audiencia, cuerpo Markdown). Reusa
+ * CuerpoMarkdown para garantizar fiel reproducción del render real.
+ */
+function VistaPreviaComunicado({
+  titulo,
+  cuerpo,
+  uriPortada,
+  audiencia,
+  autorNombre,
+}: {
+  titulo: string;
+  cuerpo: string;
+  uriPortada: string | null;
+  audiencia: string;
+  autorNombre: string;
+}) {
+  return (
+    <ThemedView variant="card" style={estilos.preview}>
+      <ThemedText variant="caption" tone="tertiary">
+        Vista previa
+      </ThemedText>
+      {uriPortada ? (
+        <Image
+          source={{ uri: uriPortada }}
+          style={estilos.portadaPreview}
+          resizeMode="cover"
+        />
+      ) : null}
+      <ThemedText variant="title" weight="bold">
+        {titulo.length > 0 ? titulo : 'Comunicado sin título'}
+      </ThemedText>
+      <ThemedText variant="caption" tone="secondary">
+        {autorNombre.length > 0 ? `${autorNombre} · ${audiencia}` : audiencia}
+      </ThemedText>
+      {cuerpo.trim().length > 0 ? (
+        <CuerpoMarkdown cuerpo={cuerpo} />
+      ) : (
+        <ThemedText variant="body" tone="tertiary">
+          El cuerpo aparecerá aquí cuando lo escribas.
+        </ThemedText>
+      )}
+    </ThemedView>
+  );
+}
+
 const estilos = StyleSheet.create({
   safe: {
     flex: 1,
@@ -373,16 +482,6 @@ const estilos = StyleSheet.create({
   },
   campo: {
     gap: spacing.one,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border.subtle,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.three,
-    paddingVertical: spacing.three,
-    fontSize: 16,
-    color: colors.text.primary,
-    backgroundColor: colors.background.base,
   },
   textarea: {
     minHeight: 180,
@@ -417,5 +516,30 @@ const estilos = StyleSheet.create({
   error: {
     color: colors.status.danger,
     textAlign: 'center',
+  },
+  // El editor con preview lateral pide más ancho que el documento de
+  // lectura: sobrecarga puntual del token maxContentWidth.
+  anchoEditor: { maxWidth: 1040 },
+  filaEditor: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.xxl,
+  },
+  forma: { gap: spacing.four },
+  formaCol: { flex: 1 },
+  pestanas: {
+    flexDirection: 'row',
+    gap: spacing.two,
+  },
+  previewCol: { flex: 1 },
+  preview: {
+    width: '100%',
+    gap: spacing.three,
+  },
+  portadaPreview: {
+    width: '100%',
+    aspectRatio: 3 / 2,
+    borderRadius: radius.md,
+    backgroundColor: colors.brand.surfaceBlue,
   },
 });

@@ -1,24 +1,29 @@
 import { useState } from 'react';
 import {
   FlatList,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   View as RNView,
   type ListRenderItemInfo,
 } from 'react-native';
-import { useInfiniteQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Pressable } from 'react-native';
 
-import { aplanarPaginas, siguienteOffset } from '@/shared/lib/paginar';
-import { colors, radius, spacing } from '@/shared/ui';
-import { ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
-import { listarComunicados } from '@/features/comunicaciones/api/comunicados.api';
-import { PAGE_SIZE_COMUNICADOS } from '@/features/comunicaciones/hooks/useComunicadosFeed';
-import { CLAVES_COMUNICADOS } from '@/features/comunicaciones/hooks/queryKeys';
+import {
+  aprobarComunicado,
+  rechazarComunicado,
+} from '@/features/comunicaciones/api/comunicados.api';
 import { ComunicadoCard } from '@/features/comunicaciones/components/ComunicadoCard';
+import { ModalRechazo } from '@/features/comunicaciones/components/ModalRechazo';
+import { useMisComunicados } from '@/features/comunicaciones/hooks/useMisComunicados';
+import { useMutacionComunicado } from '@/features/comunicaciones/hooks/useMutacionComunicado';
+import { usePermisos } from '@/features/identidad/hooks/usePermisos';
+import { ApiError } from '@/shared/api/axios';
+import { aplanarPaginas } from '@/shared/lib/paginar';
+import { colors, layout, radius, spacing } from '@/shared/ui';
+import { ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
 import type { Comunicado, EstadoComunicado } from '@/features/comunicaciones/types';
 
 const CHIPS: { estado: EstadoComunicado; etiqueta: string }[] = [
@@ -30,33 +35,82 @@ const CHIPS: { estado: EstadoComunicado; etiqueta: string }[] = [
 export default function MisComunicadosScreen() {
   const [estado, setEstado] = useState<EstadoComunicado>('BORRADOR');
   const insets = useSafeAreaInsets();
+  const permisos = usePermisos();
 
-  const query = useInfiniteQuery({
-    queryKey: CLAVES_COMUNICADOS.mis(estado),
-    initialPageParam: 0,
-    queryFn: ({ pageParam }) =>
-      listarComunicados({
-        estado,
-        limit: PAGE_SIZE_COMUNICADOS,
-        offset: pageParam as number,
-      }),
-    getNextPageParam: (ultima, _todas, ultimoOffset) =>
-      siguienteOffset(ultima, ultimoOffset, PAGE_SIZE_COMUNICADOS),
-  });
-
+  const query = useMisComunicados(estado);
   const comunicados = aplanarPaginas(query.data?.pages);
 
+  // Cola "Por revisar": con PENDIENTE activo y rol ADMIN la RLS entrega la
+  // cola global, y las acciones viven en cada fila (aprobar directo,
+  // rechazar con motivo). El COMUNICADOR ve la misma pestaña como sus
+  // pendientes, sin acciones.
+  const colaRevision = estado === 'PENDIENTE' && permisos.puedeAprobar;
+
+  const aprobar = useMutacionComunicado((id: string) => aprobarComunicado(id));
+  const rechazar = useMutacionComunicado((input: { id: string; motivo: string }) =>
+    rechazarComunicado(input.id, input.motivo),
+  );
+  const [errorFila, setErrorFila] = useState<string | null>(null);
+  const [porRechazar, setPorRechazar] = useState<Comunicado | null>(null);
+
+  async function aprobarFila(id: string) {
+    setErrorFila(null);
+    try {
+      await aprobar.mutateAsync(id);
+    } catch (e) {
+      setErrorFila(
+        e instanceof ApiError ? e.message : 'No se pudo aprobar. Verifica tu conexión.',
+      );
+    }
+  }
+
+  async function rechazarFila(id: string, motivo: string) {
+    setErrorFila(null);
+    try {
+      await rechazar.mutateAsync({ id, motivo });
+    } catch (e) {
+      setErrorFila(
+        e instanceof ApiError ? e.message : 'No se pudo rechazar. Verifica tu conexión.',
+      );
+    }
+  }
+
+  function renderItem({ item }: ListRenderItemInfo<Comunicado>) {
+    if (!colaRevision) {
+      return <ComunicadoCard comunicado={item} showEstado />;
+    }
+    return (
+      <RNView>
+        <ComunicadoCard comunicado={item} showEstado />
+        <RNView style={estilos.accionesFila}>
+          <ThemedButton
+            title="Aprobar"
+            variant="secondary"
+            size="sm"
+            onPress={() => void aprobarFila(item.id)}
+          />
+          <ThemedButton
+            title="Rechazar"
+            variant="ghost"
+            size="sm"
+            onPress={() => setPorRechazar(item)}
+          />
+        </RNView>
+      </RNView>
+    );
+  }
+
   return (
-    <ThemedView variant="base" style={styles.container}>
+    <ThemedView variant="base" style={estilos.container}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chips}>
+        contentContainerStyle={estilos.chips}>
         {CHIPS.map((chip) => (
           <Pressable key={chip.estado} onPress={() => setEstado(chip.estado)}>
             <ThemedView
               variant={estado === chip.estado ? 'sunken' : 'elevated'}
-              style={styles.chip}>
+              style={estilos.chip}>
               <ThemedText variant="caption" weight={estado === chip.estado ? 'semibold' : 'regular'}>
                 {chip.etiqueta}
               </ThemedText>
@@ -64,6 +118,12 @@ export default function MisComunicadosScreen() {
           </Pressable>
         ))}
       </ScrollView>
+
+      {errorFila ? (
+        <ThemedText variant="caption" style={estilos.errorTexto}>
+          {errorFila}
+        </ThemedText>
+      ) : null}
 
       {query.isPending ? (
         <EstadoCentrado>
@@ -78,24 +138,33 @@ export default function MisComunicadosScreen() {
         <FlatList
           data={comunicados}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }: ListRenderItemInfo<Comunicado>) => (
-            <ComunicadoCard comunicado={item} showEstado />
-          )}
+          renderItem={renderItem}
           contentContainerStyle={[
-            styles.contenido,
-            { paddingBottom: insets.bottom + spacing.eight },
+            estilos.contenido,
+            { paddingBottom: insets.bottom + spacing.eight, alignSelf: 'center', width: '100%', maxWidth: layout.maxContentWidth },
           ]}
           ItemSeparatorComponent={Separador}
           ListEmptyComponent={
-            <EstadoCentrado>
-              <ThemedText variant="bodyLg" weight="semibold">
-                Nada aquí
-              </ThemedText>
-              <ThemedText tone="secondary">
-                No hay comunicados en este estado.
-              </ThemedText>
-              <ThemedButton title="Crear comunicado" size="sm" onPress={() => router.push('/comunicados/nuevo')} />
-            </EstadoCentrado>
+            colaRevision ? (
+              <EstadoCentrado>
+                <ThemedText variant="bodyLg" weight="semibold">
+                  Cola limpia
+                </ThemedText>
+                <ThemedText tone="secondary">
+                  No hay comunicados pendientes de revisión.
+                </ThemedText>
+              </EstadoCentrado>
+            ) : (
+              <EstadoCentrado>
+                <ThemedText variant="bodyLg" weight="semibold">
+                  Nada aquí
+                </ThemedText>
+                <ThemedText tone="secondary">
+                  No hay comunicados en este estado.
+                </ThemedText>
+                <ThemedButton title="Crear comunicado" size="sm" onPress={() => router.push('/comunicados/nuevo')} />
+              </EstadoCentrado>
+            )
           }
           ListFooterComponent={query.isFetchingNextPage ? <PieDePagina /> : null}
           onEndReached={() => {
@@ -116,6 +185,17 @@ export default function MisComunicadosScreen() {
       )}
 
       <RNView />
+
+      <ModalRechazo
+        visible={porRechazar !== null}
+        cargando={rechazar.isPending}
+        onCancelar={() => setPorRechazar(null)}
+        onConfirmar={(motivo) => {
+          const objetivo = porRechazar;
+          setPorRechazar(null);
+          if (objetivo) void rechazarFila(objetivo.id, motivo);
+        }}
+      />
     </ThemedView>
   );
 }
@@ -123,25 +203,25 @@ export default function MisComunicadosScreen() {
 
 function EstadoCentrado({ children, gap = false }: { children: React.ReactNode; gap?: boolean }) {
   return (
-    <ThemedView variant="base" style={[styles.estado, gap && styles.estadoConGap]}>
+    <ThemedView variant="base" style={[estilos.estado, gap && estilos.estadoConGap]}>
       {children}
     </ThemedView>
   );
 }
 
 function Separador() {
-  return <RNView style={styles.separador} />;
+  return <RNView style={estilos.separador} />;
 }
 
 function PieDePagina() {
   return (
-    <ThemedText variant="caption" tone="tertiary" style={styles.footer}>
+    <ThemedText variant="caption" tone="tertiary" style={estilos.footer}>
       Cargando más...
     </ThemedText>
   );
 }
 
-const styles = StyleSheet.create({
+const estilos = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.base,
@@ -155,6 +235,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.three,
     paddingVertical: spacing.two,
     borderRadius: radius.pill,
+  },
+  errorTexto: {
+    color: colors.status.danger,
+    paddingHorizontal: spacing.four,
+  },
+  accionesFila: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: spacing.two,
+    marginTop: spacing.two,
   },
   contenido: {
     padding: spacing.four,

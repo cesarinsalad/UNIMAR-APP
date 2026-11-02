@@ -31,7 +31,7 @@ import { useEventoDetalle } from '@/features/calendario/hooks/useEventoDetalle';
 import { useDecanatos } from '@/features/identidad/hooks/useDecanatos';
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import { ApiError } from '@/shared/api/axios';
-import { colors, radius, spacing } from '@/shared/ui';
+import { colors, layout, radius, spacing } from '@/shared/ui';
 import type { TipoEvento } from '@/features/calendario/types';
 import type { Rol } from '@/features/identidad/types';
 import {
@@ -41,6 +41,7 @@ import {
   ThemedButton,
   ThemedText,
   ThemedView,
+  useSelectorWeb,
 } from '@/shared/ui';
 
 /** Formulario crear/editar evento (estilo mock): back circular + campos en
@@ -217,7 +218,12 @@ export default function FormularioEventoScreen() {
         <ScrollView
           contentContainerStyle={[
             estilos.scroll,
-            { paddingBottom: spacing.lg + Math.max(insets.bottom, spacing.lg) },
+            {
+              paddingBottom: spacing.lg + Math.max(insets.bottom, spacing.lg),
+              alignSelf: 'center',
+              width: '100%',
+              maxWidth: layout.maxContentWidth,
+            },
           ]}
           showsVerticalScrollIndicator={false}>
           <View style={estilos.cabecera}>
@@ -421,7 +427,7 @@ function tituloFecha(fecha: Date): string {
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
-/** Campo de fecha único con picker nativo. */
+/** Campo de fecha único con picker nativo (o input web invisible). */
 function BloqueFecha({
   etiqueta,
   fecha,
@@ -433,23 +439,28 @@ function BloqueFecha({
 }) {
   const [verFecha, setVerFecha] = useState(false);
   const esIos = Platform.OS === 'ios';
+  const esWeb = Platform.OS === 'web';
+  const selectorWeb = useSelectorWeb('date', fecha, onChange);
 
   return (
     <View style={estilos.campo}>
       <ThemedText variant="bodySm" tone="primary">
         {etiqueta}
       </ThemedText>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={etiqueta}
-        onPress={() => setVerFecha(true)}
-        style={({ pressed }) => [estilos.cajaHora, pressed && { opacity: 0.85 }]}>
-        <CalendarBlankIcon size={18} color={colors.text.secondary} />
-        <ThemedText variant="body">
-          {fecha.toLocaleDateString('es-VE', { dateStyle: 'medium' })}
-        </ThemedText>
-      </Pressable>
-      {verFecha ? (
+      <View style={estilos.contenedorSelector}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={etiqueta}
+          onPress={() => (esWeb ? selectorWeb.abrir() : setVerFecha(true))}
+          style={({ pressed }) => [estilos.cajaHora, pressed && { opacity: 0.85 }]}>
+          <CalendarBlankIcon size={18} color={colors.text.secondary} />
+          <ThemedText variant="body">
+            {fecha.toLocaleDateString('es-VE', { dateStyle: 'medium' })}
+          </ThemedText>
+        </Pressable>
+        {esWeb ? selectorWeb.superpuesto : null}
+      </View>
+      {!esWeb && verFecha ? (
         <DateTimePicker
           value={fecha}
           mode="date"
@@ -472,7 +483,7 @@ function BloqueFecha({
   );
 }
 
-/** Columna de hora con caja blanca + picker nativo. */
+/** Columna de hora con caja blanca + picker nativo (o input web invisible). */
 function ColumnaHora({
   etiqueta,
   valor,
@@ -488,24 +499,29 @@ function ColumnaHora({
 }) {
   const [verHora, setVerHora] = useState(false);
   const esIos = Platform.OS === 'ios';
+  const esWeb = Platform.OS === 'web';
+  const selectorWeb = useSelectorWeb('time', valor, onChange);
 
   return (
     <View style={estilos.columnaHora}>
       <ThemedText variant="bodySm" tone="secondary">
         {etiqueta}
       </ThemedText>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={etiqueta}
-        disabled={disabled}
-        onPress={() => setVerHora(true)}
-        style={({ pressed }) => [estilos.cajaHora, pressed && { opacity: 0.85 }]}>
-        <ClockIcon size={18} color={colors.text.secondary} />
-        <ThemedText variant="body">
-          {valor.toLocaleTimeString('es-VE', { timeStyle: 'short' })}
-        </ThemedText>
-      </Pressable>
-      {verHora ? (
+      <View style={estilos.contenedorSelector}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={etiqueta}
+          disabled={disabled}
+          onPress={() => (esWeb ? selectorWeb.abrir() : setVerHora(true))}
+          style={({ pressed }) => [estilos.cajaHora, pressed && { opacity: 0.85 }]}>
+          <ClockIcon size={18} color={colors.text.secondary} />
+          <ThemedText variant="body">
+            {valor.toLocaleTimeString('es-VE', { timeStyle: 'short' })}
+          </ThemedText>
+        </Pressable>
+        {esWeb ? selectorWeb.superpuesto : null}
+      </View>
+      {!esWeb && verHora ? (
         <DateTimePicker
           value={valor}
           mode="time"
@@ -587,6 +603,10 @@ const estilos = StyleSheet.create({
   },
   campo: {
     gap: spacing.xs,
+  },
+  // Envuelve la caja táctil: ancla el input web invisible superpuesto.
+  contenedorSelector: {
+    position: 'relative',
   },
   filaHoras: {
     flexDirection: 'row',

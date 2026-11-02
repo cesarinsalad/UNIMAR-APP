@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Linking, Pressable, StyleSheet, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, View } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 
 import { urlDescargaAdjunto, type ArchivoAdjunto } from '../api/adjuntos.api';
@@ -7,7 +7,7 @@ import { tieneErroresAdjunto, validarAdjunto } from '../hooks/formulario';
 import { useAdjuntos, useEliminarAdjunto, useSubirAdjunto } from '../hooks/useAdjuntos';
 import { ApiError } from '@/shared/api/axios';
 import { colors, radius, spacing } from '@/shared/ui';
-import { ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
+import { ModalConfirmacion, ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
 import type { Adjunto } from '../types';
 
 const PICKER_TYPES = ['application/pdf', 'image/png', 'image/jpeg'];
@@ -24,6 +24,8 @@ export function SeccionAdjuntos({ comunicadoId, puedeEditar }: Props) {
   const subir = useSubirAdjunto(comunicadoId);
   const eliminar = useEliminarAdjunto(comunicadoId);
   const [error, setError] = useState<string | null>(null);
+  // Confirmación con Modal (Alert.alert es no-op en web).
+  const [porBorrar, setPorBorrar] = useState<Adjunto | null>(null);
 
   const lista = adjuntos.data ?? [];
 
@@ -73,16 +75,7 @@ export function SeccionAdjuntos({ comunicadoId, puedeEditar }: Props) {
   }
 
   function borrar(adjunto: Adjunto) {
-    Alert.alert('Eliminar adjunto', `¿Eliminar "${adjunto.nombre}"? Esta acción no se puede deshacer.`, [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Eliminar',
-        style: 'destructive',
-        onPress: () => {
-          void ejecutarBorrado(adjunto);
-        },
-      },
-    ]);
+    setPorBorrar(adjunto);
   }
 
   async function ejecutarBorrado(adjunto: Adjunto) {
@@ -159,6 +152,21 @@ export function SeccionAdjuntos({ comunicadoId, puedeEditar }: Props) {
           {error}
         </ThemedText>
       ) : null}
+
+      <ModalConfirmacion
+        visible={porBorrar !== null}
+        titulo="Eliminar adjunto"
+        mensaje={porBorrar ? `¿Eliminar "${porBorrar.nombre}"? Esta acción no se puede deshacer.` : ''}
+        textoConfirmar="Eliminar"
+        destructive
+        cargando={eliminar.isPending}
+        onConfirmar={() => {
+          const objetivo = porBorrar;
+          setPorBorrar(null);
+          if (objetivo) void ejecutarBorrado(objetivo);
+        }}
+        onCancelar={() => setPorBorrar(null)}
+      />
     </View>
   );
 }

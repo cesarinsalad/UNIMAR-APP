@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -17,7 +17,7 @@ import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import { usePerfil } from '@/features/academico/hooks/usePerfil';
 import { CarnetDigital, inicialesDe } from '@/features/identidad/components/CarnetDigital';
 import { colors, layout, radius, spacing } from '@/shared/ui';
-import { HeaderTab, PressableScale, ThemedText, ThemedView } from '@/shared/ui';
+import { HeaderTab, ModalConfirmacion, PressableScale, ThemedText, ThemedView } from '@/shared/ui';
 
 type PerfilAcademicoQuery = ReturnType<typeof usePerfil>;
 
@@ -220,19 +220,7 @@ function TarjetaAjustes() {
 /** Cerrar sesión con confirmación. */
 function TarjetaCerrarSesion() {
   const logout = useSesionStore((s) => s.logout);
-
-  const confirmar = () => {
-    Alert.alert('Cerrar sesión', '¿Seguro que quieres salir de UNIMARapp?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Cerrar sesión',
-        style: 'destructive',
-        onPress: () => {
-          void logout();
-        },
-      },
-    ]);
-  };
+  const [confirmar, setConfirmar] = useState(false);
 
   return (
     <ThemedView variant="card" style={estilos.tarjetaFilas}>
@@ -240,12 +228,24 @@ function TarjetaCerrarSesion() {
         accessibilityRole="button"
         accessibilityLabel="Cerrar sesión"
         style={estilos.filaSalir}
-        onPress={confirmar}>
+        onPress={() => setConfirmar(true)}>
         <SignOutIcon size={20} color={colors.status.danger} weight="bold" />
         <ThemedText variant="body" weight="semibold" style={estilos.salirTexto}>
           Cerrar Sesión
         </ThemedText>
       </PressableScale>
+      <ModalConfirmacion
+        visible={confirmar}
+        titulo="Cerrar sesión"
+        mensaje="¿Seguro que quieres salir de UNIMARapp?"
+        textoConfirmar="Cerrar sesión"
+        destructive
+        onConfirmar={() => {
+          setConfirmar(false);
+          void logout();
+        }}
+        onCancelar={() => setConfirmar(false)}
+      />
     </ThemedView>
   );
 }

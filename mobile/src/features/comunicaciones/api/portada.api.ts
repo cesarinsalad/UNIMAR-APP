@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import type { ArchivoAdjunto } from '../api/adjuntos.api';
@@ -18,21 +19,24 @@ const CALIDAD = 0.8;
  * está denegado (no distingue cámara/librería: el UI lo etiqueta).
  */
 export async function seleccionarPortada(desdeCamara: boolean): Promise<ArchivoAdjunto | null> {
+  // La cámara no existe en web (launchCameraAsync no está implementada):
+  // la UI web solo ofrece galería; el guard es defensa en profundidad.
+  const usarCamara = desdeCamara && Platform.OS !== 'web';
   let granted: ImagePicker.PermissionResponse;
-  if (desdeCamara) {
+  if (usarCamara) {
     granted = await ImagePicker.requestCameraPermissionsAsync();
   } else {
     granted = await ImagePicker.requestMediaLibraryPermissionsAsync();
   }
   if (!granted.granted) {
     throw new Error(
-      desdeCamara
+      usarCamara
         ? 'Permite el acceso a la cámara para elegir una portada.'
         : 'Permite el acceso a las fotos para elegir una portada.',
     );
   }
 
-  const resultado = desdeCamara
+  const resultado = usarCamara
     ? await ImagePicker.launchCameraAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
@@ -56,11 +60,18 @@ export async function seleccionarPortada(desdeCamara: boolean): Promise<ArchivoA
   const extension = mime === 'image/png' ? 'png' : 'jpg';
   const nombre = asset.fileName ?? `portada-${Date.now()}.${extension}`;
 
-  // Pickeles recortados suelen traer fileSize; si no, el filesystem mide.
+  // Pickers recortados suelen traer fileSize; si no, el filesystem mide en
+  // nativo y el blob mide en web (getInfoAsync es shim vacío en web).
   let tamano = asset.fileSize ?? 0;
   if (!tamano) {
-    const info = await FileSystem.getInfoAsync(asset.uri);
-    tamano = info.exists && info.size > 0 ? info.size : 0;
+    if (Platform.OS === 'web') {
+      tamano = await fetch(asset.uri)
+        .then((r) => r.blob())
+        .then((b) => b.size);
+    } else {
+      const info = await FileSystem.getInfoAsync(asset.uri);
+      tamano = info.exists && info.size > 0 ? info.size : 0;
+    }
   }
 
   return {

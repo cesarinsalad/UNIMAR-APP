@@ -38,6 +38,11 @@ export function ComunicadoCard({
               {chip}
             </ThemedText>
           ) : null}
+          {showEstado && comunicado.estado === 'BORRADOR' && comunicado.motivoRechazo ? (
+            <ThemedText variant="caption" numberOfLines={2} style={styles.motivo}>
+              Devuelto con motivo: {comunicado.motivoRechazo}
+            </ThemedText>
+          ) : null}
           <ThemedText variant="bodyLg" weight="semibold" numberOfLines={2}>
             {comunicado.titulo}
           </ThemedText>
@@ -93,4 +98,5 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brand.surfaceBlue,
   },
   contenido: { gap: spacing.two },
+  motivo: { color: colors.status.danger },
 });

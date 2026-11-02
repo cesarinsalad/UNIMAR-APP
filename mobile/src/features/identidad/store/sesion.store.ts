@@ -37,23 +37,45 @@ function usuarioFromClaims(claims: JwtClaims): Usuario {
   };
 }
 
-// SecureStore no existe en web (su build exporta un objeto vacío): la
-// sesión vive solo en memoria y se pierde al recargar. En nativo persiste
-// cifrada entre arranques.
+// SecureStore no existe en web (su build exporta un objeto vacío): en web
+// el token persiste en localStorage — la plataforma de staff (escritura/
+// revisión) vive en el navegador y recargar no debe desloguear. En nativo
+// persiste cifrada entre arranques. localStorage puede lanzar en modos de
+// navegación restringidos: se trata como "sin sesión recordada".
 async function persistToken(token: string): Promise<void> {
-  if (Platform.OS === 'web') return;
+  if (Platform.OS === 'web') {
+    try {
+      localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    } catch {
+      // Sin persistencia: la sesión vive en memoria hasta recargar.
+    }
+    return;
+  }
   const SecureStore = await import('expo-secure-store');
   await SecureStore.setItemAsync(TOKEN_STORAGE_KEY, token);
 }
 
 async function clearPersistedToken(): Promise<void> {
-  if (Platform.OS === 'web') return;
+  if (Platform.OS === 'web') {
+    try {
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
+    } catch {
+      // Nada recordado que limpiar.
+    }
+    return;
+  }
   const SecureStore = await import('expo-secure-store');
   await SecureStore.deleteItemAsync(TOKEN_STORAGE_KEY);
 }
 
 async function readPersistedToken(): Promise<string | null> {
-  if (Platform.OS === 'web') return null;
+  if (Platform.OS === 'web') {
+    try {
+      return localStorage.getItem(TOKEN_STORAGE_KEY);
+    } catch {
+      return null;
+    }
+  }
   const SecureStore = await import('expo-secure-store');
   return SecureStore.getItemAsync(TOKEN_STORAGE_KEY);
 }

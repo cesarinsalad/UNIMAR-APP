@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { uploadAsync } from 'expo-file-system/legacy';
 
 import { api } from '@/shared/api/axios';
@@ -71,8 +72,11 @@ export async function urlDescargaAdjunto(adjuntoId: string): Promise<string> {
 
 /**
  * Fase 2: subida DIRECTA a la URL firmada de Supabase Storage (PUT), sin
- * pasar por el BFF. Usa la API legacy del filesystem para el uploader
- * binario (uploadAsync está en expo-file-system/legacy desde SDK 54).
+ * pasar por el BFF. En nativo usa la API legacy del filesystem para el
+ * uploader binario (uploadAsync está en expo-file-system/legacy desde SDK
+ * 54). En web uploadAsync no existe (la build web de expo-file-system es
+ * un shim vacío): los pickers devuelven URIs blob:/data: que fetch
+ * materializa como Blob, y el PUT se hace con fetch del navegador.
  *
  * No lanza NotFoundError de dominio: los fallos de esta fase se propagan
  * como errores crudos y el orquestador decide el mensaje.
@@ -81,6 +85,18 @@ export async function subirArchivo(
   urlFirmada: string,
   archivo: Pick<ArchivoAdjunto, 'uri' | 'mimeType'>,
 ): Promise<void> {
+  if (Platform.OS === 'web') {
+    const blob = await fetch(archivo.uri).then((r) => r.blob());
+    const respuesta = await fetch(urlFirmada, {
+      method: 'PUT',
+      headers: { 'Content-Type': archivo.mimeType },
+      body: blob,
+    });
+    if (!respuesta.ok) {
+      throw new Error(`El servidor de adjuntos respondió ${respuesta.status}`);
+    }
+    return;
+  }
   await uploadAsync(urlFirmada, archivo.uri, {
     httpMethod: 'PUT',
     headers: { 'Content-Type': archivo.mimeType },

@@ -1,12 +1,10 @@
 import {
   ActivityIndicator,
   Image,
-  Modal,
   Pressable,
   ScrollView,
   Share,
   StyleSheet,
-  TextInput,
   View,
 } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
@@ -22,6 +20,7 @@ import {
   solicitarRevisionComunicado,
 } from '@/features/comunicaciones/api/comunicados.api';
 import { CuerpoMarkdown } from '@/features/comunicaciones/components/CuerpoMarkdown';
+import { ModalRechazo } from '@/features/comunicaciones/components/ModalRechazo';
 import { SeccionAdjuntos } from '@/features/comunicaciones/components/SeccionAdjuntos';
 import { accionesPermitidas } from '@/features/comunicaciones/hooks/accionesPermitidas';
 import {
@@ -151,7 +150,6 @@ function DetalleLector({
   const archivar = useMutacionComunicado(() => archivarComunicado(comunicadoId));
 
   const [modalAbierto, setModalAbierto] = useState(false);
-  const [motivo, setMotivo] = useState('');
   const [errorMutacion, setErrorMutacion] = useState<string | null>(null);
 
   const algunaPendiente =
@@ -305,53 +303,16 @@ function DetalleLector({
         </View>
       </ScrollView>
 
-      {/* ── Modal del rechazo (gestión) ── */}
-      <Modal
+      {/* ── Modal del rechazo (gestión, compartido con la cola) ── */}
+      <ModalRechazo
         visible={modalAbierto}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setModalAbierto(false)}>
-        <View style={estilos.modalFondo}>
-          <ThemedView variant="card" style={estilos.modalTarjeta}>
-            <ThemedText variant="subtitle" weight="semibold">
-              Motivo del rechazo
-            </ThemedText>
-            <ThemedText variant="caption" tone="secondary">
-              Se informará al autor vía notificación (COMUNICADO_RECHAZADO).
-            </ThemedText>
-            <TextInput
-              value={motivo}
-              onChangeText={setMotivo}
-              multiline
-              maxLength={500}
-              textAlignVertical="top"
-              style={[estilos.input, estilos.textarea]}
-              placeholder="Explica por qué se devuelve al autor..."
-              placeholderTextColor={colors.text.secondary}
-              editable={!rechazar.isPending}
-            />
-            <View style={estilos.modalBotones}>
-              <ThemedButton
-                title="Cancelar"
-                variant="ghost"
-                size="sm"
-                onPress={() => setModalAbierto(false)}
-              />
-              <ThemedButton
-                title="Rechazar"
-                size="sm"
-                loading={rechazar.isPending}
-                disabled={motivo.trim().length === 0 || rechazar.isPending}
-                onPress={() => {
-                  const motivoLimpio = motivo.trim();
-                  setModalAbierto(false);
-                  void ejecutarAccion(() => rechazar.mutateAsync(motivoLimpio));
-                }}
-              />
-            </View>
-          </ThemedView>
-        </View>
-      </Modal>
+        cargando={rechazar.isPending}
+        onCancelar={() => setModalAbierto(false)}
+        onConfirmar={(motivoLimpio) => {
+          setModalAbierto(false);
+          void ejecutarAccion(() => rechazar.mutateAsync(motivoLimpio));
+        }}
+      />
     </View>
   );
 }
@@ -489,7 +450,14 @@ const estilos = StyleSheet.create({
     paddingBottom: layout.bottomTabInset,
     gap: spacing.lg,
   },
-  contenido: { gap: spacing.lg },
+  // Documento centrado en desktop (maxWidth editorial); en móvil la
+  // ventana es más angosta y el estilo no cambia nada.
+  contenido: {
+    gap: spacing.lg,
+    width: '100%',
+    maxWidth: layout.maxContentWidth,
+    alignSelf: 'center',
+  },
   metaFila: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -539,30 +507,5 @@ const estilos = StyleSheet.create({
     flexWrap: 'wrap',
   },
   footer: { marginTop: spacing.xs },
-  modalFondo: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.four,
-  },
-  modalTarjeta: { width: '100%', gap: spacing.two },
-  modalBotones: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: spacing.two,
-    marginTop: spacing.one,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border.subtle,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.three,
-    paddingVertical: spacing.three,
-    fontSize: 16,
-    color: colors.text.primary,
-    backgroundColor: colors.background.base,
-  },
-  textarea: { minHeight: 100 },
   errorTexto: { color: colors.status.danger },
 });

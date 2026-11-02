@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   StyleSheet,
   View,
@@ -26,9 +25,10 @@ import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import type { Evento } from '@/features/calendario/types';
 import { colorBarra, horaRango } from '@/features/calendario/components/TarjetaProximoEvento';
 import { ApiError } from '@/shared/api/axios';
-import { colors, elevation, highlight, radius, spacing } from '@/shared/ui';
+import { colors, elevation, highlight, layout, radius, spacing } from '@/shared/ui';
 import {
   BotonCircular,
+  ModalConfirmacion,
   SectionHeader,
   ThemedButton,
   ThemedText,
@@ -122,17 +122,8 @@ function Documento({
   const eliminar = useMutacionEvento(() => eliminarEvento(eventoId));
   const participar = useParticipacion();
   const [errorMutacion, setErrorMutacion] = useState<string | null>(null);
-
-  function confirmarEliminacion() {
-    Alert.alert('Eliminar evento', `¿Eliminar "${evento.titulo}"? Esta acción no se puede deshacer.`, [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Eliminar',
-        style: 'destructive',
-        onPress: () => void ejecutarEliminacion(),
-      },
-    ]);
-  }
+  // Confirmación con Modal (Alert.alert es no-op en web).
+  const [confirmarBorrado, setConfirmarBorrado] = useState(false);
 
   async function ejecutarEliminacion() {
     setErrorMutacion(null);
@@ -232,7 +223,7 @@ function Documento({
                 size="sm"
                 loading={eliminar.isPending}
                 disabled={eliminar.isPending}
-                onPress={confirmarEliminacion}
+                onPress={() => setConfirmarBorrado(true)}
               />
             ) : null}
           </View>
@@ -244,6 +235,20 @@ function Documento({
           </ThemedText>
         ) : null}
       </ScrollView>
+
+      <ModalConfirmacion
+        visible={confirmarBorrado}
+        titulo="Eliminar evento"
+        mensaje={`¿Eliminar "${evento.titulo}"? Esta acción no se puede deshacer.`}
+        textoConfirmar="Eliminar"
+        destructive
+        cargando={eliminar.isPending}
+        onConfirmar={() => {
+          setConfirmarBorrado(false);
+          void ejecutarEliminacion();
+        }}
+        onCancelar={() => setConfirmarBorrado(false)}
+      />
     </Animated.View>
   );
 }
@@ -293,11 +298,16 @@ const estilos = StyleSheet.create({
   // EL documento: un solo papel bond expandido a pantalla (4 esquinas
   // redondeadas sobre el canvas, receta oficial del Card). El margen
   // inferior local respeta el safe-area de la barra de control Android.
+  // En desktop se limita al ancho editorial y se centra; en móvil la
+  // ventana es más angosta y el estilo no cambia nada.
   documento: {
     flex: 1,
     backgroundColor: colors.bg.surface,
     borderRadius: radius.card,
     marginHorizontal: spacing.lg,
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: layout.maxContentWidth,
     gap: spacing.md,
     ...elevation.sm,
     ...highlight.sm,

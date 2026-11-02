@@ -72,7 +72,12 @@ export default function ListadoEventosScreen() {
           keyExtractor={(g) => g.clave}
           contentContainerStyle={[
             estilos.contenido,
-            { paddingBottom: insets.bottom + layout.bottomTabInset },
+            {
+              paddingBottom: insets.bottom + layout.bottomTabInset,
+              alignSelf: 'center',
+              width: '100%',
+              maxWidth: layout.maxContentWidth,
+            },
           ]}
           renderItem={({ item }) => (
             <View key={item.clave} style={estilos.grupo}>
