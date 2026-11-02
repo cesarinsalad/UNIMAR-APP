@@ -327,6 +327,18 @@ lateral 3px).
   `caption` gris metadato debajo; chevrones de navegación y botón de crear
   a la derecha. Mayúsculas con peso 600 — El Bold 700 sostenido sigue
   reservado al logotipo institucional.
+- **Header de día (Agenda):** el mismo motivo escalado al día — badge azul
+  44px con el número del día a 2 dígitos, día de la semana en MAYÚSCULAS
+  `title` 600 azul y "Mes de Año" en `caption` gris. Corona la lista del
+  día seleccionado DIRECTAMENTE sobre canvas (nunca una tarjeta envolvente:
+  card anidando cards está prohibido); cuando el día es hoy lleva la
+  píldora "Hoy" (fondo `surface-tint-blue`, texto azul `caption` 600, la
+  firma de la píldora "Ahora" de AgendaDia). En consecuencia, las tarjetas
+  de la lista del día van en modo `compacta`: la columna fecha se vuelve
+  la receta de columna dura de `AgendaDia` (hora inicio `bodySm` 600 +
+  hora fin `caption` debajo, min-width 52) y la meta conserva solo el
+  lugar — el bloque "19 · SEP" sería redundante bajo un header que ya
+  nombra el día.
 
 ### Signatures
 

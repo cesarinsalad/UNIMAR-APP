@@ -15,7 +15,6 @@ import {
   matrizMes,
   mesAnterior,
   mesSiguiente,
-  tituloDia,
   ventanaMes,
   claveDia,
   desdeClave,
@@ -198,12 +197,39 @@ export default function CalendarioScreen() {
           </View>
         </Card>
 
-        <Card style={estilos.seccionDia} paddingV="md">
-          <ThemedText variant="body" weight="semibold">
-            {tituloDia(seleccion)}
-          </ThemedText>
-          <EventosDelDia eventos={eventosDelDia(grupos, seleccion)} />
-        </Card>
+      <View style={estilos.seccionDia}>
+        <View style={estilos.cabeceraDia}>
+          <View style={estilos.badgeDia}>
+            <ThemedText
+              variant="subtitle"
+              weight="semibold"
+              accessibilityLabel={`Día ${desdeClave(seleccion).getDate()} de ${mesYAno(seleccion).toLowerCase()}`}
+              style={estilos.textoBadgeDia}>
+              {String(desdeClave(seleccion).getDate()).padStart(2, '0')}
+            </ThemedText>
+          </View>
+          <View style={estilos.identidadDia}>
+            <ThemedText
+              variant="title"
+              weight="semibold"
+              accessibilityRole="header"
+              style={estilos.nombreDia}>
+              {nombreDiaSemana(seleccion)}
+            </ThemedText>
+            <ThemedText variant="caption" tone="secondary">
+              {mesYAno(seleccion)}
+            </ThemedText>
+          </View>
+          {seleccion === claveDia(hoy) ? (
+            <View style={estilos.pillHoy}>
+              <ThemedText variant="caption" weight="semibold" style={estilos.pillHoyTexto}>
+                Hoy
+              </ThemedText>
+            </View>
+          ) : null}
+        </View>
+        <EventosDelDia eventos={eventosDelDia(grupos, seleccion)} />
+      </View>
 
         <SectionHeader
           title="Próximos eventos"
@@ -264,6 +290,20 @@ function nombreMes(year: number, mesLocal: number): string {
   return new Date(year, mesLocal, 1)
     .toLocaleDateString('es-VE', { month: 'long' })
     .toUpperCase();
+}
+
+/** Día de la semana es-VE: rótulo en mayúsculas del header del día
+ *  (misma firma tipográfica que el header de mes). */
+function nombreDiaSemana(clave: string): string {
+  return desdeClave(clave).toLocaleDateString('es-VE', { weekday: 'long' }).toUpperCase();
+}
+
+/** "Noviembre de 2026": caption del header del día — el espejo del caption
+ *  de año que acompaña al nombre del mes. */
+function mesYAno(clave: string): string {
+  const fecha = desdeClave(clave);
+  const mes = fecha.toLocaleDateString('es-VE', { month: 'long' });
+  return `${mes.charAt(0).toUpperCase()}${mes.slice(1)} de ${fecha.getFullYear()}`;
 }
 
 /** Hoy si está en la matriz visible; si no, el primer día del mes. */
@@ -383,7 +423,43 @@ const estilos = StyleSheet.create({
   },
   seccionDia: {
     marginTop: spacing.xl,
+  },
+  /** Header de identidad del día: badge azul con el número + día de semana
+   *  en mayúsculas + caption mes/año — espejo exacto de la firma del
+   *  header de mes (badgeMes/nombreMes) con la píldora "Hoy" de AgendaDia. */
+  cabeceraDia: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.md,
+    marginBottom: spacing.md,
+  },
+  badgeDia: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.button,
+    backgroundColor: colors.brand.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  textoBadgeDia: {
+    color: colors.text.onPrimary,
+  },
+  identidadDia: {
+    flex: 1,
+    gap: 2,
+  },
+  nombreDia: {
+    color: colors.brand.primary,
+    letterSpacing: 0.5,
+  },
+  pillHoy: {
+    backgroundColor: colors.brand.surfaceBlue,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+  },
+  pillHoyTexto: {
+    color: colors.brand.primary,
   },
   centro: {
     alignItems: 'center',

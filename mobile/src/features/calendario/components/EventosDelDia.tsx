@@ -6,10 +6,13 @@ import { TarjetaProximoEvento, type EventoResumen } from './TarjetaProximoEvento
 import type { Evento } from '../types';
 
 /**
- * Cards del día seleccionado en Agenda — misma receta de evento
- * (TarjetaProximoEvento, modo compacto) que el resto del sistema; la barra
- * lateral de color por naturaleza (paleta UNIMAR) es el único diferencial
- * de tipo. Nada de tokens legacy ni tercera forma de dibujar un evento.
+ * Lista del día seleccionado en Agenda — la misma receta de evento
+ * (TarjetaProximoEvento, modo compacto) con la columna dura de hora en vez
+ * del bloque de fecha: el día lo nombra el encabezado de identidad de la
+ * sección (badge azul + día de semana en mayúsculas, espejo del header de
+ * mes), y la barra lateral de color por naturaleza (paleta UNIMAR) sigue
+ * siendo el único diferencial de tipo. Nada de tokens legacy ni tercera
+ * forma de dibujar un evento.
  */
 export function EventosDelDia({ eventos }: { eventos: Array<{
   id: string;
