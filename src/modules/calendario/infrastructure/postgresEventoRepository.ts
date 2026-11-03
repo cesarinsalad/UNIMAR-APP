@@ -117,6 +117,48 @@ export class PostgresEventoRepository implements IEventoRepository {
       incluirOficiales: 'todos' | 'agregados';
     },
   ): Promise<Evento[]> {
+    const { whereSql, params } = this.construirWhere(filtro);
+    params.push(filtro.limit, filtro.offset);
+
+    const rows = await tx.query<EventoRow>(
+      `${BASE_SELECT}
+        ${whereSql}
+        GROUP BY e.id
+        ORDER BY e.inicio_at ASC
+        LIMIT $${params.length - 1} OFFSET $${params.length}`,
+      params,
+    );
+
+    return this.decorarParticipaciones(tx, filtro.usuarioId, rows.rows);
+  }
+
+  async contar(
+    tx: DbTx,
+    filtro: {
+      desde: Date;
+      hasta: Date;
+      usuarioId: string;
+      incluirOficiales: 'todos' | 'agregados';
+    },
+  ): Promise<number> {
+    const { whereSql, params } = this.construirWhere(filtro);
+    // Sin LEFT JOIN de audiencias (el WHERE no lo usa) ni LIMIT: el total
+    // del rango completo. RLS recorta con las mismas claims que listar.
+    const result = await tx.query<{ n: number }>(
+      `SELECT count(*)::int AS n FROM eventos e ${whereSql}`,
+      params,
+    );
+    return result.rows[0]?.n ?? 0;
+  }
+
+  private construirWhere(
+    filtro: {
+      desde: Date;
+      hasta: Date;
+      usuarioId: string;
+      incluirOficiales: 'todos' | 'agregados';
+    },
+  ): { whereSql: string; params: (Date | string | number)[] } {
     const params: (Date | string | number)[] = [filtro.desde, filtro.hasta];
     const where: string[] = ['e.inicio_at >= $1', 'e.inicio_at <= $2'];
 
@@ -135,18 +177,7 @@ export class PostgresEventoRepository implements IEventoRepository {
         )`,
       );
     }
-    params.push(filtro.limit, filtro.offset);
-
-    const rows = await tx.query<EventoRow>(
-      `${BASE_SELECT}
-        WHERE ${where.join(' AND ')}
-        GROUP BY e.id
-        ORDER BY e.inicio_at ASC
-        LIMIT $${params.length - 1} OFFSET $${params.length}`,
-      params,
-    );
-
-    return this.decorarParticipaciones(tx, filtro.usuarioId, rows.rows);
+    return { whereSql: `WHERE ${where.join(' AND ')}`, params };
   }
 
   async participar(tx: DbTx, eventoId: string, usuarioId: string): Promise<void> {

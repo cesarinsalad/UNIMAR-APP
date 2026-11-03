@@ -61,6 +61,8 @@ function makeRepo(estadoInicial: Comunicado['estado']): IComunicadoRepository {
       return store;
     },
     registrarLectura: async () => {},
+    contar: async () => 0,
+    contarPorEstado: async () => ({ BORRADOR: 0, PENDIENTE: 0, PUBLICADO: 0, ARCHIVADO: 0 }),
     contarLecturas: async () => 0,
   };
 }

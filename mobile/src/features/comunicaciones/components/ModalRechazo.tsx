@@ -8,9 +8,13 @@ export interface ModalRechazoProps {
   visible: boolean;
   /** Mutación en curso: congela textarea y botón, muestra carga. */
   cargando?: boolean;
+  /** Error de la mutación: se muestra DENTRO; el modal no se cierra para
+   * no perder el motivo escrito. Se limpia al cancelar o reintentar. */
+  error?: string;
   onCancelar: () => void;
-  /** Recibe el motivo ya recortado (trim); vacío no dispara confirmación. */
-  onConfirmar: (motivo: string) => void;
+  /** Recibe el motivo ya recortado (trim); vacío no dispara confirmación.
+   * Puede ser async: si la promesa falla el caller deja el modal abierto. */
+  onConfirmar: (motivo: string) => void | Promise<void>;
 }
 
 /**
@@ -21,6 +25,7 @@ export interface ModalRechazoProps {
 export function ModalRechazo({
   visible,
   cargando = false,
+  error,
   onCancelar,
   onConfirmar,
 }: ModalRechazoProps) {
@@ -53,6 +58,11 @@ export function ModalRechazo({
             placeholderTextColor={colors.text.secondary}
             editable={!cargando}
           />
+          {error ? (
+            <ThemedText variant="caption" style={estilos.errorTexto}>
+              {error}
+            </ThemedText>
+          ) : null}
           <View style={estilos.botones}>
             <ThemedButton
               title="Cancelar"
@@ -106,5 +116,8 @@ const estilos = StyleSheet.create({
   },
   textarea: {
     minHeight: 96,
+  },
+  errorTexto: {
+    color: colors.status.danger,
   },
 });

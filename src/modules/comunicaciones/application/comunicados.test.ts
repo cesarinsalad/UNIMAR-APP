@@ -22,6 +22,7 @@ import { ArchivarComunicado } from './archivarComunicado';
 import { EstadisticasComunicado } from './estadisticasComunicado';
 import { ObtenerComunicado } from './obtenerComunicado';
 import { ListarComunicados } from './listarComunicados';
+import { ConteosComunicados } from './conteosComunicados';
 
 // fakeTx es un objeto vacío: los repositorios mock no lo tocan realmente.
 const fakeTx = {} as DbTx;
@@ -100,6 +101,14 @@ function makeRepo(initial: Comunicado | null = null): { repo: IComunicadoReposit
     listar: async (tx, filtro) => {
       calls.push({ method: 'listar', args: [filtro] });
       return store ? [store] : [];
+    },
+    contar: async (_tx, filtro) => {
+      calls.push({ method: 'contar', args: [filtro] });
+      return store ? 1 : 0;
+    },
+    contarPorEstado: async (_tx) => {
+      calls.push({ method: 'contarPorEstado', args: [] });
+      return { BORRADOR: store && store.estado === 'BORRADOR' ? 1 : 0, PENDIENTE: 0, PUBLICADO: 0, ARCHIVADO: 0 };
     },
     actualizar: async (tx, id, input) => {
       calls.push({ method: 'actualizar', args: [id, input] });
@@ -439,18 +448,33 @@ describe('ObtenerComunicado', () => {
 });
 
 describe('ListarComunicados', () => {
-  it('delega al repo con los filtros recibidos', async () => {
+  it('delega al repo con los filtros recibidos (items + total con el mismo filtro)', async () => {
     const { repo, calls } = makeRepo(makeComunicado({ estado: 'PUBLICADO' }));
     const uc = new ListarComunicados(repo, makeUnitOfWork());
     const result = await uc.ejecutar(makeComComunicador(), { estado: 'PUBLICADO', limit: 10, offset: 0 });
-    expect(result.length).toBe(1);
+    expect(result.total).toBe(1);
+    expect(result.items.length).toBe(1);
     expect(calls[0]?.method).toBe('listar');
+    expect(calls.some((c) => c.method === 'contar' && (c.args[0] as { estado?: string }).estado === 'PUBLICADO')).toBe(true);
   });
 
   it('sin filtro de estado, delega con filtro parcial', async () => {
     const { repo, calls } = makeRepo();
     const uc = new ListarComunicados(repo, makeUnitOfWork());
-    await uc.ejecutar(makeComComunicador(), { limit: 5, offset: 0 });
+    const result = await uc.ejecutar(makeComComunicador(), { limit: 5, offset: 0 });
     expect(calls[0]?.method).toBe('listar');
+    expect(result.items.length).toBe(0);
+    expect(result.total).toBe(0);
+  });
+});
+
+describe('ConteosComunicados', () => {
+  it('delega a contarPorEstado y devuelve un conteo por estado', async () => {
+    const { repo, calls } = makeRepo(makeComunicado({ estado: 'BORRADOR' }));
+    const uc = new ConteosComunicados(repo, makeUnitOfWork());
+    const conteos = await uc.ejecutar(makeComComunicador());
+    expect(conteos.BORRADOR).toBe(1);
+    expect(conteos.PENDIENTE).toBe(0);
+    expect(calls.some((c) => c.method === 'contarPorEstado')).toBe(true);
   });
 });

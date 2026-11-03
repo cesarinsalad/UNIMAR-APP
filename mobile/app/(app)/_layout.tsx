@@ -16,7 +16,13 @@ export default function AppLayout() {
   const token = useSesionStore((s) => s.token);
   const totalNoLeidas = useNoLeidas();
   const permisos = usePermisos();
-  const enGestion = usePathname().startsWith('/gestion');
+  const pathname = usePathname();
+  // Oculto no solo dentro de la consola, sino también en los editores de
+  // staff (los [id]/nuevo ya traen la acción "Editar" o su propio header,
+  // y el botón duplicado quedaba encimado sobre esa capa).
+  const enGestion = pathname.startsWith('/gestion');
+  const enEditorStaff =
+    pathname.startsWith('/comunicados/nuevo') || pathname.startsWith('/eventos/nuevo');
 
   useEffect(() => {
     // Este layout solo está montado si hay sesión, así que al consumir la
@@ -39,9 +45,10 @@ export default function AppLayout() {
         <BarraInstitucional
           action={
             <View style={estilos.accionesBarra}>
-              {/* Gestión (COMUNICADOR/ADMIN): la puerta de la consola de
-                  staff. Se oculta dentro de la propia consola. */}
-              {permisos.puedeCrearComunicado && !enGestion ? (
+            {/* Gestión (COMUNICADOR/ADMIN): la puerta de la consola de
+                staff. Se oculta dentro de la propia consola y de los
+                editores (redundante). */}
+            {permisos.puedeCrearComunicado && !enGestion && !enEditorStaff ? (
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Panel de gestión"

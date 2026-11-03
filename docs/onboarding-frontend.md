@@ -97,6 +97,10 @@ Base URL: `http://localhost:3000/api/v1`.
 **Envoltorio de respuesta:**
 - Éxito: `{ "data": <payload> }`
 - Error: `{ "error": { "code": "SNAKE_CASE", "message": "..." } }`
+- Listados de comunicados/eventos: el payload es una **página**
+  `{ items: [...], total: <number> }` (total = count filtrado bajo RLS,
+  fin de paginación exacto). El resto de listados (notificaciones, etc.)
+  siguen entregando el arreglo plano bajo `data`.
 
 **Convención:** el JSON se envía y recibe en **`snake_case`** (p. ej.
 `decanato_ids`, `programado_para`, `mime_type`).
@@ -145,7 +149,8 @@ enviarlo en el header `Authorization` de los demás requests.
 | Método | Ruta | Rol | Descripción |
 |--------|------|-----|-------------|
 | POST | `/comunicados` | COMUNICADOR | Crear (body: `titulo`, `cuerpo` [Markdown], `decanato_ids`[], `programado_para`?, `expira_at`?) |
-| GET | `/comunicados?estado=&categoria=&q=&limit=&offset=` | todos | Listar visibles. `q` busca por título (ILIKE, máx 100 chars). `limit` 1-100 (default 20). |
+| GET | `/comunicados?estado=&categoria=&q=&limit=&offset=` | todos | Listar visibles. **Wire: `{ items, total }`** — el total viene del count bajo las mismas claims (RLS), paginación con fin exacto. `q` busca por título **o cuerpo** (ILIKE, máx 100 chars). `limit` 1-100 (default 20). |
+| GET | `/comunicados/conteos` | COMUNICADOR | Conteos por estado bajo RLS — `{ BORRADOR, PENDIENTE, PUBLICADO, ARCHIVADO }` (números del Panel de Gestión, no cotas "N+"). |
 | GET | `/comunicados/:id` | todos | Detalle (registra lectura si no eres autor) |
 | PATCH | `/comunicados/:id` | autor/ADMIN | Editar (solo BORRADOR/PUBLICADO) |
 | POST | `/comunicados/:id/solicitar-revision` | autor | BORRADOR → PENDIENTE |
@@ -221,7 +226,7 @@ envío real; `mock` lo loguea.
 | Método | Ruta | Rol | Descripción |
 |--------|------|-----|-------------|
 | POST | `/eventos` | todos (PERSONAL), ADMIN/COMUNICADOR (OFICIAL), ADMIN (INSTITUCIONAL/FERIADO) | Body: `titulo`, `descripcion`?, `tipo` (`OFICIAL`\|`PERSONAL`\|`INSTITUCIONAL`\|`FERIADO`), `inicio_at`, `fin_at`?, `dia_completo`?, `recordatorio_minutos`?, `lugar`?, `decanato_ids`? |
-| GET | `/eventos?desde=&hasta=&incluir_oficiales=&limit=&offset=` | todos | Listar en rango (máx. 90 días). `incluir_oficiales`: `todos` (default; el discovery) \| `agregados` (agenda: tus PERSONAL + OFICIALES con participar + INSTITUCIONAL/FERIADO). Los eventos traen `participo: boolean`. |
+| GET | `/eventos?desde=&hasta=&incluir_oficiales=&limit=&offset=` | todos | Listar en rango (máx. 90 días). **Wire: `{ items, total }`** (count bajo las mismas claims). `incluir_oficiales`: `todos` (default; el discovery) \| `agregados` (agenda: tus PERSONAL + OFICIALES con participar + INSTITUCIONAL/FERIADO). Los eventos traen `participo: boolean`. |
 | GET | `/eventos/:id` | todos | Detalle (incluye `participo`) |
 | PATCH | `/eventos/:id` | dueño/ADMIN | Editar (no cambia `tipo`) |
 | DELETE | `/eventos/:id` | dueño/ADMIN | Eliminar |

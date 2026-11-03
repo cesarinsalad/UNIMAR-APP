@@ -20,6 +20,7 @@ import type { EventBus } from '../../shared/kernel/eventos';
 import { CrearComunicado } from './application/crearComunicado';
 import { EditarComunicado } from './application/editarComunicado';
 import { ListarComunicados } from './application/listarComunicados';
+import { ConteosComunicados } from './application/conteosComunicados';
 import { ObtenerComunicado } from './application/obtenerComunicado';
 import { SolicitarRevision } from './application/solicitarRevision';
 import { AprobarComunicado } from './application/aprobarComunicado';
@@ -66,6 +67,7 @@ export function createComunicacionesModule(deps: ComunicacionesModuleDeps): Comu
   const crear = new CrearComunicado(comunicadoRepo, deps.uow);
   const editar = new EditarComunicado(comunicadoRepo, deps.uow);
   const listar = new ListarComunicados(comunicadoRepo, deps.uow);
+  const conteos = new ConteosComunicados(comunicadoRepo, deps.uow);
   const obtener = new ObtenerComunicado(comunicadoRepo, deps.uow);
   const solicitarRevision = new SolicitarRevision(comunicadoRepo, deps.uow);
   const aprobar = new AprobarComunicado(comunicadoRepo, deps.uow, deps.eventos);
@@ -100,6 +102,7 @@ export function createComunicacionesModule(deps: ComunicacionesModuleDeps): Comu
       crear,
       editar,
       listar,
+      conteos,
       obtener,
       solicitarRevision,
       aprobar,

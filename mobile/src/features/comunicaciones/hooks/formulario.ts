@@ -75,11 +75,7 @@ export function clampAudiencia(
 
 // ─── Adjuntos (espejo de adjuntosSchemas del BFF) ──────────────────────────
 
-export interface ErroresAdjunto {
-  nombre: string | null;
-  mimeType: string | null;
-  tamano: string | null;
-}
+/** La declaración única de `ErroresAdjunto` vive arriba (línea 12). */
 
 /**
  * Validación de un archivo antes de pedir URL firmada (evita el 400).

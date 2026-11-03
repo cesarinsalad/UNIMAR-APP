@@ -31,6 +31,19 @@ export interface IComunicadoRepository {
     filtro: { estado?: Estado; categoria?: string; q?: string; limit: number; offset: number },
   ): Promise<Comunicado[]>;
 
+  /**
+   * Cuenta con los mismos filtros de `listar` pero sin limit/offset, para
+   * paginación con total conocido ("N de M"). RLS recorta el count igual
+   * que el listado (mismas claims dentro del UnitOfWork).
+   */
+  contar(
+    tx: DbTx,
+    filtro: { estado?: Estado; categoria?: string; q?: string },
+  ): Promise<number>;
+
+  /** Conteo agrupado por estado (una sola query, bajo RLS). Para el Panel. */
+  contarPorEstado(tx: DbTx): Promise<Record<Estado, number>>;
+
   actualizar(
     tx: DbTx,
     id: string,

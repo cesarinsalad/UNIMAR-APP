@@ -296,6 +296,11 @@ export default function FormularioEventoScreen() {
               />
             ) : null}
           </View>
+          {errores.rango ? (
+            <ThemedText variant="caption" style={estilos.errorRango}>
+              {errores.rango}
+            </ThemedText>
+          ) : null}
           <View style={estilos.filaTodoDia}>
             <ThemedText variant="bodySm" tone="secondary">
               ¿Todo el día?
@@ -405,7 +410,7 @@ export default function FormularioEventoScreen() {
           ) : null}
 
           <ThemedButton
-            title={esEdicion ? 'Guardar Evento' : 'Guardar Evento'}
+            title="Guardar evento"
             onPress={guardar}
             loading={pendiente}
             disabled={pendiente}
@@ -651,6 +656,9 @@ const estilos = StyleSheet.create({
     textDecorationLine: 'underline',
   },
   errorTexto: {
+    color: colors.status.danger,
+  },
+  errorRango: {
     color: colors.status.danger,
   },
 });

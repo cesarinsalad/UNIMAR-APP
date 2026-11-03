@@ -1,6 +1,7 @@
 import type { DbTx } from '../../../shared/kernel/db';
 import type { IComunicadoRepository } from '../domain/ports';
 import type { Comunicado, Estado } from '../domain/comunicado';
+import { ESTADOS } from '../domain/comunicado';
 
 interface ComunicadoRow {
   id: string;
@@ -58,6 +59,42 @@ const BASE_SELECT = `
   FROM comunicados c
   LEFT JOIN comunicado_audiencias ca ON ca.comunicado_id = c.id
 `;
+
+interface FiltroComunicados {
+  estado?: Estado;
+  categoria?: string;
+  /** Búsqueda textual: título O cuerpo (ILIKE, case-insensitive). */
+  q?: string;
+}
+
+/**
+ * Constructor de WHERE compartido entre `listar` y `contar`: el total y los
+ * items se calculan con exactamente el mismo filtro, así la paginación
+ * nunca desincroniza. Referencias solo a `c.*` (sin JOIN de audiencias),
+ * lo que permite que `contar` no necesite el LEFT JOIN.
+ */
+function construirWhere(filtro: FiltroComunicados): {
+  whereSql: string;
+  params: (string | number)[];
+} {
+  const params: (string | number)[] = [];
+  const where: string[] = [];
+
+  if (filtro.estado) {
+    params.push(filtro.estado);
+    where.push(`c.estado = $${params.length}`);
+  }
+  if (filtro.categoria) {
+    params.push(filtro.categoria);
+    where.push(`c.categoria = $${params.length}`);
+  }
+  if (filtro.q) {
+    params.push(`%${filtro.q}%`);
+    where.push(`(c.titulo ILIKE $${params.length} OR c.cuerpo ILIKE $${params.length})`);
+  }
+
+  return { whereSql: where.length > 0 ? `WHERE ${where.join(' AND ')}` : '', params };
+}
 
 /**
  * Implementación de IComunicadoRepository sobre PostgreSQL.
@@ -126,29 +163,13 @@ export class PostgresComunicadoRepository implements IComunicadoRepository {
     filtro: {
       estado?: Estado;
       categoria?: string;
-      /** Búsqueda textual por título (ILIKE, case-insensitive). */
+      /** Búsqueda textual: título O cuerpo (ILIKE, case-insensitive). */
       q?: string;
       limit: number;
       offset: number;
     },
   ): Promise<Comunicado[]> {
-    const params: (string | number)[] = [];
-    const where: string[] = [];
-
-    if (filtro.estado) {
-      params.push(filtro.estado);
-      where.push(`c.estado = $${params.length}`);
-    }
-    if (filtro.categoria) {
-      params.push(filtro.categoria);
-      where.push(`c.categoria = $${params.length}`);
-    }
-    if (filtro.q) {
-      params.push(`%${filtro.q}%`);
-      where.push(`c.titulo ILIKE $${params.length}`);
-    }
-
-    const whereSql = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
+    const { whereSql, params } = construirWhere(filtro);
     params.push(filtro.limit, filtro.offset);
 
     const result = await tx.query<ComunicadoRow>(
@@ -156,6 +177,32 @@ export class PostgresComunicadoRepository implements IComunicadoRepository {
       params,
     );
     return result.rows.map(mapRow);
+  }
+
+  async contar(
+    tx: DbTx,
+    filtro: { estado?: Estado; categoria?: string; q?: string },
+  ): Promise<number> {
+    const { whereSql, params } = construirWhere(filtro);
+    // Sin LEFT JOIN de audiencias (el WHERE no lo usa): un JOIN agrupado
+    // inflaría filas sin COUNT(DISTINCT). RLS recorta el count con las
+    // mismas claims que el listado (misma tx del UnitOfWork).
+    const result = await tx.query<{ n: number }>(
+      `SELECT count(*)::int AS n FROM comunicados c ${whereSql}`,
+      params,
+    );
+    return result.rows[0]?.n ?? 0;
+  }
+
+  async contarPorEstado(tx: DbTx): Promise<Record<Estado, number>> {
+    const conteos = Object.fromEntries(ESTADOS.map((e) => [e, 0])) as Record<Estado, number>;
+    const result = await tx.query<{ estado: Estado; n: number }>(
+      'SELECT estado, count(*)::int AS n FROM comunicados GROUP BY estado',
+    );
+    for (const row of result.rows) {
+      conteos[row.estado] = row.n;
+    }
+    return conteos;
   }
 
   async actualizar(

@@ -47,6 +47,21 @@ export interface IEventoRepository {
   ): Promise<Evento[]>;
 
   /**
+   * Cuenta con el mismo filtro de rango/agenda de `listar`, sin limit/offset,
+   * para paginación con total conocido. RLS recorta el count igual que el
+   * listado (mismas claims dentro del UnitOfWork).
+   */
+  contar(
+    tx: DbTx,
+    filtro: {
+      desde: Date;
+      hasta: Date;
+      usuarioId: string;
+      incluirOficiales: 'todos' | 'agregados';
+    },
+  ): Promise<number>;
+
+  /**
    * Agrega el evento a la agenda del usuario (`evento_participantes`).
    * Idempotente: re-agregar no es error (ON CONFLICT DO NOTHING).
    */

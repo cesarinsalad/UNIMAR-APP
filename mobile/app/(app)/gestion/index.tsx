@@ -1,17 +1,18 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import {
   ArrowLeftIcon,
   CalendarBlankIcon,
   ClipboardTextIcon,
+  SignOutIcon,
   SquaresFourIcon,
 } from 'phosphor-react-native';
 
 import { usePermisos } from '@/features/identidad/hooks/usePermisos';
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import { colors, radius, spacing, touchTarget } from '@/shared/ui';
-import { ThemedButton, ThemedText, ThemedView, useEsDesktop } from '@/shared/ui';
+import { ThemedText, ThemedView, useEsDesktop } from '@/shared/ui';
 import type { EstadoComunicado } from '@/features/comunicaciones/types';
 import { PanelSeccion } from './_secciones/PanelSeccion';
 import { ColasSeccion } from './_secciones/ColasSeccion';
@@ -41,6 +42,9 @@ export default function ConsolaGestionScreen() {
   const permisos = usePermisos();
   const usuario = useSesionStore((s) => s.usuario);
   const esDesktop = useEsDesktop();
+  // En web no existe "la app": el link "Volver a la app" sería muerto
+  // (la compuerta del root rebota `/` de vuelta a la consola).
+  const esWeb = Platform.OS === 'web';
   const { seccion: seccionParam, estado: estadoParam } = useLocalSearchParams<{
     seccion?: string;
     estado?: string;
@@ -79,8 +83,7 @@ export default function ConsolaGestionScreen() {
 
   if (esDesktop) {
     return (
-      <View style={estilos.fila}>
-        <ThemedView variant="base" style={estilos.sidebar}>
+      <View style={estilos.fila}>        <ThemedView variant="base" style={estilos.sidebar}>
           <View style={estilos.sidebarCabecera}>
             <ThemedText variant="subtitle" weight="bold">
               Gestión
@@ -124,32 +127,37 @@ export default function ConsolaGestionScreen() {
             })}
           </View>
 
+          {/* Cerrar sesión: acción del staff en la barra; el store limpia
+              sesión y el guard del (app) rebota a /login. */}
           <View style={estilos.accionesSidebar}>
-            <ThemedButton
-              title="Nuevo comunicado"
-              variant="secondary"
-              size="sm"
-              onPress={() => router.push('/comunicados/nuevo' as never)}
-            />
-            <ThemedButton
-              title="Nuevo evento"
-              variant="secondary"
-              size="sm"
-              onPress={() => router.push('/eventos/nuevo' as never)}
-            />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Cerrar sesión"
+              onPress={() => {
+                void useSesionStore.getState().logout();
+              }}>
+              <View style={estilos.volverFila}>
+                <SignOutIcon size={16} color={colors.status.danger} />
+                <ThemedText variant="bodySm" weight="medium" style={estilos.salirTexto}>
+                  Cerrar sesión
+                </ThemedText>
+              </View>
+            </Pressable>
           </View>
 
-          <Pressable
-            accessibilityRole="link"
-            accessibilityLabel="Volver a la app"
-            onPress={() => router.navigate('/')}>
-            <View style={estilos.volverFila}>
-              <ArrowLeftIcon size={16} color={colors.text.secondary} />
-              <ThemedText variant="bodySm" tone="secondary" weight="medium">
-                Volver a la app
-              </ThemedText>
-            </View>
-          </Pressable>
+          {!esWeb ? (
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="Volver a la app"
+              onPress={() => router.navigate('/')}>
+              <View style={estilos.volverFila}>
+                <ArrowLeftIcon size={16} color={colors.text.secondary} />
+                <ThemedText variant="bodySm" tone="secondary" weight="medium">
+                  Volver a la app
+                </ThemedText>
+              </View>
+            </Pressable>
+          ) : null}
         </ThemedView>
 
         <View style={estilos.contenido}>{seccionActiva}</View>
@@ -246,6 +254,7 @@ const estilos = StyleSheet.create({
     gap: spacing.sm,
     marginTop: spacing.md,
   },
+  salirTexto: { color: colors.status.danger },
   volverFila: {
     flexDirection: 'row',
     alignItems: 'center',

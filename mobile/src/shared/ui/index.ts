@@ -29,6 +29,8 @@ export { BotonCircular } from './BotonCircular';
 export { HeaderTab } from './HeaderTab';
 export { Chip } from './Chip';
 export { CargandoSeccion } from './CargandoSeccion';
+export { Skeleton, SkeletonCard } from './Skeleton';
+export { EstadoCentrado, Separador, SeparadorFino, TextoError } from './EstadosBasicos';
 export { SectionHeader, type SectionHeaderProps } from './SectionHeader';
 export { ListItem, type ListItemProps } from './ListItem';
 export { EmptyState, type EmptyStateProps } from './EmptyState';

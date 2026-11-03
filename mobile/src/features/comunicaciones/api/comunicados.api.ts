@@ -1,10 +1,11 @@
 import { api } from '@/shared/api/axios';
+import type { PaginaRemota } from '@/shared/lib/paginar';
 import type { Comunicado, EstadoComunicado } from '../types';
 
 export interface FiltroComunicados {
   estado?: EstadoComunicado;
   categoria?: string;
-  /** Búsqueda textual por título (el BFF aplica ILIKE). */
+  /** Búsqueda textual: título O cuerpo (el BFF aplica ILIKE). */
   q?: string;
   limit: number;
   offset: number;
@@ -13,9 +14,12 @@ export interface FiltroComunicados {
 /**
  * Query snake_case como el resto del contrato de request del BFF.
  * `estado` es un enum opcional de Zod: se omite si viene undefined.
+ * Wire: { items, total } — total del count bajo las mismas claims (RLS).
  */
-export async function listarComunicados(filtro: FiltroComunicados): Promise<Comunicado[]> {
-  const { data } = await api.get<Comunicado[]>('/comunicados', {
+export async function listarComunicados(
+  filtro: FiltroComunicados,
+): Promise<PaginaRemota<Comunicado>> {
+  const { data } = await api.get<PaginaRemota<Comunicado>>('/comunicados', {
     params: {
       estado: filtro.estado,
       categoria: filtro.categoria,
@@ -24,6 +28,14 @@ export async function listarComunicados(filtro: FiltroComunicados): Promise<Comu
       offset: filtro.offset,
     },
   });
+  return data;
+}
+
+/** Conteos por estado para el Panel de Gestión (números exactos, no cotas). */
+export type ConteosComunicados = Record<EstadoComunicado, number>;
+
+export async function conteosComunicados(): Promise<ConteosComunicados> {
+  const { data } = await api.get<ConteosComunicados>('/comunicados/conteos');
   return data;
 }
 

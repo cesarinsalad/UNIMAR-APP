@@ -6,10 +6,7 @@ import {
   MegaphoneIcon,
 } from 'phosphor-react-native';
 
-import { useMisComunicados } from '@/features/comunicaciones/hooks/useMisComunicados';
-import { etiquetaConteo } from '@/features/comunicaciones/hooks/contadores';
-import { PAGE_SIZE_COMUNICADOS } from '@/features/comunicaciones/hooks/useComunicadosFeed';
-import { aplanarPaginas } from '@/shared/lib/paginar';
+import { useConteosComunicados } from '@/features/comunicaciones/hooks/useConteosComunicados';
 import { usePermisos } from '@/features/identidad/hooks/usePermisos';
 import { colors, spacing } from '@/shared/ui';
 import { ContenidoCentrado, IconTile, PressableCard, SectionHeader, ThemedText, ThemedView } from '@/shared/ui';
@@ -23,33 +20,32 @@ export interface PanelSeccionProps {
 
 /**
  * Panel de la consola de staff: lanzador de publicación (nuevo comunicado/
- * evento) y contadores con acceso a las colas. El conteo se calcula con la
- * primera página del hook de gestión; página llena → "N+" (la API no
- * expone total). Sección, no pantall: el cambio lo maneja la consola.
+ * evento) y contadores con acceso a las colas. Los conteos vienen del
+ * endpoint de conteos (GROUP BY estado bajo RLS) — números exactos, no
+ * cotas "N+" de la primera página. Sección, no pantalla: el cambio lo
+ * maneja la consola (index.tsx).
  */
 export function PanelSeccion({ onIrColas, onIrEventos }: PanelSeccionProps) {
   const permisos = usePermisos();
+  const { conteos, error: errorConteos } = useConteosComunicados();
 
-  const borradores = useMisComunicados('BORRADOR');
-  const pendientes = useMisComunicados('PENDIENTE');
-  const archivados = useMisComunicados('ARCHIVADO');
-
-  function conteo(query: ReturnType<typeof useMisComunicados>): string {
-    if (query.isPending) return '…';
-    return etiquetaConteo(aplanarPaginas(query.data?.pages).length, PAGE_SIZE_COMUNICADOS);
+  function conteo(estado: EstadoComunicado): string {
+    if (conteos) return `${conteos[estado]}`;
+    // Error (p. ej. BFF viejo sin /conteos aún) → "—" honesto; cargando "…".
+    return errorConteos ? '—' : '…';
   }
 
   const colas: { estado: EstadoComunicado; etiqueta: string; conteo: string; nota: string }[] = [
     {
       estado: 'BORRADOR',
       etiqueta: 'Borradores',
-      conteo: conteo(borradores),
+      conteo: conteo('BORRADOR'),
       nota: 'Solo tú los ves.',
     },
     {
       estado: 'PENDIENTE',
       etiqueta: permisos.esAdmin ? 'Por revisar' : 'Pendientes',
-      conteo: conteo(pendientes),
+      conteo: conteo('PENDIENTE'),
       nota: permisos.esAdmin
         ? 'Tu cola es global: incluye a todos los comunicadores.'
         : 'Esperando el visto bueno del ADMIN.',
@@ -57,7 +53,7 @@ export function PanelSeccion({ onIrColas, onIrEventos }: PanelSeccionProps) {
     {
       estado: 'ARCHIVADO',
       etiqueta: 'Archivados',
-      conteo: conteo(archivados),
+      conteo: conteo('ARCHIVADO'),
       nota: 'Publicados que se retiraron del feed.',
     },
   ];
@@ -184,6 +180,7 @@ const estilos = StyleSheet.create({
   },
   colaConteo: {
     color: colors.brand.primary,
+    fontVariant: ['tabular-nums'],
   },
   ayudaCard: {
     gap: spacing.xs,

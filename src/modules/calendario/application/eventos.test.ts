@@ -101,6 +101,10 @@ function makeRepo(initial: Evento | null = null): { repo: IEventoRepository; cal
       calls.push({ method: 'listar', args: [filtro] });
       return store ? [store] : [];
     },
+    contar: async (_tx, filtro) => {
+      calls.push({ method: 'contar', args: [filtro] });
+      return store ? 1 : 0;
+    },
     actualizar: async (_tx, id, input) => {
       calls.push({ method: 'actualizar', args: [id, input] });
       if (store && store.id === id) {
@@ -479,7 +483,8 @@ describe('ListarEventos', () => {
       limit: 20,
       offset: 0,
     });
-    expect(result).toHaveLength(1);
+    expect(result.total).toBe(1);
+    expect(result.items).toHaveLength(1);
     const args = calls.find((c) => c.method === 'listar')?.args[0] as {
       desde: Date;
       hasta: Date;
@@ -494,6 +499,16 @@ describe('ListarEventos', () => {
     expect(args.usuarioId).toBe('uuid-est');
     expect(args.limit).toBe(20);
     expect(args.offset).toBe(0);
+    const argsContar = calls.find((c) => c.method === 'contar')?.args[0] as {
+      desde: Date;
+      hasta: Date;
+      incluirOficiales: 'todos' | 'agregados';
+      usuarioId: string;
+    };
+    expect(argsContar.desde).toEqual(desde);
+    expect(argsContar.hasta).toEqual(hasta);
+    expect(argsContar.usuarioId).toBe('uuid-est');
+    expect(argsContar.incluirOficiales).toBe('todos');
   });
 });
 

@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   FlatList,
   Pressable,
   RefreshControl,
   StyleSheet,
+  TextInput,
   View,
   type ListRenderItemInfo,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MagnifyingGlassIcon, XIcon } from 'phosphor-react-native';
 
 import {
   aprobarComunicado,
@@ -17,16 +19,31 @@ import {
 import { ComunicadoCard } from '@/features/comunicaciones/components/ComunicadoCard';
 import { ModalRechazo } from '@/features/comunicaciones/components/ModalRechazo';
 import { chipEstado } from '@/features/comunicaciones/helpers';
-import { useMisComunicados } from '@/features/comunicaciones/hooks/useMisComunicados';
-import { useMutacionComunicado } from '@/features/comunicaciones/hooks/useMutacionComunicado';
+import { useMisComunicados, totalDeCola } from '@/features/comunicaciones/hooks/useMisComunicados';
+import {
+  useTransicionComunicado,
+} from '@/features/comunicaciones/hooks/useMutacionComunicado';
 import { accionesPermitidas } from '@/features/comunicaciones/hooks/accionesPermitidas';
 import { usePermisos } from '@/features/identidad/hooks/usePermisos';
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import { etiquetaAudiencia } from '@/shared/lib/etiquetas';
 import { ApiError } from '@/shared/api/axios';
 import { aplanarPaginas } from '@/shared/lib/paginar';
-import { colors, spacing } from '@/shared/ui';
-import { Chip, ThemedButton, ThemedText, ThemedView, useEsDesktop } from '@/shared/ui';
+import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
+import { colors, radius, spacing } from '@/shared/ui';
+import {
+  Chip,
+  EstadoCentrado,
+  Separador,
+  SeparadorFino,
+  SkeletonCard,
+  TextoError,
+  ThemedButton,
+  ThemedText,
+  ThemedView,
+  useEsDesktop,
+} from '@/shared/ui';
+import { FORMATO_FECHA_MEDIO } from '@/shared/lib/formatos';
 import type { Comunicado, EstadoComunicado } from '@/features/comunicaciones/types';
 
 const ESTADOS: { estado: EstadoComunicado; etiqueta: string }[] = [
@@ -35,7 +52,12 @@ const ESTADOS: { estado: EstadoComunicado; etiqueta: string }[] = [
   { estado: 'ARCHIVADO', etiqueta: 'Archivados' },
 ];
 
-const FORMATO_FECHA = new Intl.DateTimeFormat('es-VE', { dateStyle: 'medium' });
+const CATEGORIAS_COLA: { valor: string; etiqueta: string }[] = [
+  { valor: '', etiqueta: 'Todas' },
+  { valor: 'ACADEMICO', etiqueta: 'Académico' },
+  { valor: 'EVENTO', etiqueta: 'Eventos' },
+  { valor: 'INSTITUCIONAL', etiqueta: 'Institucional' },
+];
 
 export interface ColasSeccionProps {
   /** El estado (BORRADOR/PENDIENTE/ARCHIVADO) lo dueña la consola. */
@@ -44,32 +66,49 @@ export interface ColasSeccionProps {
 }
 
 /**
- * Colas de gestión: chips de estado + lista (cards en móvil, tabla en
- * desktop) con acciones inline para el ADMIN en PENDIENTE (aprobar directo
- * / rechazar con motivo). La RLS decide el alcance: ADMIN ve la cola
- * global del estado; comunicador lo suyo.
+ * Colas de gestión: chips de estado + búsqueda server-side + chips de
+ * categoría + lista (cards en móvil, tabla en desktop) con acciones inline
+ * para el ADMIN en PENDIENTE (aprobar directo / rechazar con motivo).
+ * Transiciones OPTIMISTAS: la fila sale al instante; si el BFF rechaza,
+ * vuelve exactamente como estaba. La RLS decide el alcance.
  */
 export function ColasSeccion({ estado, onEstado }: ColasSeccionProps) {
   const insets = useSafeAreaInsets();
   const esDesktop = useEsDesktop();
   const permisos = usePermisos();
 
-  const query = useMisComunicados(estado);
+  const [textoBusqueda, setTextoBusqueda] = useState('');
+  const busqueda = useDebouncedValue(textoBusqueda.trim());
+  const [categoria, setCategoria] = useState('');
+
+  const query = useMisComunicados(estado, {
+    q: busqueda || undefined,
+    categoria: categoria || undefined,
+  });
   const comunicados = aplanarPaginas(query.data?.pages);
+  // Total exacto del BFF (count bajo RLS): "N en la cola" real, no cota.
+  const totalCola = totalDeCola(query);
 
   // Cola "Por revisar": la RLS entrega la cola global al ADMIN y solo lo
   // propio al comunicador; las acciones bloquean el estado del card.
   const colaRevision = estado === 'PENDIENTE' && permisos.puedeAprobar;
 
-  const aprobar = useMutacionComunicado((id: string) => aprobarComunicado(id));
-  const rechazar = useMutacionComunicado((input: { id: string; motivo: string }) =>
-    rechazarComunicado(input.id, input.motivo),
+  const aprobar = useTransicionComunicado<{ id: string }>((id) =>
+    aprobarComunicado(id),
+  );
+  const rechazar = useTransicionComunicado<{ id: string; motivo: string }>(
+    (id, motivo) => rechazarComunicado(id, motivo),
   );
   const [erroresFila, setErroresFila] = useState<Record<string, string>>({});
   const [filaEnVuelo, setFilaEnVuelo] = useState<string | null>(null);
   const [porRechazar, setPorRechazar] = useState<Comunicado | null>(null);
+  const [errorRechazo, setErrorRechazo] = useState<string | null>(null);
 
   const ocupado = aprobar.isPending || rechazar.isPending;
+
+  useEffect(() => {
+    if (porRechazar === null) setErrorRechazo(null);
+  }, [porRechazar]);
 
   function limpiarErrorFila(id: string) {
     setErroresFila((prev) => {
@@ -83,7 +122,7 @@ export function ColasSeccion({ estado, onEstado }: ColasSeccionProps) {
     limpiarErrorFila(id);
     setFilaEnVuelo(id);
     try {
-      await aprobar.mutateAsync(id);
+      await aprobar.mutateAsync({ id });
     } catch (e) {
       setErroresFila((prev) => ({
         ...prev,
@@ -94,16 +133,24 @@ export function ColasSeccion({ estado, onEstado }: ColasSeccionProps) {
     }
   }
 
-  async function rechazarFila(id: string, motivo: string) {
-    limpiarErrorFila(id);
-    setFilaEnVuelo(id);
+  /**
+   * Rechazo SIN perder el motivo: el modal NO se cierra antes de saber el
+   * desenlace. Si sale bien, se cierra (y el estado del comunicado vuelve a
+   * BORRADOR con el motivo federado por la mutación optimista); si falla,
+   * el modal permanece abierto con el texto intacto y el error mostrado.
+   */
+  async function confirmarRechazo(motivo: string) {
+    const objetivo = porRechazar;
+    if (!objetivo) return;
+    limpiarErrorFila(objetivo.id);
+    setFilaEnVuelo(objetivo.id);
     try {
-      await rechazar.mutateAsync({ id, motivo });
+      await rechazar.mutateAsync({ id: objetivo.id, motivo });
+      setPorRechazar(null);
     } catch (e) {
-      setErroresFila((prev) => ({
-        ...prev,
-        [id]: e instanceof ApiError ? e.message : 'No se pudo rechazar. Verifica tu conexión.',
-      }));
+      setErrorRechazo(
+        e instanceof ApiError ? e.message : 'No se pudo rechazar. Verifica tu conexión.',
+      );
     } finally {
       setFilaEnVuelo(null);
     }
@@ -157,13 +204,56 @@ export function ColasSeccion({ estado, onEstado }: ColasSeccionProps) {
         ))}
       </View>
 
+      {/* Búsqueda server-side (título O cuerpo del comunicado) + filtro por
+          categoría. `q` min 1 → solo se envía con texto. */}
+      <View style={estilos.filtros}>
+        <View style={estilos.campoBusqueda}>
+          <MagnifyingGlassIcon size={18} color={colors.text.tertiary} />
+          <TextInput
+            value={textoBusqueda}
+            onChangeText={setTextoBusqueda}
+            placeholder="Buscar en la cola..."
+            placeholderTextColor={colors.text.secondary}
+            autoCorrect={false}
+            autoComplete="off"
+            autoCapitalize="none"
+            style={estilos.inputBusqueda}
+            accessibilityLabel="Buscar en la cola"
+          />
+          {textoBusqueda.length > 0 ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Limpiar búsqueda"
+              hitSlop={8}
+              onPress={() => setTextoBusqueda('')}>
+              <XIcon size={16} color={colors.text.tertiary} />
+            </Pressable>
+          ) : null}
+        </View>
+        <View style={estilos.filaFiltrosBaja}>
+          <View style={estilos.chipsCategoria}>
+            {CATEGORIAS_COLA.map((chip) => (
+              <Chip
+                key={chip.valor}
+                etiqueta={chip.etiqueta}
+                activa={categoria === chip.valor}
+                onPress={() => setCategoria(chip.valor)}
+              />
+            ))}
+          </View>
+          {!query.isPending && !query.isError ? (
+            <ThemedText variant="caption" tone="tertiary" style={estilos.totalCola}>
+              {`${totalCola} en esta cola`}
+            </ThemedText>
+          ) : null}
+        </View>
+      </View>
+
       {query.isPending ? (
-        <EstadoCentrado>
-          <ThemedText tone="secondary">Cargando...</ThemedText>
-        </EstadoCentrado>
+        <EsqueletoCola esDesktop={esDesktop} />
       ) : query.isError ? (
         <EstadoCentrado gap>
-          <ThemedText tone="secondary">No se pudo cargar la cola.</ThemedText>
+          <TextoError>No se pudo cargar la cola.</TextoError>
           <ThemedButton title="Reintentar" variant="secondary" size="sm" onPress={() => query.refetch()} />
         </EstadoCentrado>
       ) : (
@@ -193,7 +283,16 @@ export function ColasSeccion({ estado, onEstado }: ColasSeccionProps) {
             </View>
           ) : null}
           ListEmptyComponent={
-            colaRevision ? (
+            textoBusqueda || categoria ? (
+              <EstadoCentrado>
+                <ThemedText variant="bodyLg" weight="semibold">
+                  Sin resultados
+                </ThemedText>
+                <ThemedText tone="secondary">
+                  Ajusta la búsqueda o el filtro de categoría.
+                </ThemedText>
+              </EstadoCentrado>
+            ) : colaRevision ? (
               <EstadoCentrado>
                 <ThemedText variant="bodyLg" weight="semibold">
                   Cola limpia
@@ -214,7 +313,11 @@ export function ColasSeccion({ estado, onEstado }: ColasSeccionProps) {
               </EstadoCentrado>
             )
           }
-          ListFooterComponent={query.isFetchingNextPage ? <PieDePagina /> : null}
+          ListFooterComponent={
+            query.isFetchingNextPage || (query.isRefetching && query.hasNextPage) ? (
+              <PieDePagina />
+            ) : null
+          }
           onEndReached={() => {
             if (query.hasNextPage && !query.isFetchingNextPage) {
               void query.fetchNextPage();
@@ -225,8 +328,8 @@ export function ColasSeccion({ estado, onEstado }: ColasSeccionProps) {
             <RefreshControl
               refreshing={query.isRefetching}
               onRefresh={() => void query.refetch()}
-              colors={[colors.primary]}
-              tintColor={colors.primary}
+              colors={[colors.brand.primary]}
+              tintColor={colors.brand.primary}
             />
           }
         />
@@ -234,15 +337,25 @@ export function ColasSeccion({ estado, onEstado }: ColasSeccionProps) {
 
       <ModalRechazo
         visible={porRechazar !== null}
-        cargando={rechazar.isPending}
+        cargando={filaEnVuelo === porRechazar?.id}
+        error={errorRechazo ?? undefined}
         onCancelar={() => setPorRechazar(null)}
         onConfirmar={(motivo) => {
-          const objetivo = porRechazar;
-          setPorRechazar(null);
-          if (objetivo) void rechazarFila(objetivo.id, motivo);
+          void confirmarRechazo(motivo);
         }}
       />
     </ThemedView>
+  );
+}
+
+/** Cargando marcado por estructura (~cards listada), no texto plano. */
+function EsqueletoCola({ esDesktop }: { esDesktop: boolean }) {
+  return (
+    <View style={(esDesktop ? estilos.contenidoEsqueletoTabla : estilos.contenidoEsqueleto)}>
+      {(esDesktop ? [0, 1, 2, 3, 4, 5] : [0, 1, 2]).map((f) => (
+        <SkeletonCard key={f} largo={esDesktop ? 3 : 2} />
+      ))}
+    </View>
   );
 }
 
@@ -295,7 +408,7 @@ function FilaTabla({
           {etiquetaAudiencia(comunicado.decanatoIds)}
         </ThemedText>
         <ThemedText variant="caption" tone="tertiary" style={estilos.colFecha} numberOfLines={1}>
-          {FORMATO_FECHA.format(new Date(comunicado.updatedAt))}
+          {FORMATO_FECHA_MEDIO.format(new Date(comunicado.updatedAt))}
         </ThemedText>
         <View style={estilos.colAcciones}>
           {puedeRevisar && acciones.puedeAprobar ? (
@@ -359,22 +472,6 @@ function FranjaRevision({
   );
 }
 
-function EstadoCentrado({ children, gap = false }: { children: React.ReactNode; gap?: boolean }) {
-  return (
-    <ThemedView variant="base" style={[estilos.estado, gap && estilos.estadoConGap]}>
-      {children}
-    </ThemedView>
-  );
-}
-
-function Separador() {
-  return <View style={estilos.separador} />;
-}
-
-function SeparadorFino() {
-  return <View style={estilos.separadorFino} />;
-}
-
 function PieDePagina() {
   return (
     <ThemedText variant="caption" tone="tertiary" style={estilos.footer}>
@@ -386,25 +483,70 @@ function PieDePagina() {
 const estilos = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.base,
+    backgroundColor: colors.bg.canvas,
   },
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     paddingHorizontal: spacing.four,
-    paddingVertical: spacing.three,
+    paddingTop: spacing.three,
     gap: spacing.two,
+  },
+  filtros: {
+    paddingHorizontal: spacing.four,
+    paddingTop: spacing.two,
+    gap: spacing.two,
+  },
+  campoBusqueda: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.two,
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.three,
+    height: 44,
+    backgroundColor: colors.background.base,
+  },
+  inputBusqueda: {
+    flex: 1,
+    fontSize: 16,
+    color: colors.text.primary,
+    paddingVertical: 0,
+  },
+  chipsCategoria: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.two,
+  },
+  filaFiltrosBaja: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: spacing.two,
+    justifyContent: 'space-between',
+  },
+  totalCola: {
+    fontVariant: ['tabular-nums'],
   },
   contenido: {
     padding: spacing.four,
     gap: spacing.three,
-    backgroundColor: colors.background.base,
+    backgroundColor: colors.bg.canvas,
   },
   contenidoTabla: {
     paddingHorizontal: spacing.four,
     paddingTop: spacing.one,
     gap: spacing.sm,
-    backgroundColor: colors.background.base,
+    backgroundColor: colors.bg.canvas,
+  },
+  contenidoEsqueleto: {
+    padding: spacing.four,
+  },
+  contenidoEsqueletoTabla: {
+    paddingHorizontal: spacing.four,
+    paddingTop: spacing.one,
+    gap: spacing.sm,
   },
   cabeceraTabla: {
     flexDirection: 'row',
@@ -438,20 +580,6 @@ const estilos = StyleSheet.create({
   },
   bandaBoton: { flex: 1 },
   bandaError: { color: colors.status.danger },
-  separador: { height: spacing.three },
-  separadorFino: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.border.subtle,
-    marginHorizontal: spacing.four,
-  },
-  estado: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.six,
-    gap: spacing.two,
-  },
-  estadoConGap: { gap: spacing.four },
   footer: {
     textAlign: 'center',
     paddingVertical: spacing.four,

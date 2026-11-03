@@ -6,6 +6,7 @@ import type { IJwtService } from '../../../shared/security/jwt';
 import type { CrearComunicado } from '../application/crearComunicado';
 import type { EditarComunicado } from '../application/editarComunicado';
 import type { ListarComunicados } from '../application/listarComunicados';
+import type { ConteosComunicados } from '../application/conteosComunicados';
 import type { ObtenerComunicado } from '../application/obtenerComunicado';
 import type { SolicitarRevision } from '../application/solicitarRevision';
 import type { AprobarComunicado } from '../application/aprobarComunicado';
@@ -38,6 +39,7 @@ export interface ComunicadosRoutesDeps {
   crear: CrearComunicado;
   editar: EditarComunicado;
   listar: ListarComunicados;
+  conteos: ConteosComunicados;
   obtener: ObtenerComunicado;
   solicitarRevision: SolicitarRevision;
   aprobar: AprobarComunicado;
@@ -99,6 +101,19 @@ export function comunicadosRoutes(deps: ComunicadosRoutesDeps): Router {
         limit: query.limit,
         offset: query.offset,
       });
+      // Wire: { items, total } — el total viene del count bajo las mismas
+      // claims (RLS), así el cliente paginaria con "N de M".
+      res.json({ data: result });
+    }),
+  );
+
+  // Reporte de conteos por estado para el Panel de staff. Va ANTES de '/:id'
+  // (si después, el param router capturaría "conteos" como uuid y daría 400).
+  router.get(
+    '/conteos',
+    authorize('COMUNICADOR'),
+    asyncHandler(async (req, res) => {
+      const result = await deps.conteos.ejecutar(requireAuth(req)!);
       res.json({ data: result });
     }),
   );

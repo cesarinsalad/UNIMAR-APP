@@ -1,7 +1,7 @@
 import { useMemo, useCallback } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 
-import { siguienteOffset } from '@/shared/lib/paginar';
+import { siguienteOffsetConTotal } from '@/shared/lib/paginar';
 import { listarEventos } from '../api/eventos.api';
 import { DIAS_DISCOVERY, ventanaDias } from '../calendario-calculo';
 import { PAGE_SIZE_EVENTOS } from './useAgenda';
@@ -27,7 +27,7 @@ export function useEventosListado() {
         offset: pageParam as number,
       }),
     getNextPageParam: (ultimaPagina, _todas, ultimoOffset) =>
-      siguienteOffset(ultimaPagina, ultimoOffset, PAGE_SIZE_EVENTOS),
+      siguienteOffsetConTotal(ultimaPagina, ultimoOffset, PAGE_SIZE_EVENTOS),
   });
 
   const paginar = useCallback(() => {

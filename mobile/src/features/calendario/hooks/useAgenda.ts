@@ -1,6 +1,6 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 
-import { siguienteOffset } from '@/shared/lib/paginar';
+import { siguienteOffsetConTotal } from '@/shared/lib/paginar';
 import { listarEventos } from '../api/eventos.api';
 import { ventanaMes } from '../calendario-calculo';
 
@@ -33,7 +33,7 @@ export function useAgenda(
         offset: pageParam as number,
       }),
     getNextPageParam: (ultimaPagina, _todas, ultimoOffset) =>
-      siguienteOffset(ultimaPagina, ultimoOffset, PAGE_SIZE_EVENTOS),
+      siguienteOffsetConTotal(ultimaPagina, ultimoOffset, PAGE_SIZE_EVENTOS),
   });
 }
 

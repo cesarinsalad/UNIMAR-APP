@@ -94,6 +94,8 @@ export function eventosRoutes(deps: EventosRoutesDeps): Router {
         limit: query.limit,
         offset: query.offset,
       });
+      // Wire: { items, total } — el total viene del count bajo las mismas
+      // claims (RLS) y el rango ya se acotó a 90 días arriba.
       res.json({ data: result });
     }),
   );

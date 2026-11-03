@@ -85,6 +85,8 @@ function makeRepos(store: Store) {
       return store.comunicado;
     },
     registrarLectura: async () => undefined,
+    contar: async () => 0,
+    contarPorEstado: async () => ({ BORRADOR: 0, PENDIENTE: 0, PUBLICADO: 0, ARCHIVADO: 0 }),
     contarLecturas: async () => 0,
     asignarPortada: async (_tx, id, imagenPath, imagenPie) => {
       if (store.comunicado.id !== id) return null;

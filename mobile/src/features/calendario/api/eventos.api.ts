@@ -1,12 +1,14 @@
 import { api } from '@/shared/api/axios';
+import type { PaginaRemota } from '@/shared/lib/paginar';
 import type { Evento, FiltroEventos, TipoEvento } from '../types';
 
 /**
  * GET /eventos?desde=&hasta=&incluir_oficiales=&limit=&offset=
  * Query snake_case; el rango es obligatorio y el BFF rechaza >90 días.
+ * Wire: { items, total } — total del count bajo las mismas claims (RLS).
  */
-export async function listarEventos(filtro: FiltroEventos): Promise<Evento[]> {
-  const { data } = await api.get<Evento[]>('/eventos', {
+export async function listarEventos(filtro: FiltroEventos): Promise<PaginaRemota<Evento>> {
+  const { data } = await api.get<PaginaRemota<Evento>>('/eventos', {
     params: {
       desde: filtro.desde,
       hasta: filtro.hasta,

@@ -126,6 +126,8 @@ function makeComRepo(initial: Comunicado | null = null): IComunicadoRepository {
     actualizar: async (tx, id, input) => (initial ? ({ ...initial, ...input } as Comunicado) : null),
     transicionarEstado: async (tx, id, input) => (initial ? ({ ...initial, ...input } as Comunicado) : null),
     registrarLectura: async () => undefined,
+    contar: async () => 0,
+    contarPorEstado: async () => ({ BORRADOR: 0, PENDIENTE: 0, PUBLICADO: 0, ARCHIVADO: 0 }),
     contarLecturas: async () => 0,
     asignarPortada: async (tx, id, imagenPath) =>
       initial ? ({ ...initial, imagenPath } as Comunicado) : null,

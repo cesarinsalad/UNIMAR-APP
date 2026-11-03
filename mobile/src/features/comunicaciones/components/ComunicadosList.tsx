@@ -10,7 +10,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, layout, spacing } from '@/shared/ui';
 import { ThemedText, ThemedView } from '@/shared/ui';
 import type { Comunicado } from '../types';
-import { aplanarPaginas, useComunicadosFeed } from '../hooks/useComunicadosFeed';
+import { useComunicadosFeed } from '../hooks/useComunicadosFeed';
+import { aplanarPaginas } from '@/shared/lib/paginar';
 import { ComunicadoCard } from './ComunicadoCard';
 
 export function ComunicadosList() {

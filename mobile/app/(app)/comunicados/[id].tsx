@@ -30,7 +30,7 @@ import {
 } from '@/features/comunicaciones/hooks/estadisticas';
 import { useComunicadoDetalle } from '@/features/comunicaciones/hooks/useComunicadoDetalle';
 import { usePortada } from '@/features/comunicaciones/hooks/usePortada';
-import { useMutacionComunicado } from '@/features/comunicaciones/hooks/useMutacionComunicado';
+import { useTransicionComunicado } from '@/features/comunicaciones/hooks/useMutacionComunicado';
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import type { Comunicado } from '@/features/comunicaciones/types';
 import { ApiError } from '@/shared/api/axios';
@@ -43,6 +43,8 @@ const FORMATO_FECHA_LARGA = new Intl.DateTimeFormat('es-VE', {
   dateStyle: 'long',
   timeStyle: 'short',
 });
+
+type AccionDetalle = 'solicitar' | 'aprobar' | 'rechazar' | 'publicar' | 'archivar';
 
 export default function ComunicadoDetalleScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -139,30 +141,38 @@ function DetalleLector({
   });
   const hayAcciones = Object.values(acciones).some(Boolean);
 
-  const rechazar = useMutacionComunicado((motivo: string) =>
-    rechazarComunicado(comunicadoId, motivo),
+  /**
+   * UNA mutación de transición (optimista) para las 5 acciones del ciclo:
+   * la fila sale de las listas cacheadas al instante y el detalle se pisa
+   * con la entidad devuelta; rollback exacto si el BFF rechaza.
+   */
+  const transicion = useTransicionComunicado<{ accion: AccionDetalle; id: string; motivo?: string }>(
+    (id, motivo, args) => {
+      switch (args.accion) {
+        case 'solicitar':
+          return solicitarRevisionComunicado(id);
+        case 'aprobar':
+          return aprobarComunicado(id);
+        case 'rechazar':
+          return rechazarComunicado(id, motivo);
+        case 'publicar':
+          return publicarComunicado(id);
+        case 'archivar':
+          return archivarComunicado(id);
+      }
+    },
   );
-  const solicitar = useMutacionComunicado(() =>
-    solicitarRevisionComunicado(comunicadoId),
-  );
-  const aprobar = useMutacionComunicado(() => aprobarComunicado(comunicadoId));
-  const publicar = useMutacionComunicado(() => publicarComunicado(comunicadoId));
-  const archivar = useMutacionComunicado(() => archivarComunicado(comunicadoId));
 
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [errorRechazo, setErrorRechazo] = useState<string | null>(null);
   const [errorMutacion, setErrorMutacion] = useState<string | null>(null);
 
-  const algunaPendiente =
-    rechazar.isPending ||
-    solicitar.isPending ||
-    aprobar.isPending ||
-    publicar.isPending ||
-    archivar.isPending;
+  const algunaPendiente = transicion.isPending;
 
-  async function ejecutarAccion(accion: () => Promise<unknown>) {
+  async function ejecutarAccion(accion: AccionDetalle, motivo = '') {
     setErrorMutacion(null);
     try {
-      await accion();
+      await transicion.mutateAsync({ accion, id: comunicadoId, motivo: motivo || undefined });
     } catch (e) {
       if (e instanceof ApiError) {
         setErrorMutacion(e.message);
@@ -172,7 +182,6 @@ function DetalleLector({
     }
   }
 
-  // El motivo del rechazo lo ven autor y ADMIN (quiénes producen).
   const veGestion = acciones.puedeEditar || usuario?.rol === 'ADMIN';
 
   return (
@@ -203,7 +212,7 @@ function DetalleLector({
                 variant="ghost"
                 size="sm"
                 disabled={algunaPendiente}
-                onPress={() => void ejecutarAccion(() => solicitar.mutateAsync())}
+                onPress={() => void ejecutarAccion('solicitar')}
               />
             ) : null}
             {acciones.puedeAprobar ? (
@@ -212,7 +221,7 @@ function DetalleLector({
                 variant="ghost"
                 size="sm"
                 disabled={algunaPendiente}
-                onPress={() => void ejecutarAccion(() => aprobar.mutateAsync())}
+                onPress={() => void ejecutarAccion('aprobar')}
               />
             ) : null}
             {acciones.puedeRechazar ? (
@@ -230,7 +239,7 @@ function DetalleLector({
                 variant="ghost"
                 size="sm"
                 disabled={algunaPendiente}
-                onPress={() => void ejecutarAccion(() => publicar.mutateAsync())}
+                onPress={() => void ejecutarAccion('publicar')}
               />
             ) : null}
             {acciones.puedeArchivar ? (
@@ -239,7 +248,7 @@ function DetalleLector({
                 variant="ghost"
                 size="sm"
                 disabled={algunaPendiente}
-                onPress={() => void ejecutarAccion(() => archivar.mutateAsync())}
+                onPress={() => void ejecutarAccion('archivar')}
               />
             ) : null}
             {acciones.puedeEditar ? (
@@ -303,14 +312,31 @@ function DetalleLector({
         </View>
       </ScrollView>
 
-      {/* ── Modal del rechazo (gestión, compartido con la cola) ── */}
+      {/* ── Modal del rechazo (gestión, compartido con la cola) ──
+          Sin perder el motivo: se cierra SOLO si la mutación tuvo éxito;
+          el error se muestra DENTRO del modal y el texto queda intacto. */}
       <ModalRechazo
         visible={modalAbierto}
-        cargando={rechazar.isPending}
-        onCancelar={() => setModalAbierto(false)}
-        onConfirmar={(motivoLimpio) => {
+        cargando={transicion.isPending}
+        error={errorRechazo ?? undefined}
+        onCancelar={() => {
           setModalAbierto(false);
-          void ejecutarAccion(() => rechazar.mutateAsync(motivoLimpio));
+          setErrorRechazo(null);
+        }}
+        onConfirmar={async (motivoLimpio) => {
+          setErrorRechazo(null);
+          try {
+            await transicion.mutateAsync({
+              accion: 'rechazar',
+              id: comunicadoId,
+              motivo: motivoLimpio,
+            });
+            setModalAbierto(false);
+          } catch (e) {
+            setErrorRechazo(
+              e instanceof ApiError ? e.message : 'Error de red. Verifica tu conexión.',
+            );
+          }
         }}
       />
     </View>

@@ -6,5 +6,6 @@ export const CLAVES_COMUNICADOS = {
   detalle: (id: string) => ['comunicados', 'detalle', id] as const,
   adjuntos: (id: string) => ['comunicados', 'adjuntos', id] as const,
   portada: (id: string) => ['comunicados', 'portada', id] as const,
+  conteos: ['comunicados', 'conteos'] as const,
   prefijo: ['comunicados'] as const,
 };

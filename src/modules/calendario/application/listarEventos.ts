@@ -4,6 +4,16 @@ import type { IEventoRepository } from '../domain/ports';
 import type { Evento } from '../domain/evento';
 
 /**
+ * Página del listado con total conocido. El total se calcula bajo las mismas
+ * claims (RLS recorta count e items idéntico), así la UI puede paginar con
+ * "N de M" en vez de encadenar offsets a ciegas.
+ */
+export interface PaginaEventos {
+  items: Evento[];
+  total: number;
+}
+
+/**
  * Caso de uso: listar eventos visibles para el usuario en un rango de
  * fechas.
  *
@@ -29,12 +39,21 @@ export class ListarEventos {
       offset: number;
       incluirOficiales: 'todos' | 'agregados';
     },
-  ): Promise<Evento[]> {
-    return this.uow.runAs(claims, async (tx) =>
-      this.repo.listar(tx, {
+  ): Promise<PaginaEventos> {
+    return this.uow.runAs(claims, async (tx) => {
+      // Secuencial (no Promise.all) por disciplina de transacción: el mismo
+      // DbTx sirve dos consultas en orden.
+      const items = await this.repo.listar(tx, {
         ...filtro,
         usuarioId: claims.sub,
-      }),
-    );
+      });
+      const total = await this.repo.contar(tx, {
+        desde: filtro.desde,
+        hasta: filtro.hasta,
+        usuarioId: claims.sub,
+        incluirOficiales: filtro.incluirOficiales,
+      });
+      return { items, total };
+    });
   }
 }
