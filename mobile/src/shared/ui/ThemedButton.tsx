@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, type StyleProp, type ViewStyl
 import { colors, elevation, radius, spacing, typography } from './theme';
 import { ThemedText } from './ThemedText';
 
-type Variant = 'primary' | 'secondary' | 'ghost';
+type Variant = 'primary' | 'secondary' | 'ghost' | 'tonal';
 type Size = 'sm' | 'md' | 'lg';
 
 export interface ThemedButtonProps {
@@ -97,6 +97,15 @@ const VARIANT_STYLES: Record<Variant, { container: ViewStyle; labelColor: string
       backgroundColor: 'transparent',
     },
     labelColor: colors.primary,
+  },
+  // Pill tonal (§1.1/§4): acción ACTIVA/retirable sobre superficie blanca —
+  // se distingue por tinte (brand/surfaceBlue) sin borde ni elevación, no
+  // por trazo. Caso de uso: "Quitar de mi agenda" en la HojaEvento.
+  tonal: {
+    container: {
+      backgroundColor: colors.brand.surfaceBlue,
+    },
+    labelColor: colors.brand.primary,
   },
 };
 

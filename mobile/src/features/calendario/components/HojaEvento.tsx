@@ -236,7 +236,9 @@ function Documento({
           {evento.tipo === 'OFICIAL' ? (
             <ThemedButton
               title={evento.participo ? 'Quitar de mi agenda' : 'Agregar a mi agenda'}
-              variant={evento.participo ? 'secondary' : 'primary'}
+              // Contraste semántico del CTA: acción pendiente = primary
+              // (azul sólido); acción activa/retirable = pill tonal.
+              variant={evento.participo ? 'tonal' : 'primary'}
               size="md"
               loading={participar.agregar.isPending || participar.quitar.isPending}
               onPress={() =>
