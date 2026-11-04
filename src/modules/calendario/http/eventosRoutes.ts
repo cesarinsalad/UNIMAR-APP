@@ -1,6 +1,6 @@
 import { Router, type Request } from 'express';
 import { BadRequestError } from '../../../shared/errors';
-import { asyncHandler, authenticate, parseBody } from '../../../shared/http/middlewares';
+import { asyncHandler, authorize, authenticate, parseBody } from '../../../shared/http/middlewares';
 import type { AuthRequest } from '../../../shared/http/middlewares';
 import type { IJwtService } from '../../../shared/security/jwt';
 import type { CrearEvento } from '../application/crearEvento';
@@ -10,6 +10,7 @@ import type { ListarEventos } from '../application/listarEventos';
 import type { ObtenerEvento } from '../application/obtenerEvento';
 import type { ParticiparEvento } from '../application/participarEvento';
 import type { AbandonarEvento } from '../application/abandonarEvento';
+import type { EstadisticasEvento } from '../application/estadisticasEvento';
 import {
   crearEventoSchema,
   editarEventoSchema,
@@ -52,6 +53,7 @@ export interface EventosRoutesDeps {
   obtener: ObtenerEvento;
   participar: ParticiparEvento;
   abandonar: AbandonarEvento;
+  estadisticas: EstadisticasEvento;
 }
 
 export function eventosRoutes(deps: EventosRoutesDeps): Router {
@@ -105,6 +107,19 @@ export function eventosRoutes(deps: EventosRoutesDeps): Router {
     asyncHandler(async (req, res) => {
       const id = parseId(getParamId(req.params.id));
       const result = await deps.obtener.ejecutar(requireAuth(req)!, id);
+      res.json({ data: result });
+    }),
+  );
+
+  // Stats del staff: cuántos usuarios tienen el evento en su agenda. El
+  // permiso fino (ADMIN / autor / COMUNICADOR del decanato) lo decide el
+  // caso de uso; aquí solo se acota el rol (hierarquía: ADMIN incluido).
+  router.get(
+    '/:id/estadisticas',
+    authorize('COMUNICADOR'),
+    asyncHandler(async (req, res) => {
+      const id = parseId(getParamId(req.params.id));
+      const result = await deps.estadisticas.ejecutar(requireAuth(req)!, id);
       res.json({ data: result });
     }),
   );

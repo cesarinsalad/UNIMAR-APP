@@ -35,6 +35,7 @@ import { ListarEventos } from './application/listarEventos';
 import { ObtenerEvento } from './application/obtenerEvento';
 import { ParticiparEvento } from './application/participarEvento';
 import { AbandonarEvento } from './application/abandonarEvento';
+import { EstadisticasEvento } from './application/estadisticasEvento';
 import { PostgresEventoRepository } from './infrastructure/postgresEventoRepository';
 import { eventosRoutes } from './http/eventosRoutes';
 import { RecordatoriosJob } from './application/recordatoriosJob';
@@ -69,6 +70,7 @@ export function createCalendarioModule(deps: CalendarioModuleDeps): CalendarioMo
   const obtener = new ObtenerEvento(eventoRepo, deps.uow);
   const participar = new ParticiparEvento(eventoRepo, deps.uow);
   const abandonar = new AbandonarEvento(eventoRepo, deps.uow);
+  const estadisticas = new EstadisticasEvento(eventoRepo, deps.uow);
 
   const router = Router();
   router.use(
@@ -82,6 +84,7 @@ export function createCalendarioModule(deps: CalendarioModuleDeps): CalendarioMo
       obtener,
       participar,
       abandonar,
+      estadisticas,
     }),
   );
 

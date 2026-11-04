@@ -205,6 +205,15 @@ export class PostgresEventoRepository implements IEventoRepository {
     return r.rows.map((row) => row.evento_id);
   }
 
+  /** Conteo de la agenda (`evento_participantes`) de un evento. Stats de staff. */
+  async contarParticipantes(tx: DbTx, eventoId: string): Promise<number> {
+    const r = await tx.query<{ total: string }>(
+      'SELECT count(*)::text AS total FROM evento_participantes WHERE evento_id = $1',
+      [eventoId],
+    );
+    return Number(r.rows[0]?.total ?? 0);
+  }
+
   /** Decora rows de eventos con `participo` (una sola consulta extra). */
   private async decorarParticipaciones(
     tx: DbTx,

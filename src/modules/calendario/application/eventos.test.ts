@@ -130,6 +130,7 @@ function makeRepo(initial: Evento | null = null): { repo: IEventoRepository; cal
     abandonar: async (_tx, id, usuarioId) => {
       calls.push({ method: 'abandonar', args: [id, usuarioId] });
     },
+    contarParticipantes: async () => 0,
     participacionIds: async (_tx, usuarioId, ids) => {
       calls.push({ method: 'participacionIds', args: [usuarioId, ids] });
       return [];

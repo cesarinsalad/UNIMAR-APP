@@ -71,6 +71,12 @@ export interface IEventoRepository {
   abandonar(tx: DbTx, eventoId: string, usuarioId: string): Promise<void>;
 
   /**
+   * Conteo de usuarios con el evento en su agenda (`evento_participantes`).
+   * Stats del staff: el caso de uso valida permiso/visibilidad antes de pedirlo.
+   */
+  contarParticipantes(tx: DbTx, eventoId: string): Promise<number>;
+
+  /**
    * Devuelve los ids de `eventoIds` en los que el usuario participa.
    * Para decorar listas (`participo`) en una sola consulta.
    */
