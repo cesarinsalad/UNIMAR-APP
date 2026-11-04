@@ -37,8 +37,8 @@ coverage/
 # ─── Graphify (grafo de conocimiento: artefacto regenerable) ───
 graphify-out/
 
-# ─── Impeccable (snapshots de critique: efímeros) ───
-.impeccable/critique/
+# ─── Impeccable (snapshots de critique/surfaces: efímeros) ───
+.impeccable/
 
 # ─── Supabase (stack local) ───
 supabase/.branches/
