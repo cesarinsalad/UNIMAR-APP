@@ -101,11 +101,11 @@ function Estado({ mensaje, children }: { mensaje: string; children?: React.React
   );
 }
 
-/** Cuerpo de la hoja: vertical con el ritmo de STYLE.md §3 — `xl` (24)
- *  entre secciones distintas, internos menores (regla de proximidad):
- *  cabecera (X+header a md), secciones (sm), cluster de acciones (md).
- *  `cerrar` viene de la hoja (vía su render prop): X y éxito de
- *  eliminación se despiden animados, no a secas. */
+/** Cuerpo de la hoja: vertical con el ritmo de STYLE.md §3 — barra de
+ *  acciones staff al tope y luego `xl` (24) entre secciones distintas,
+ *  internos menores (regla de proximidad): secciones (sm), cluster (md).
+ *  `cerrar` viene de la hoja (vía su render prop): éxito de eliminación
+ *  se despide animado, no a secas. */
 function Documento({
   evento,
   eventoId,
@@ -159,6 +159,28 @@ function Documento({
 
   return (
     <View style={estilos.cuerpo}>
+      {/* ── Acciones staff al tope (derecha): la barra de gestión del
+          evento vive ARRIBA, como.hostel propia de la hoja — no compite
+          con el CTA de agenda del cluster de abajo ── */}
+      {hayAcciones ? (
+        <View style={estilos.acciones}>
+          {acciones.puedeEditar ? (
+            <BotonCircular label="Editar evento" onPress={abrirEdicion}>
+              <PencilSimpleIcon size={20} color={colors.brand.primary} weight="bold" />
+            </BotonCircular>
+          ) : null}
+          {acciones.puedeEliminar ? (
+            <BotonCircular label="Eliminar evento" onPress={pedirBorrado}>
+              {eliminar.isPending ? (
+                <ActivityIndicator size={20} color={colors.status.danger} />
+              ) : (
+                <TrashIcon size={20} color={colors.status.danger} weight="bold" />
+              )}
+            </BotonCircular>
+          ) : null}
+        </View>
+      ) : null}
+
       {/* ── Cabecera de identidad: el card expandido (día + barra + título
           + hora + lugar). El cierre propio no lleva botón: en la hoja el
           cierre son el arrastre hacia abajo, el dim y el botón back ── */}
@@ -207,10 +229,9 @@ function Documento({
         </View>
       ) : null}
 
-      {/* ── Cluster de acciones: lo mismo contexto — CTA de agenda + botones
-          staff + error de mutación, a md entre sí; el xl del cuerpo lo
-          separa de las secciones de arriba ── */}
-      {evento.tipo === 'OFICIAL' || hayAcciones || errorMutacion ? (
+      {/* ── Cluster de cierre de la hoja: CTA de agenda + error de
+          mutación — el staff (crud) ya vive en la barra del tope ── */}
+      {evento.tipo === 'OFICIAL' || errorMutacion ? (
         <View style={estilos.clusterAcciones}>
           {evento.tipo === 'OFICIAL' ? (
             <ThemedButton
@@ -224,25 +245,6 @@ function Documento({
                   : participar.agregar.mutate(evento.id)
               }
             />
-          ) : null}
-
-          {hayAcciones ? (
-            <View style={estilos.acciones}>
-              {acciones.puedeEditar ? (
-                <BotonCircular label="Editar evento" onPress={abrirEdicion}>
-                  <PencilSimpleIcon size={20} color={colors.brand.primary} weight="bold" />
-                </BotonCircular>
-              ) : null}
-              {acciones.puedeEliminar ? (
-                <BotonCircular label="Eliminar evento" onPress={pedirBorrado}>
-                  {eliminar.isPending ? (
-                    <ActivityIndicator size={20} color={colors.status.danger} />
-                  ) : (
-                    <TrashIcon size={20} color={colors.status.danger} weight="bold" />
-                  )}
-                </BotonCircular>
-              ) : null}
-            </View>
           ) : null}
 
           {errorMutacion ? (
@@ -319,8 +321,9 @@ const estilos = StyleSheet.create({
   clusterAcciones: {
     gap: spacing.md,
   },
-  /** Botones circulares de staff alineados a la derecha: el CTA de agenda
-   *  vira full-width sobre ellos — la fila no compite con el CTA. */
+  /** Botones circulares de staff, BARRA DEL TOPE de la hoja (derecha):
+   *  el CTA de agenda del cluster de abajo es entonces el único botón
+   *  ancho — la barra no compite con él. */
   acciones: {
     flexDirection: 'row',
     flexWrap: 'wrap',

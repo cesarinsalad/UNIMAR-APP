@@ -66,9 +66,12 @@ export function HojaInferior({ abierto, onCerrar, children }: HojaInferiorProps)
 }
 
 const estilos = StyleSheet.create({
+  /** Padding del contenido: aire xl (24) al tope — entre el grabber y el
+   *  primer bloque (barra de acciones); lateral/bajado a lg. El cierre
+   *  seguro inferior lo suma el `insetAdjustment` nativo de la hoja. */
   contenido: {
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
+    paddingTop: spacing.xl,
     paddingBottom: spacing.lg,
   },
 });

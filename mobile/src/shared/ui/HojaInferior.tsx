@@ -66,8 +66,11 @@ const estilos = StyleSheet.create({
   /** Solo padding: el RITMO (rhythm) lo aporta el contenido con sus propios
    *  gaps (misma regla de la variante native) — así cabecera, secciones y
    *  cluster de acciones respiran idéntico en ambos dispositivos según
-   *  STYLE.md §3. */
+   *  STYLE.md §3. Aire xl (24) al tope como en nativo (sin grabber,
+   *  la hoja igual arranca pegada al borde del Modal). */
   contenido: {
-    padding: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.lg,
   },
 });
