@@ -9,7 +9,7 @@ import {
 } from 'phosphor-react-native';
 
 import { eliminarEvento } from '../api/eventos.api';
-import { accionesPermitidasEvento } from '../hooks/eventos-permisos';
+import { accionesEnHoja } from '../hooks/eventos-permisos';
 import { useEventoDetalle } from '../hooks/useEventoDetalle';
 import { useMutacionEvento } from '../hooks/useMutacionEvento';
 import { useParticipacion } from '../hooks/useParticipacion';
@@ -39,12 +39,14 @@ export interface HojaEventoProps {
 }
 
 /**
- * Detalle del evento — organicer ÚNICO, ahora en HOJA INFERIOR (bottom
+ * Detalle del evento — organizerÚNICO, ahora en HOJA INFERIOR (bottom
  * sheet): reemplaza al Documento de /eventos/[id], que quedó como
  * anfitrión transparente reutilizando esta misma hoja. Receta:
  * TarjetaProximoEvento expandida (header día+barra+título+meta) +
- * descripción + organizador + CTA de agenda (OFICIAL) + acciones staff
- * (espejo del RBAC-RLS). Los caminos externos — deep-links de push y la
+ * descripción + organizador + CTA de agenda (OFICIAL) + barra de
+ * acciones — que SOLO aparece para eventos PERSONAL del dueño: los tipos
+ * de staff se editan/eliminan desde la consola, la hoja los muestra
+ * (accionesEnHoja). Los caminos externos — deep-links de push y la
  * consola de gestión — aterrizan en el anfitrión y presentan ESTA hoja.
  */
 export function HojaEvento({ eventoId, onCerrar }: HojaEventoProps) {
@@ -119,8 +121,10 @@ function Documento({
 }) {
   const inicio = new Date(evento.inicioAt);
   const usuario = useSesionStore((s) => s.usuario);
-  const acciones = accionesPermitidasEvento({
-    rol: usuario?.rol ?? null,
+  // Regla de FICHA: la barra de acciones solo existe para PERSONAL del
+  // dueño — los tipos de staff (OFICIAL/INSTITUCIONAL/FERIADO) abren la
+  // hoja para VER; su edición/eliminación vive en la consola de gestión.
+  const acciones = accionesEnHoja({
     esDueno: evento.usuarioId === usuario?.id,
     tipo: evento.tipo,
   });
