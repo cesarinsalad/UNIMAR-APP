@@ -28,11 +28,12 @@ import type { Evento } from '@/features/calendario/types';
 
 /**
  * Discovery de eventos del campus: OFICIALES visibles por audiencia/RLS +
- * INSTITUCIONALES (fechas fijas), próximos, en orden cronológico. El tap
- * en un evento abre la hoja inferior de detalle (HojaEvento, con CTA de
- * agenda y acciones staff) — el detalle no tiene pantalla propia: la ruta
- * /eventos/[id] es solo el anfitrión transparente de esa hoja para los
- * caminos externos (push, consola de gestión).
+ * INSTITUCIONALES (fechas fijas), próximos, en orden cronológico. Los
+ * PERSONAL quedan fuera (viven en la Agenda del dueño, decisión de
+ * privacidad). El tap en un evento abre la hoja inferior de detalle
+ * (HojaEvento, con CTA de agenda y acciones staff) — el detalle no tiene
+ * pantalla propia: la ruta /eventos/[id] es solo el anfitrión transparente
+ * de esa hoja para los caminos externos (push, consola de gestión).
  */
 export default function ListadoEventosScreen() {
   const insets = useSafeAreaInsets();
@@ -41,8 +42,13 @@ export default function ListadoEventosScreen() {
    *  durante la animación de salida para que la hoja no parpadee. */
   const [eventoIdHoja, setEventoIdHoja] = useState<string | null>(null);
 
+  // Discovery de CAMPUS: sin PERSONAL del dueño — esos viven en la Agenda
+  // (decisión de privacidad; mismo criterio que EventosSeccion/PanelSeccion).
   const eventos = useMemo(
-    () => (porVentana.data ? aplanarPaginas(porVentana.data.pages) : []),
+    () =>
+      porVentana.data
+        ? aplanarPaginas(porVentana.data.pages).filter((e) => e.tipo !== 'PERSONAL')
+        : [],
     [porVentana.data],
   );
 

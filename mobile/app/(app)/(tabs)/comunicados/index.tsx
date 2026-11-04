@@ -40,8 +40,10 @@ export default function ComunicadosScreen() {
   const decanatoId = useSesionStore((s) => s.usuario?.decanato_id ?? null);
   const feed = useComunicadosFeed();
 
-  // 'todos': el carrusel de "Eventos del campus" muestra TODO lo visible
-  // (incluidos oficiales que aún no agregaste) — es discovery, no agenda.
+  // 'todos': "Eventos del campus" es DISCOVERY de campus (los que aún no
+  // agregaste incluidos), no agenda — según la decisión de privacidad del
+  // PERSONAL, aquí se excluyen: viven en la Agenda de su dueño solamente
+  // (patrón EventosSeccion/PanelSeccion del staff).
   const eventos = useAgenda(
     useMemo(() => ventanaDias(new Date(), DIAS_DISCOVERY), []),
     'todos',
@@ -69,6 +71,7 @@ export default function ComunicadosScreen() {
     if (!eventos.data) return [];
     const ahora = Date.now();
     return aplanarPaginas(eventos.data.pages)
+      .filter((e) => e.tipo !== 'PERSONAL') // discovery de campus: sin personales (son de la Agenda)
       .filter((e) => new Date(e.inicioAt).getTime() >= ahora)
       .slice(0, 4);
   }, [eventos.data]);
