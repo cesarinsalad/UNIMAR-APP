@@ -27,14 +27,25 @@ export function HojaInferior({ abierto, onCerrar, children }: HojaInferiorProps)
   const scrollRef = useRef<ScrollView>(null);
   const onDidDismiss = useCallback(() => onCerrar(), [onCerrar]);
   const cerrar = useCallback(() => {
-    void hoja.current?.dismiss();
+    hoja.current?.dismiss().catch(() => undefined);
   }, []);
+
+  /**
+   * Guard de presentación: solo un flip de `abierto` en un hoja ya
+   * PRESENTADA dispara el dismiss. El cierre nativo también baja por
+   * onDidDismiss → onCerrar → estado null → efecto — sin el guard, ese
+   * segundo dismiss golpeaba a una vista ya desmontada (lazy) y el módulo
+   * nativo devolvía (uncaught) el rechazo VIEW_NOT_FOUND.
+   */
+  const presentada = useRef(false);
 
   useEffect(() => {
     if (abierto) {
-      void hoja.current?.present();
-    } else {
-      void hoja.current?.dismiss();
+      presentada.current = true;
+      hoja.current?.present().catch(() => undefined);
+    } else if (presentada.current) {
+      presentada.current = false;
+      hoja.current?.dismiss().catch(() => undefined);
     }
   }, [abierto]);
 
