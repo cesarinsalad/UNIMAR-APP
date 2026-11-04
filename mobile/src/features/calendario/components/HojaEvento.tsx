@@ -216,14 +216,14 @@ function Documento({
       {evento.descripcion ? (
         <View style={estilos.seccion}>
           <SectionHeader title="Descripción" />
-          <ThemedText variant="body">{evento.descripcion}</ThemedText>
+          <ThemedText variant="bodySm">{evento.descripcion}</ThemedText>
         </View>
       ) : null}
 
       {evento.tipo === 'OFICIAL' ? (
         <View style={estilos.seccion}>
           <SectionHeader title="Organizado por" />
-          <ThemedText variant="body" tone="secondary">
+          <ThemedText variant="bodySm" tone="secondary">
             {etiquetaAudiencia(evento.decanatoIds)}
           </ThemedText>
         </View>
