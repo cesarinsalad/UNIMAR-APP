@@ -4,7 +4,6 @@ import { useRouter } from 'expo-router';
 import {
   MapPinIcon,
   ClockIcon,
-  XIcon,
   PencilSimpleIcon,
   TrashIcon,
 } from 'phosphor-react-native';
@@ -63,7 +62,8 @@ export function HojaEvento({ eventoId, onCerrar }: HojaEventoProps) {
 interface ContenidoProps {
   eventoId: string;
   /** Cierre animado gestionado por la hoja; onDidDismiss sube el cierre
-   *  definitivo (limpia estado o hace router.back() en el anfitrión). */
+   *  definitivo (limpia estado o hace router.back() en el anfitrión). Ese
+   *  cierre llega del éxito de eliminar o del arrastre/dim/back nativo. */
   cerrar: () => void;
 }
 
@@ -159,40 +159,35 @@ function Documento({
 
   return (
     <View style={estilos.cuerpo}>
-      {/* ── Cabecera de identidad: X flotante (firma del sistema) + el card
-          expandido (día + barra + título + meta) — gap md interno ── */}
-      <View style={estilos.cabecera}>
-        <BotonCircular label="Cerrar" onPress={cerrar} style={estilos.botonCierre}>
-          <XIcon size={20} color={colors.brand.primary} weight="bold" />
-        </BotonCircular>
-
-        <View style={estilos.headerFila}>
-          <View style={estilos.fecha}>
-            <ThemedText variant="title" weight="bold">
-              {inicio.getDate().toString().padStart(2, '0')}
-            </ThemedText>
-            <ThemedText variant="caption" tone="secondary">
-              {new Intl.DateTimeFormat('es-VE', { month: 'short' })
-                .format(inicio)
-                .replace('.', '')}
-            </ThemedText>
-          </View>
-          <View style={[estilos.barra, { backgroundColor: colorBarra(evento) }]} />
-          <View style={estilos.headerCuerpo}>
-            <ThemedText variant="subtitle" weight="semibold" numberOfLines={3}>
-              {evento.titulo}
-            </ThemedText>
+      {/* ── Cabecera de identidad: el card expandido (día + barra + título
+          + hora + lugar). El cierre propio no lleva botón: en la hoja el
+          cierre son el arrastre hacia abajo, el dim y el botón back ── */}
+      <View style={estilos.headerFila}>
+        <View style={estilos.fecha}>
+          <ThemedText variant="title" weight="bold">
+            {inicio.getDate().toString().padStart(2, '0')}
+          </ThemedText>
+          <ThemedText variant="caption" tone="secondary">
+            {new Intl.DateTimeFormat('es-VE', { month: 'short' })
+              .format(inicio)
+              .replace('.', '')}
+          </ThemedText>
+        </View>
+        <View style={[estilos.barra, { backgroundColor: colorBarra(evento) }]} />
+        <View style={estilos.headerCuerpo}>
+          <ThemedText variant="subtitle" weight="semibold" numberOfLines={3}>
+            {evento.titulo}
+          </ThemedText>
+          <FilaMeta
+            texto={evento.diaCompleto ? 'Todo el día' : horaRango(evento)}
+            icono={<ClockIcon size={14} color={colors.text.secondary} />}
+          />
+          {evento.lugar ? (
             <FilaMeta
-              texto={evento.diaCompleto ? 'Todo el día' : horaRango(evento)}
-              icono={<ClockIcon size={14} color={colors.text.secondary} />}
+              texto={evento.lugar}
+              icono={<MapPinIcon size={14} color={colors.text.secondary} />}
             />
-            {evento.lugar ? (
-              <FilaMeta
-                texto={evento.lugar}
-                icono={<MapPinIcon size={14} color={colors.text.secondary} />}
-              />
-            ) : null}
-          </View>
+          ) : null}
         </View>
       </View>
 
@@ -289,14 +284,9 @@ function FilaMeta({ texto, icono }: { texto: string; icono: React.ReactNode }) {
 const estilos = StyleSheet.create({
   /** Raíz del Documento = jerarquía espacial según STYLE.md §3: gap xl
    *  (24) entre secciones distintas; los internos van menor (regla de
-   *  proximidad) por cabecera (md), secciones (sm) y cluster (md). */
+   *  proximidad) por secciones (sm) y cluster (md). */
   cuerpo: {
     gap: spacing.xl,
-  },
-  /** Cabecera de identidad: X flotante + card expandido — mismo grupo
-   *  visual, gap md (12). Reemplaza el margin loose del botón X. */
-  cabecera: {
-    gap: spacing.md,
   },
   headerFila: {
     flexDirection: 'row',
@@ -329,12 +319,12 @@ const estilos = StyleSheet.create({
   clusterAcciones: {
     gap: spacing.md,
   },
-  botonCierre: {
-    alignSelf: 'flex-end',
-  },
+  /** Botones circulares de staff alineados a la derecha: el CTA de agenda
+   *  vira full-width sobre ellos — la fila no compite con el CTA. */
   acciones: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'flex-end',
     gap: spacing.sm,
   },
   errorTexto: {
