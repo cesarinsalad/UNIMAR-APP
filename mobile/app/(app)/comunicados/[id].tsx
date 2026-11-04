@@ -14,7 +14,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import {
   aprobarComunicado,
-  archivarComunicado,
   publicarComunicado,
   rechazarComunicado,
   solicitarRevisionComunicado,
@@ -44,7 +43,13 @@ const FORMATO_FECHA_LARGA = new Intl.DateTimeFormat('es-VE', {
   timeStyle: 'short',
 });
 
-type AccionDetalle = 'solicitar' | 'aprobar' | 'rechazar' | 'publicar' | 'archivar';
+/**
+ * Transiciones del ciclo editorial que el DETALLE ofrece: solicitar,
+ * aprobar, rechazar y publicar. Editar y archivar NO están aquí — son
+ * exclusivos de la consola de gestión (editor + colas): el detalle es
+ * lectura del estado editorial para todos los roles.
+ */
+type AccionDetalle = 'solicitar' | 'aprobar' | 'rechazar' | 'publicar';
 
 export default function ComunicadoDetalleScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -144,7 +149,18 @@ function DetalleLector({
     esAutor: comunicado.autorId === usuario?.id,
     estado: comunicado.estado,
   });
-  const hayAcciones = Object.values(acciones).some(Boolean);
+  /**
+   * La fila de botones solo considera las transiciones SURFACED en el
+   * detalle — los flags puedeEditar/puedeArchivar del RBAC completo
+   * quedan para `veGestion` (info de staff) y la sección de adjuntos,
+   * así la fila nunca se renderiza vacía (ej. ADMIN sobre PUBLICADO
+   * ajeno, donde solo existían archivar/editar).
+   */
+  const hayAcciones =
+    acciones.puedeSolicitarRevision ||
+    acciones.puedeAprobar ||
+    acciones.puedeRechazar ||
+    acciones.puedePublicar;
 
   /**
    * UNA mutación de transición (optimista) para las 5 acciones del ciclo:
@@ -162,8 +178,6 @@ function DetalleLector({
           return rechazarComunicado(id, motivo);
         case 'publicar':
           return publicarComunicado(id);
-        case 'archivar':
-          return archivarComunicado(id);
       }
     },
   );
@@ -245,24 +259,6 @@ function DetalleLector({
                 size="sm"
                 disabled={algunaPendiente}
                 onPress={() => void ejecutarAccion('publicar')}
-              />
-            ) : null}
-            {acciones.puedeArchivar ? (
-              <ThemedButton
-                title="Archivar"
-                variant="ghost"
-                size="sm"
-                disabled={algunaPendiente}
-                onPress={() => void ejecutarAccion('archivar')}
-              />
-            ) : null}
-            {acciones.puedeEditar ? (
-              <ThemedButton
-                title="Editar"
-                variant="ghost"
-                size="sm"
-                disabled={algunaPendiente}
-                onPress={() => router.push(`/comunicados/nuevo?id=${comunicado.id}` as never)}
               />
             ) : null}
           </View>
