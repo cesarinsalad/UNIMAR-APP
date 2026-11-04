@@ -25,19 +25,30 @@ export function HojaInferior({ abierto, onCerrar, children }: HojaInferiorProps)
   const hoja = useRef<TrueSheet>(null);
   // Conexión del scrollable: el detent 'auto' mide este ScrollView.
   const scrollRef = useRef<ScrollView>(null);
-  const onDidDismiss = useCallback(() => onCerrar(), [onCerrar]);
+
+  /**
+   * Guard de presentación: marca el ciclo present→dismiss de la hoja.
+   * - true: la hoja fue presentada y AÚN no se confirma su cierre nativo.
+   * - false: nada presentado, o el nativo YA confirmó el cierre.
+   *
+   * El cierre nativo también baja por onDidDismiss → onCerrar → estado
+   * null → flip de `abierto` → efecto: sin este guard el efecto repetiría
+   * dismiss() sobre una hoja ya cerrada y el módulo devolvía el rechazo
+   * VIEW_NOT_FOUND (uncaught) / el warn "already dismissed"
+   * (TrueSheetView.kt loguea RNLog.w en ese caso).
+   */
+  const presentada = useRef(false);
+
+  const onDidDismiss = useCallback(() => {
+    // El nativo YA confirmó el cierre: declarar el ciclo terminado ANTES
+    // de propagar onCerrar, así el flip de `abierto` que sigue no repite
+    // el dismiss (fuente del warn "already dismissed").
+    presentada.current = false;
+    onCerrar();
+  }, [onCerrar]);
   const cerrar = useCallback(() => {
     hoja.current?.dismiss().catch(() => undefined);
   }, []);
-
-  /**
-   * Guard de presentación: solo un flip de `abierto` en un hoja ya
-   * PRESENTADA dispara el dismiss. El cierre nativo también baja por
-   * onDidDismiss → onCerrar → estado null → efecto — sin el guard, ese
-   * segundo dismiss golpeaba a una vista ya desmontada (lazy) y el módulo
-   * nativo devolvía (uncaught) el rechazo VIEW_NOT_FOUND.
-   */
-  const presentada = useRef(false);
 
   useEffect(() => {
     if (abierto) {
