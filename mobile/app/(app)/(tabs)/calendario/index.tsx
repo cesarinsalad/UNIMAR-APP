@@ -28,6 +28,7 @@ import { aplanarPaginas } from '@/shared/lib/paginar';
 import { useAgenda } from '@/features/calendario/hooks/useAgenda';
 import { EventosDelDia } from '@/features/calendario/components/EventosDelDia';
 import { GridMes, type InfoDia } from '@/features/calendario/components/GridMes';
+import { HojaEvento } from '@/features/calendario/components/HojaEvento';
 import { TarjetaProximoEvento } from '@/features/calendario/components/TarjetaProximoEvento';
 import { colors, layout, radius, spacing } from '@/shared/ui';
 import {
@@ -56,6 +57,9 @@ export default function CalendarioScreen() {
   const hoy = useMemo(() => new Date(), []);
   const [posicion, setPosicion] = useState<[number, number]>([hoy.getFullYear(), hoy.getMonth()]);
   const [diaSeleccionado, setDiaSeleccionado] = useState<string | null>(null);
+  /** Evento de la hoja inferior: null = cerrada. El id persiste durante la
+   *  animación de salida (onDismiss→aquí) para que la hoja no parpadee. */
+  const [eventoIdHoja, setEventoIdHoja] = useState<string | null>(null);
 
   const ventana = useMemo(() => ventanaMes(posicion[0], posicion[1]), [posicion]);
   const agenda = useAgenda({ desde: ventana.desde, hasta: ventana.hasta, clave: ventana.clave });
@@ -228,7 +232,10 @@ export default function CalendarioScreen() {
             </View>
           ) : null}
         </View>
-        <EventosDelDia eventos={eventosDelDia(grupos, seleccion)} />
+        <EventosDelDia
+          eventos={eventosDelDia(grupos, seleccion)}
+          onPresionar={(evento) => setEventoIdHoja(evento.id)}
+        />
       </View>
 
         <SectionHeader
@@ -264,7 +271,11 @@ export default function CalendarioScreen() {
           <View style={estilos.listaProximos}>
             {proximos.map((grupo: GrupoDia) =>
               grupo.eventos.map((evento) => (
-                <TarjetaProximoEvento key={evento.id} evento={evento} />
+                <TarjetaProximoEvento
+                  key={evento.id}
+                  evento={evento}
+                  onPresionar={(e) => setEventoIdHoja(e.id)}
+                />
               )),
             )}
           </View>
@@ -281,6 +292,9 @@ export default function CalendarioScreen() {
           </ThemedText>
         ) : null}
       </ScrollView>
+
+      {/* Hoja de detalle fuera del scroll: portal del modal provider. */}
+      <HojaEvento eventoId={eventoIdHoja} onCerrar={() => setEventoIdHoja(null)} />
     </View>
   );
 }

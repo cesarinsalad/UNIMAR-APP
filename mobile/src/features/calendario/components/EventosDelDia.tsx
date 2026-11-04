@@ -14,16 +14,20 @@ import type { Evento } from '../types';
  * siendo el único diferencial de tipo. Nada de tokens legacy ni tercera
  * forma de dibujar un evento.
  */
-export function EventosDelDia({ eventos }: { eventos: Array<{
-  id: string;
-  titulo: string;
-  tipo: Evento['tipo'];
-  inicioAt: string;
-  finAt?: string | null | undefined;
-  diaCompleto: boolean;
-  lugar: string | null;
-  decanatoIds: number[];
-}> }) {
+export function EventosDelDia({ eventos, onPresionar }: {
+  eventos: Array<{
+    id: string;
+    titulo: string;
+    tipo: Evento['tipo'];
+    inicioAt: string;
+    finAt?: string | null | undefined;
+    diaCompleto: boolean;
+    lugar: string | null;
+    decanatoIds: number[];
+  }>;
+  /** Override del tap de cada tarjeta (default del call-site: hoja). */
+  onPresionar?: (evento: EventoResumen) => void;
+}) {
   if (eventos.length === 0) {
     return (
       <ThemedText variant="caption" tone="tertiary">
@@ -39,7 +43,13 @@ export function EventosDelDia({ eventos }: { eventos: Array<{
           ...evento,
           compacta: true,
         };
-        return <TarjetaProximoEvento key={evento.id} evento={resumen} />;
+        return (
+          <TarjetaProximoEvento
+            key={evento.id}
+            evento={resumen}
+            onPresionar={onPresionar}
+          />
+        );
       })}
     </View>
   );

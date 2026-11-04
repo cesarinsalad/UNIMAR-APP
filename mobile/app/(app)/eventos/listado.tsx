@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   FlatList,
   RefreshControl,
@@ -22,18 +22,24 @@ import {
   BotonCircular,
 } from '@/shared/ui';
 import { useEventosListado } from '@/features/calendario/hooks/useEventosListado';
+import { HojaEvento } from '@/features/calendario/components/HojaEvento';
 import { TarjetaProximoEvento } from '@/features/calendario/components/TarjetaProximoEvento';
 import type { Evento } from '@/features/calendario/types';
 
 /**
  * Discovery de eventos del campus: OFICIALES visibles por audiencia/RLS +
- * INSTITUCIONALES (fechas fijas), próximos, en orden cronológico. La
- * participación (agregar/quitar agenda) vive SOLO en el detalle
- * (/eventos/[id]) para no recargar el listado.
+ * INSTITUCIONALES (fechas fijas), próximos, en orden cronológico. El tap
+ * en un evento abre la hoja inferior de detalle (HojaEvento, con CTA de
+ * agenda y acciones staff) — el detalle no tiene pantalla propia: la ruta
+ * /eventos/[id] es solo el anfitrión transparente de esa hoja para los
+ * caminos externos (push, consola de gestión).
  */
 export default function ListadoEventosScreen() {
   const insets = useSafeAreaInsets();
   const { eventos: porVentana, paginar } = useEventosListado();
+  /** Id de la hoja inferior de detalle (null = cerrada). El id persiste
+   *  durante la animación de salida para que la hoja no parpadee. */
+  const [eventoIdHoja, setEventoIdHoja] = useState<string | null>(null);
 
   const eventos = useMemo(
     () => (porVentana.data ? aplanarPaginas(porVentana.data.pages) : []),
@@ -83,7 +89,11 @@ export default function ListadoEventosScreen() {
             <View key={item.clave} style={estilos.grupo}>
               <SectionHeader title={item.etiqueta} />
               {item.eventos.map((evento) => (
-                <TarjetaProximoEvento key={evento.id} evento={evento} />
+                <TarjetaProximoEvento
+                  key={evento.id}
+                  evento={evento}
+                  onPresionar={(e) => setEventoIdHoja(e.id)}
+                />
               ))}
             </View>
           )}
@@ -112,6 +122,9 @@ export default function ListadoEventosScreen() {
           }
         />
       )}
+
+      {/* Hoja de detalle fuera del FlatList: portal del modal provider. */}
+      <HojaEvento eventoId={eventoIdHoja} onCerrar={() => setEventoIdHoja(null)} />
     </ThemedView>
   );
 }

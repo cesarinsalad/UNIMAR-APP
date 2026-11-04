@@ -72,7 +72,7 @@ npm run test:db             # integration RLS; se salta si Supabase no está arr
 - `mobile/src/features/{modulo}/{api,hooks,components,store}/` — espeja los módulos del backend.
 - `mobile/src/shared/` — axios con interceptores, UI primitives (theme de STYLE.md), lib (jwt, paginar, etiquetas), notifications (push + deep-link).
 - **Frontera**: features nunca se importan entre sí; lo común va a `mobile/src/shared/`.
-- Pantallas en `mobile/app/` (Expo Router file-based): `app/(app)/(tabs)/` para las 5 tabs, `mobile/app/{modulo}/[id].tsx` para deep-links de push.
+- Pantallas en `mobile/app/` (Expo Router file-based): `app/(app)/(tabs)/` para las 5 tabs, `mobile/app/{modulo}/[id].tsx` para deep-links de push (eventos: la ruta es un anfitrión transparente que presenta la `HojaEvento` — bottom sheet en `shared/ui/HojaInferior.{tsx,native.tsx}` con `@lodev09/react-native-true-sheet`, web degrada a Modal slide).
 - Path alias: `@/*` → `./src/*` (tsconfig + jest moduleNameMapper ambos, order importa en jest).
 - Validación de UI en cliente: espejo de los schemas Zod del BFF (fallar antes de llegar al 400).
 

@@ -46,15 +46,21 @@ const FORMATO_MES_CORTO = new Intl.DateTimeFormat('es-VE', { month: 'short' });
  * encabezado de la sección ya nombra el día, así que el bloque "19 · SEP"
  * se vuelve columna dura de hora (receta AgendaDia: inicio semibold +
  * fin caption) y la meta conserva solo el lugar.
- * `presionable=false` reutiliza la MISMA receta cuando el card es la
- * cabecera del propio detalle (sin PressableScale ni navegación recursiva).
+ * `presionable=false` reutiliza la MISMA receta como cabecera del
+ * contenido de la hoja de detalle (sin PressableScale ni cierre recursivo).
  */
 export function TarjetaProximoEvento({
   evento,
   presionable = true,
+  onPresionar,
 }: {
   evento: EventoResumen;
   presionable?: boolean;
+  /** Override del tap: si llega, la tarjeta NI navega — la pantalla
+   *  decide (default de este call-site: abrir la hoja de detalle).
+   *  Sin la prop queda el push a /eventos/[id], el anfitrión transparente
+   *  de la hoja para los caminos externos (push, consola de gestión). */
+  onPresionar?: (evento: EventoResumen) => void;
 }) {
   const inicio = new Date(evento.inicioAt);
   const tarjeta = (
@@ -111,7 +117,9 @@ export function TarjetaProximoEvento({
     <PressableScale
       accessibilityRole="button"
       accessibilityLabel={`Detalle de ${evento.titulo}`}
-      onPress={() => router.push(`/eventos/${evento.id}` as never)}>
+      onPress={() =>
+        onPresionar ? onPresionar(evento) : router.push(`/eventos/${evento.id}` as never)
+      }>
       {tarjeta}
     </PressableScale>
   );

@@ -76,8 +76,17 @@ export default function AppLayout() {
           screenOptions={{ headerShown: false }}
           screenLayout={({ children }) => (
             <View style={estilos.stack}>{children}</View>
-          )}
-        />
+          )}>
+          {/*Detalle de evento = anfitrión de la HojaEvento: transparente
+             para que la pantalla previa quede visible tras el dim.*/}
+          <Stack.Screen
+            name="eventos/[id]"
+            options={{
+              presentation: 'transparentModal',
+              contentStyle: { backgroundColor: 'transparent' },
+            }}
+          />
+        </Stack>
       </View>
     </>
   );

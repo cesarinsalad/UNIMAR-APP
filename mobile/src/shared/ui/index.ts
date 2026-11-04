@@ -21,6 +21,7 @@ export { PressableScale, type PressableScaleProps } from './PressableScale';
 export { Badge, type BadgeProps } from './Badge';
 export { TextField, type TextFieldProps } from './TextField';
 export { Select, type SelectProps, type OpcionSelect } from './Select';
+export { HojaInferior, type HojaInferiorProps } from './HojaInferior';
 export { ModalConfirmacion, type ModalConfirmacionProps } from './ModalConfirmacion';
 export { ContenidoCentrado, type ContenidoCentradoProps } from './ContenidoCentrado';
 export { useEsDesktop } from './useEsDesktop';
