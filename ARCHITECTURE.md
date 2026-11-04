@@ -122,8 +122,10 @@ Notas de modelado:
   cualquier estado.
 - `comunicados INSERT/UPDATE`: COMUNICADOR solo si audiencia ⊆ su decanato;
   ADMIN sin restricción.
-- `eventos SELECT`: ADMIN ve todo. PERSONAL propio. OFICIAL: GLOBAL o decanato
-  del claim ∈ audiencias.
+- `eventos SELECT`: ADMIN ve todo MENOS el PERSONAL de otros (los PERSONAL
+  son exclusivos del dueño — decisión de privacidad, mismo régimen que el
+  historial médico; el dueño los lee sea cual sea su rol). OFICIAL: GLOBAL o
+  decanato del claim ∈ audiencias; INSTITUCIONAL/FERIADO universales.
 - `eventos INSERT`: OFICIAL solo ADMIN o COMUNICADOR (audiencia ⊆ su decanato
   enforced por la política de `evento_audiencias`). PERSONAL: cualquier rol
   autenticado con `usuario_id = claim.sub`.

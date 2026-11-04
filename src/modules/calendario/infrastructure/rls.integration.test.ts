@@ -29,6 +29,7 @@ interface TestUsuarios {
 
 interface TestEventos {
   personalEst: string;
+  personalAdmin: string;
   oficialCom5: string;
   oficialAdminGlobal: string;
   oficialAdmin5: string;
@@ -38,7 +39,8 @@ interface TestEventos {
  * Integración de RLS para el componente Calendario.
  *
  * Evidencia ejecutable del modelo ABAC del Paso 4:
- *  - eventos SELECT: ADMIN todo, PERSONAL propio, OFICIAL por audiencia.
+ *  - eventos SELECT: ADMIN todo menos el PERSONAL ajeno (exclusividad del
+ *    dueño — privacidad); PERSONAL propio; OFICIAL por audiencia.
  *  - eventos INSERT: PERSONAL propio; OFICIAL solo ADMIN/COMUNICADOR.
  *  - eventos UPDATE/DELETE: PERSONAL propio; OFICIAL ADMIN o dueño COM.
  *  - evento_audiencias: INSERT solo ADMIN o COM con decanato propio.
@@ -114,6 +116,13 @@ describe.skipIf(!RUN_DB_TESTS)('RLS Calendario (ABAC)', () => {
       [u.est5],
     );
 
+    // PERSONAL del ADMIN (el ADMIN puede crear el suyo; ajeno no lo ve)
+    await setClaims(client, claimsFor(u.adminId, 'ADMIN', null, 'Admin'));
+    const personalAdmin = await client.query<{ id: string }>(
+      "INSERT INTO eventos (titulo, tipo, usuario_id, inicio_at) VALUES ('Personal Admin', 'PERSONAL', $1, now() + interval '1 day') RETURNING id",
+      [u.adminId],
+    );
+
     // OFICIAL del comunicador 5 (audiencia [5])
     await setClaims(client, claimsFor(u.com5, 'COMUNICADOR', 5, 'COM5'));
     const oficialCom5 = await client.query<{ id: string }>(
@@ -144,6 +153,7 @@ describe.skipIf(!RUN_DB_TESTS)('RLS Calendario (ABAC)', () => {
 
     return {
       personalEst: personalEst.rows[0]!.id,
+      personalAdmin: personalAdmin.rows[0]!.id,
       oficialCom5: oficialCom5.rows[0]!.id,
       oficialAdminGlobal: oficialAdminGlobal.rows[0]!.id,
       oficialAdmin5: oficialAdmin5.rows[0]!.id,
@@ -154,18 +164,34 @@ describe.skipIf(!RUN_DB_TESTS)('RLS Calendario (ABAC)', () => {
   // eventos: SELECT
   // ──────────────────────────────────────────────────────────
   describe('eventos SELECT', () => {
-    it('ADMIN ve todos los eventos independientemente de tipo y audiencia', async () => {
+    it('ADMIN ve OFICIAL de cualquier decanato y audiencia', async () => {
       await withTx(async (c) => {
         const u = await seedUsuarios(c);
         const evs = await seedEventos(c, u);
         await setClaims(c, claimsFor(u.adminId, 'ADMIN', null, 'Admin'));
 
-        const result = await c.query<{ id: string }>('SELECT id FROM eventos ORDER BY titulo');
+        const result = await c.query<{ id: string }>('SELECT id FROM eventos');
         const ids = result.rows.map((r) => r.id);
-        expect(ids).toContain(evs.personalEst);
         expect(ids).toContain(evs.oficialCom5);
         expect(ids).toContain(evs.oficialAdminGlobal);
         expect(ids).toContain(evs.oficialAdmin5);
+      });
+    });
+
+    // PERSONAL es exclusivo del dueño (privacidad, precedente historial
+    // médico: ARCHITECTURE.md): ni el ADMIN lee el ajeno. Solo ve el suyo.
+    it('ADMIN no ve el PERSONAL de otros usuarios, pero sí el propio', async () => {
+      await withTx(async (c) => {
+        const u = await seedUsuarios(c);
+        const evs = await seedEventos(c, u);
+        await setClaims(c, claimsFor(u.adminId, 'ADMIN', null, 'Admin'));
+
+        const result = await c.query<{ id: string }>(
+          "SELECT id FROM eventos WHERE tipo = 'PERSONAL'",
+        );
+        const ids = result.rows.map((r) => r.id);
+        expect(ids).toContain(evs.personalAdmin);
+        expect(ids).not.toContain(evs.personalEst);
       });
     });
 
@@ -430,6 +456,24 @@ describe.skipIf(!RUN_DB_TESTS)('RLS Calendario (ABAC)', () => {
       });
     });
 
+    // La escritura ya era owner-only para PERSONAL (sin rama ADMIN): quedan
+    // los dos caminos bloqueados para el ADMIN con el ajeno.
+    it('ADMIN no actualiza ni elimina el PERSONAL ajeno -> 0 filas', async () => {
+      await withTx(async (c) => {
+        const u = await seedUsuarios(c);
+        const evs = await seedEventos(c, u);
+        await setClaims(c, claimsFor(u.adminId, 'ADMIN', null, 'Admin'));
+
+        const update = await c.query(
+          "UPDATE eventos SET titulo = 'admin-edit' WHERE id = $1",
+          [evs.personalEst],
+        );
+        expect(update.rowCount).toBe(0);
+        const del = await c.query('DELETE FROM eventos WHERE id = $1', [evs.personalEst]);
+        expect(del.rowCount).toBe(0);
+      });
+    });
+
     it('COMUNICADOR elimina su OFICIAL OK', async () => {
       await withTx(async (c) => {
         const u = await seedUsuarios(c);
@@ -685,8 +729,12 @@ describe.skipIf(!RUN_DB_TESTS)('RLS Calendario (ABAC)', () => {
         ]);
         await setClaims(c, claimsFor(u.adminId, 'ADMIN', null, 'Admin'));
         await c.query('DELETE FROM eventos WHERE id = $1', [evId]);
+        // Count scope AL evento de la prueba: la tabla pivote puede contener
+        // filas de tiempo real (p. ej. el seed/admin agregó un evento por la
+        // app) — el assertion es sobre SU evento, no sobre el mundo.
         const r = await c.query<{ n: number }>(
-          'SELECT count(*)::int AS n FROM evento_participantes',
+          'SELECT count(*)::int AS n FROM evento_participantes WHERE evento_id = $1',
+          [evId],
         );
         expect(r.rows[0]!.n).toBe(0);
       });
