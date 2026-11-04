@@ -1,17 +1,15 @@
 import { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Switch,
   View,
 } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeftIcon, CalendarBlankIcon, ClockIcon } from 'phosphor-react-native';
+import { ArrowLeftIcon } from 'phosphor-react-native';
 
 import {
   crearEvento,
@@ -22,10 +20,13 @@ import {
   ajustarDiaCompleto,
   audienciaParaEvento,
   finPredeterminado,
+  nuevaFechaSana,
   PRESETS_RECORDATORIO,
   tieneErroresEvento,
   validarFormularioEvento,
 } from '@/features/calendario/hooks/formulario-evento';
+import { SelectorFecha } from '@/features/calendario/components/SelectorFecha';
+import { SelectorHora } from '@/features/calendario/components/SelectorHora';
 import { useMutacionEvento } from '@/features/calendario/hooks/useMutacionEvento';
 import { useEventoDetalle } from '@/features/calendario/hooks/useEventoDetalle';
 import { useDecanatos } from '@/features/identidad/hooks/useDecanatos';
@@ -41,7 +42,6 @@ import {
   ThemedButton,
   ThemedText,
   ThemedView,
-  useSelectorWeb,
 } from '@/shared/ui';
 
 /** Formulario crear/editar evento (estilo mock): back circular + campos en
@@ -266,7 +266,7 @@ export default function FormularioEventoScreen() {
             error={errores.titulo ?? undefined}
           />
 
-          <BloqueFecha
+          <SelectorFecha
             etiqueta="Fecha"
             fecha={inicio}
             onChange={(d) => {
@@ -279,7 +279,7 @@ export default function FormularioEventoScreen() {
             Hora
           </ThemedText>
           <View style={estilos.filaHoras}>
-            <ColumnaHora
+            <SelectorHora
               etiqueta="Empieza"
               valor={inicio}
               disabled={pendiente || diaCompleto}
@@ -287,7 +287,7 @@ export default function FormularioEventoScreen() {
               onChange={(d) => setInicio(d)}
             />
             {conFin ? (
-              <ColumnaHora
+              <SelectorHora
                 etiqueta="Termina"
                 valor={fin ?? finPredeterminado(inicio)}
                 disabled={pendiente || diaCompleto}
@@ -432,121 +432,6 @@ function tituloFecha(fecha: Date): string {
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
-/** Campo de fecha único con picker nativo (o input web invisible). */
-function BloqueFecha({
-  etiqueta,
-  fecha,
-  onChange,
-}: {
-  etiqueta: string;
-  fecha: Date;
-  onChange: (d: Date) => void;
-}) {
-  const [verFecha, setVerFecha] = useState(false);
-  const esIos = Platform.OS === 'ios';
-  const esWeb = Platform.OS === 'web';
-  const selectorWeb = useSelectorWeb('date', fecha, onChange);
-
-  return (
-    <View style={estilos.campo}>
-      <ThemedText variant="bodySm" tone="primary">
-        {etiqueta}
-      </ThemedText>
-      <View style={estilos.contenedorSelector}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={etiqueta}
-          onPress={() => (esWeb ? selectorWeb.abrir() : setVerFecha(true))}
-          style={({ pressed }) => [estilos.cajaHora, pressed && { opacity: 0.85 }]}>
-          <CalendarBlankIcon size={18} color={colors.text.secondary} />
-          <ThemedText variant="body">
-            {fecha.toLocaleDateString('es-VE', { dateStyle: 'medium' })}
-          </ThemedText>
-        </Pressable>
-        {esWeb ? selectorWeb.superpuesto : null}
-      </View>
-      {!esWeb && verFecha ? (
-        <DateTimePicker
-          value={fecha}
-          mode="date"
-          display={esIos ? 'spinner' : 'default'}
-          onChange={(e, nueva) => {
-            if (!esIos) setVerFecha(false);
-            if (nueva) {
-              // conservar hora actual del estado
-              const conservada = new Date(fecha);
-              conservada.setFullYear(nueva.getFullYear());
-              conservada.setMonth(nueva.getMonth());
-              conservada.setDate(nueva.getDate());
-              onChange(conservada);
-            }
-          }}
-          testID="fecha-inicio"
-        />
-      ) : null}
-    </View>
-  );
-}
-
-/** Columna de hora con caja blanca + picker nativo (o input web invisible). */
-function ColumnaHora({
-  etiqueta,
-  valor,
-  disabled,
-  idPrueba,
-  onChange,
-}: {
-  etiqueta: string;
-  valor: Date;
-  disabled: boolean;
-  idPrueba: string;
-  onChange: (d: Date) => void;
-}) {
-  const [verHora, setVerHora] = useState(false);
-  const esIos = Platform.OS === 'ios';
-  const esWeb = Platform.OS === 'web';
-  const selectorWeb = useSelectorWeb('time', valor, onChange);
-
-  return (
-    <View style={estilos.columnaHora}>
-      <ThemedText variant="bodySm" tone="secondary">
-        {etiqueta}
-      </ThemedText>
-      <View style={estilos.contenedorSelector}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={etiqueta}
-          disabled={disabled}
-          onPress={() => (esWeb ? selectorWeb.abrir() : setVerHora(true))}
-          style={({ pressed }) => [estilos.cajaHora, pressed && { opacity: 0.85 }]}>
-          <ClockIcon size={18} color={colors.text.secondary} />
-          <ThemedText variant="body">
-            {valor.toLocaleTimeString('es-VE', { timeStyle: 'short' })}
-          </ThemedText>
-        </Pressable>
-        {esWeb ? selectorWeb.superpuesto : null}
-      </View>
-      {!esWeb && verHora ? (
-        <DateTimePicker
-          value={valor}
-          mode="time"
-          display={esIos ? 'spinner' : 'default'}
-          onChange={(e, nueva) => {
-            if (!esIos) setVerHora(false);
-            if (nueva) {
-              const conservada = new Date(valor);
-              conservada.setHours(nueva.getHours());
-              conservada.setMinutes(nueva.getMinutes());
-              onChange(conservada);
-            }
-          }}
-          testID={idPrueba}
-        />
-      ) : null}
-    </View>
-  );
-}
-
 function Campo({
   label,
   error,
@@ -569,12 +454,6 @@ function Campo({
       ) : null}
     </View>
   );
-}
-
-/** Nada sensible por defecto: "hoy + 1h" al minuto en punto. */
-function nuevaFechaSana(): Date {
-  const ahora = new Date();
-  return new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), ahora.getHours() + 1, 0, 0, 0);
 }
 
 const estilos = StyleSheet.create({
@@ -609,29 +488,9 @@ const estilos = StyleSheet.create({
   campo: {
     gap: spacing.xs,
   },
-  // Envuelve la caja táctil: ancla el input web invisible superpuesto.
-  contenedorSelector: {
-    position: 'relative',
-  },
   filaHoras: {
     flexDirection: 'row',
     gap: spacing.md,
-  },
-  columnaHora: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  cajaHora: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.bg.surface,
-    borderRadius: radius.input,
-    borderWidth: 1,
-    borderColor: colors.border.subtle,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    minHeight: 44,
   },
   filaTodoDia: {
     flexDirection: 'row',

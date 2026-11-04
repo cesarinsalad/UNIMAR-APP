@@ -11,7 +11,7 @@ export function useRefrescarQueries() {
   const [refrescando, setRefrescando] = useState(false);
 
   const refrescar = useCallback(
-    async (prefijos: readonly unknown[][]) => {
+    async (prefijos: readonly (readonly unknown[])[]) => {
       setRefrescando(true);
       try {
         await Promise.all(

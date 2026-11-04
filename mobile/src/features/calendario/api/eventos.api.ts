@@ -90,3 +90,15 @@ export async function participarEvento(id: string): Promise<void> {
 export async function abandonarEvento(id: string): Promise<void> {
   await api.delete(`/eventos/${id}/participar`);
 }
+
+// ─── Estadísticas del staff ────────────────────────────────────────────────
+
+/** GET /eventos/:id/estadisticas → { participantes } (staff del alcance; 403 demás). */
+export async function estadisticasEvento(
+  id: string,
+): Promise<{ participantes: number }> {
+  const { data } = await api.get<{ participantes: number }>(
+    `/eventos/${id}/estadisticas`,
+  );
+  return data;
+}

@@ -16,7 +16,7 @@ import { ThemedText, ThemedView, useEsDesktop } from '@/shared/ui';
 import type { EstadoComunicado } from '@/features/comunicaciones/types';
 import { PanelSeccion } from './_secciones/PanelSeccion';
 import { ColasSeccion } from './_secciones/ColasSeccion';
-import { EventosSeccion } from './_secciones/EventosSeccion';
+import { EventosSeccion, type ModoEventos } from './_secciones/EventosSeccion';
 
 type Seccion = 'panel' | 'colas' | 'eventos';
 
@@ -27,7 +27,12 @@ const NAV: { clave: Seccion; etiqueta: string; icono: typeof SquaresFourIcon }[]
   { clave: 'eventos', etiqueta: 'Eventos', icono: CalendarBlankIcon },
 ];
 
-const ESTADOS_VALIDOS: EstadoComunicado[] = ['BORRADOR', 'PENDIENTE', 'ARCHIVADO'];
+const ESTADOS_VALIDOS: EstadoComunicado[] = [
+  'BORRADOR',
+  'PENDIENTE',
+  'PUBLICADO',
+  'ARCHIVADO',
+];
 
 /**
  * Consola de staff — UNA pantalla con secciones por estado (Panel /
@@ -59,6 +64,9 @@ export default function ConsolaGestionScreen() {
       ? (estadoParam as EstadoComunicado)
       : 'BORRADOR',
   );
+  // Modo de la sección de eventos: lista, creación o edición inline (el
+  // formulario propio de la consola vive dentro del shell, sin navegar).
+  const [modoEventos, setModoEventos] = useState<ModoEventos>({ vista: 'lista' });
 
   if (!permisos.puedeCrearComunicado) {
     return <Redirect href="/" />;
@@ -69,23 +77,37 @@ export default function ConsolaGestionScreen() {
     setSeccion('colas');
   }
 
+  function irEventos() {
+    setModoEventos({ vista: 'lista' });
+    setSeccion('eventos');
+  }
+
+  function nuevoEvento() {
+    setModoEventos({ vista: 'crear' });
+    setSeccion('eventos');
+  }
+
   const seccionActiva =
     seccion === 'panel' ? (
       <PanelSeccion
         onIrColas={irColas}
-        onIrEventos={() => setSeccion('eventos')}
+        onIrEventos={irEventos}
+        onNuevoEvento={nuevoEvento}
       />
     ) : seccion === 'colas' ? (
       <ColasSeccion estado={estadoColas} onEstado={setEstadoColas} />
     ) : (
-      <EventosSeccion />
+      <EventosSeccion modo={modoEventos} onModo={setModoEventos} />
     );
 
   if (esDesktop) {
     return (
-      <View style={estilos.fila}>        <ThemedView variant="base" style={estilos.sidebar}>
+      <View style={estilos.fila}>
+        <ThemedView variant="base" style={estilos.sidebar}>
+          {/* Masthead del rail: mismo tratamiento que el móvil — título en
+              voz de la casa (semibold, no bold) y el rol como metadato pill. */}
           <View style={estilos.sidebarCabecera}>
-            <ThemedText variant="subtitle" weight="bold">
+            <ThemedText variant="title" weight="semibold">
               Gestión
             </ThemedText>
             <ThemedView variant="sunken" style={estilos.pillRol}>
@@ -95,7 +117,7 @@ export default function ConsolaGestionScreen() {
             </ThemedView>
           </View>
           {usuario?.nombre ? (
-            <ThemedText variant="caption" tone="secondary" numberOfLines={1}>
+            <ThemedText variant="caption" tone="secondary" numberOfLines={1} style={estilos.nombreSidebar}>
               {usuario.nombre}
             </ThemedText>
           ) : null}
@@ -149,7 +171,8 @@ export default function ConsolaGestionScreen() {
             <Pressable
               accessibilityRole="link"
               accessibilityLabel="Volver a la app"
-              onPress={() => router.navigate('/')}>
+              onPress={() => router.navigate('/')}
+              style={estilos.volverSidebar}>
               <View style={estilos.volverFila}>
                 <ArrowLeftIcon size={16} color={colors.text.secondary} />
                 <ThemedText variant="bodySm" tone="secondary" weight="medium">
@@ -167,8 +190,10 @@ export default function ConsolaGestionScreen() {
 
   return (
     <View style={estilos.col}>
+      {/* Masthead de la casa: headline 28 en contenido (firma de los tabs);
+          el rol queda como metadato pill, no como segundo título. */}
       <View style={estilos.cabeceraMovil}>
-        <ThemedText variant="subtitle" weight="bold">
+        <ThemedText variant="headline" weight="semibold">
           Gestión
         </ThemedText>
         <ThemedView variant="sunken" style={estilos.pillRol}>
@@ -227,8 +252,9 @@ const estilos = StyleSheet.create({
     borderRightColor: colors.border.subtle,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.lg,
-    gap: spacing.md,
   },
+  // Ritmo de la casa (mismo contraste que el Panel): 24 entre grupos,
+  // 8 etiqueta → contenido — no gap plano.
   sidebarCabecera: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -240,9 +266,11 @@ const estilos = StyleSheet.create({
     borderRadius: radius.pill,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
+    flexShrink: 0,
   },
   pillRolTexto: { color: colors.brand.primary },
-  nav: { gap: spacing.xs, marginTop: spacing.xs },
+  nombreSidebar: { marginTop: spacing.sm },
+  nav: { gap: spacing.xs, marginTop: spacing.xl },
   itemNav: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -252,8 +280,9 @@ const estilos = StyleSheet.create({
   },
   accionesSidebar: {
     gap: spacing.sm,
-    marginTop: spacing.md,
+    marginTop: spacing.xl,
   },
+  volverSidebar: { marginTop: spacing.sm },
   salirTexto: { color: colors.status.danger },
   volverFila: {
     flexDirection: 'row',
@@ -267,10 +296,10 @@ const estilos = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: spacing.sm,
+    gap: spacing.md,
     paddingHorizontal: spacing.four,
     paddingTop: spacing.md,
-    paddingBottom: spacing.xs,
+    paddingBottom: spacing.sm,
   },
   chips: {
     flexDirection: 'row',

@@ -27,7 +27,6 @@ import {
   EmptyState,
   EstadoCentrado,
   ModalConfirmacion,
-  SectionHeader,
   Separador,
   SeparadorFino,
   SkeletonCard,
@@ -38,6 +37,7 @@ import {
   useEsDesktop,
 } from '@/shared/ui';
 import type { Evento } from '@/features/calendario/types';
+import { FormularioEvento } from './FormularioEvento';
 
 const ETIQUETA_TIPO: Record<Evento['tipo'], string> = {
   PERSONAL: 'Personal',
@@ -50,23 +50,35 @@ const TIPOS_FILTRO: { valor: Evento['tipo'] | ''; etiqueta: string }[] = [
   { valor: '', etiqueta: 'Todos' },
   { valor: 'OFICIAL', etiqueta: 'Oficiales' },
   { valor: 'INSTITUCIONAL', etiqueta: 'Institucionales' },
-  { valor: 'PERSONAL', etiqueta: 'Personales' },
 ];
 
 function verDetalle(evento: Evento) {
   router.push(`/eventos/${evento.id}` as never);
 }
 
+/** Estado de la sección: lista, creación inline o edición inline (form propio). */
+export type ModoEventos =
+  | { vista: 'lista' }
+  | { vista: 'crear' }
+  | { vista: 'editar'; id: string };
+
+export interface EventosSeccionProps {
+  modo: ModoEventos;
+  onModo: (modo: ModoEventos) => void;
+}
+
 /**
  * Gestión de eventos de la consola: lo que el rol puede tocar en los
- * próximos 90 días (ADMIN: todo lo visible; comunicador: lo que él creó;
- * personal: solo lo propio — espejo de accionesPermitidasEvento). Filtro
+ * próximos 90 días (ADMIN: todo lo oficial/institucional visible;
+ * comunicador: lo que él creó). Los PERSONALES no se gestionan aquí —
+ * viven en el tab calendario de la app (creación/edición propias del
+ * dueño); la consola los excluye antes del filtro de permisos. Filtro
  * por tipo en cliente dentro de la ventana (el BFF no filtra tipo).
  * Tabla de filas en desktop, cards en móvil; la card móvil abre el
  * DETALLE, donde viven editar/eliminar con confirmación (sin botones
  * duplicados por fila; Alert.alert es no-op en web).
  */
-export function EventosSeccion() {
+export function EventosSeccion({ modo, onModo }: EventosSeccionProps) {
   const insets = useSafeAreaInsets();
   const esDesktop = useEsDesktop();
   const usuario = useSesionStore((s) => s.usuario);
@@ -79,6 +91,9 @@ export function EventosSeccion() {
     // aplanarPaginas tolera páginas {items,total} y arrays del wire legacy.
     const todos = aplanarPaginas(porVentana.data.pages);
     return todos
+      // Los personales NO se gestionan desde la consola: viven en el tab
+      // calendario (el ADMIN tampoco edita personales ajenos: 403 del BFF).
+      .filter((evento) => evento.tipo !== 'PERSONAL')
       .filter((evento) =>
         accionesPermitidasEvento({
           rol: usuario?.rol ?? null,
@@ -127,7 +142,7 @@ export function EventosSeccion() {
           <FilaTabla
             evento={item}
             acabandoBorrar={borrando}
-            onEditar={() => router.push(`/eventos/nuevo?id=${item.id}` as never)}
+            onEditar={() => onModo({ vista: 'editar', id: item.id })}
             onEliminar={() => setPorBorrar(item)}
           />
           {errorFila ? <TextoError>{errorFila}</TextoError> : null}
@@ -139,17 +154,34 @@ export function EventosSeccion() {
     );
   }
 
+  // Crear/editar inline: el formulario propio de la consola reemplaza la
+  // lista dentro del shell (la sidebar/nav permanece visible).
+  if (modo.vista !== 'lista') {
+    return (
+      <FormularioEvento
+        eventoId={modo.vista === 'editar' ? modo.id : null}
+        onCerrar={() => onModo({ vista: 'lista' })}
+      />
+    );
+  }
+
   return (
     <ThemedView variant="base" style={estilos.pane}>
-      <SectionHeader
-        title="Eventos"
-        action={
-          <ThemedText variant="caption" tone="secondary">
-            Próximos 90 días
-          </ThemedText>
-        }
-        style={estilos.cabecera}
-      />
+      {/* Sobretítulo eyebrow de la casa (mismo gesto que el Panel): el
+          label del tema se funde con la ventana de 90 días — sin repetir
+          el "Eventos" del chip de nav con otro subtítulo grande. La acción
+          de crear vive aquí (contexto correcto), no solo en el Panel. */}
+      <View style={estilos.cabecera}>
+        <ThemedText variant="caption" style={estilos.eyebrow} numberOfLines={1}>
+          Eventos · próximos 90 días
+        </ThemedText>
+        <ThemedButton
+          title="Nuevo evento"
+          variant="secondary"
+          size="sm"
+          onPress={() => onModo({ vista: 'crear' })}
+        />
+      </View>
 
       {/* Filtro por tipo (cliente, dentro de la ventana de 90 días). */}
       <View style={estilos.filaTipos}>
@@ -207,12 +239,12 @@ export function EventosSeccion() {
             tipoFiltro ? (
               <EmptyState
                 title="Sin eventos de este tipo"
-                message="Nada gestionable de esa naturaleza en los próximos 90 días."
+                message="Nada oficial ni institucional de esa naturaleza en los próximos 90 días."
               />
             ) : (
               <EmptyState
-                title="Sin eventos gestionables"
-                message="No aparece nada cuyas acciones te correspondan en los próximos 90 días."
+                title="Sin eventos oficiales"
+                message="No hay oficiales ni institucionales que gestionar en los próximos 90 días. Los eventos personales se crean desde la app."
               />
             )
           }
@@ -391,14 +423,25 @@ const estilos = StyleSheet.create({
     backgroundColor: colors.bg.canvas,
   },
   cabecera: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
     paddingHorizontal: spacing.four,
-    paddingTop: spacing.four,
+    paddingTop: spacing.three,
+  },
+  eyebrow: {
+    // Receta eyebrow de la casa: caption + MAYÚSCULAS + tracking 0.8 en
+    // gris metadato (la del Panel; inicia el scroll de la sección).
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    color: colors.text.secondary,
   },
   filaTipos: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     paddingHorizontal: spacing.four,
-    paddingTop: spacing.two,
+    paddingTop: spacing.one,
     gap: spacing.two,
   },
   contenido: {

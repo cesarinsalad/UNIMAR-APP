@@ -46,6 +46,18 @@ export function tieneErroresEvento(e: ErroresEvento): boolean {
   );
 }
 
+/** Nada sensible por defecto: "hoy + 1h" al minuto en punto. */
+export function nuevaFechaSana(): Date {
+  const ahora = new Date();
+  return new Date(
+    ahora.getFullYear(),
+    ahora.getMonth(),
+    ahora.getDate(),
+    ahora.getHours() + 1,
+    0, 0, 0,
+  );
+}
+
 /**
  * Opción A (decisión de diseño 4b): el fin SIEMPRE existe con default
  * inicio+1h; el toggle "Todo el día" lleva inicio/fin a los límites del día

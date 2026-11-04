@@ -49,6 +49,7 @@ import type { Comunicado, EstadoComunicado } from '@/features/comunicaciones/typ
 const ESTADOS: { estado: EstadoComunicado; etiqueta: string }[] = [
   { estado: 'BORRADOR', etiqueta: 'Borradores' },
   { estado: 'PENDIENTE', etiqueta: 'Pendientes' },
+  { estado: 'PUBLICADO', etiqueta: 'Publicados' },
   { estado: 'ARCHIVADO', etiqueta: 'Archivados' },
 ];
 
@@ -191,8 +192,10 @@ export function ColasSeccion({ estado, onEstado }: ColasSeccionProps) {
 
   return (
     <ThemedView variant="base" style={estilos.container}>
-      {/* Fija (no ScrollView): altura intrínseca; el wrap absorbe anchos
-          angostos sin estirar el contenedor. */}
+      {/* Estado + contador en UNA fila fija (el conteo anclado a la derecha
+          no cae a línea huérfana con flexWrap): la navegación y el "cuántos
+          hay" comparten lectura. Fija (no ScrollView): altura intrínseca;
+          el wrap absorbe anchos angostos sin estirar el contenedor. */}
       <View style={estilos.chips}>
         {ESTADOS.map((chip) => (
           <Chip
@@ -202,6 +205,14 @@ export function ColasSeccion({ estado, onEstado }: ColasSeccionProps) {
             onPress={() => onEstado(chip.estado)}
           />
         ))}
+        {/* Metadata que acompaña a la selección, no a la lista: el conteo
+            exacto del BFF (count bajo RLS). Secundario, no terciario:
+            es dato accionable (contraste ≥ 4.5:1). */}
+        {!query.isPending && !query.isError ? (
+          <ThemedText variant="caption" tone="secondary" style={estilos.totalCola}>
+            {`${totalCola} en esta cola`}
+          </ThemedText>
+        ) : null}
       </View>
 
       {/* Búsqueda server-side (título O cuerpo del comunicado) + filtro por
@@ -224,28 +235,22 @@ export function ColasSeccion({ estado, onEstado }: ColasSeccionProps) {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Limpiar búsqueda"
-              hitSlop={8}
+              hitSlop={spacing.three}
+              style={estilos.botonLimpiar}
               onPress={() => setTextoBusqueda('')}>
               <XIcon size={16} color={colors.text.tertiary} />
             </Pressable>
           ) : null}
         </View>
-        <View style={estilos.filaFiltrosBaja}>
-          <View style={estilos.chipsCategoria}>
-            {CATEGORIAS_COLA.map((chip) => (
-              <Chip
-                key={chip.valor}
-                etiqueta={chip.etiqueta}
-                activa={categoria === chip.valor}
-                onPress={() => setCategoria(chip.valor)}
-              />
-            ))}
-          </View>
-          {!query.isPending && !query.isError ? (
-            <ThemedText variant="caption" tone="tertiary" style={estilos.totalCola}>
-              {`${totalCola} en esta cola`}
-            </ThemedText>
-          ) : null}
+        <View style={estilos.chipsCategoria}>
+          {CATEGORIAS_COLA.map((chip) => (
+            <Chip
+              key={chip.valor}
+              etiqueta={chip.etiqueta}
+              activa={categoria === chip.valor}
+              onPress={() => setCategoria(chip.valor)}
+            />
+          ))}
         </View>
       </View>
 
@@ -488,9 +493,17 @@ const estilos = StyleSheet.create({
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    alignItems: 'center',
     paddingHorizontal: spacing.four,
     paddingTop: spacing.three,
     gap: spacing.two,
+  },
+  // Metadata fija al final de la fila de estado: shrink 0 — la fila puede
+  // envolver los chips, el conteo jamás se queda (línea huérfana).
+  totalCola: {
+    fontVariant: ['tabular-nums'],
+    marginLeft: 'auto',
+    flexShrink: 0,
   },
   filtros: {
     paddingHorizontal: spacing.four,
@@ -504,7 +517,7 @@ const estilos = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border.subtle,
     borderRadius: radius.md,
-    paddingHorizontal: spacing.three,
+    paddingLeft: spacing.three,
     height: 44,
     backgroundColor: colors.background.base,
   },
@@ -514,20 +527,12 @@ const estilos = StyleSheet.create({
     color: colors.text.primary,
     paddingVertical: 0,
   },
+  // Blanco del input 36 + padding 8×2 = 52 ≥ 44 con el hitSlop.
+  botonLimpiar: { padding: spacing.sm },
   chipsCategoria: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.two,
-  },
-  filaFiltrosBaja: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: spacing.two,
-    justifyContent: 'space-between',
-  },
-  totalCola: {
-    fontVariant: ['tabular-nums'],
   },
   contenido: {
     padding: spacing.four,

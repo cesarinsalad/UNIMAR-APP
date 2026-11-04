@@ -52,8 +52,10 @@ const styles = StyleSheet.create({
   tile: {
     backgroundColor: colors.bg.surface,
     borderRadius: radius.card,
+    // Regla de peso óptico: 12 vertical / 14 lateral — la etiqueta no vive
+    // al ras de las esquinas de 20px.
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xs,
+    paddingHorizontal: spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
     ...elevation.sm,
