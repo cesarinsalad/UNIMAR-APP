@@ -34,6 +34,7 @@ import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import { ApiError } from '@/shared/api/axios';
 import { colors, radius, spacing } from '@/shared/ui';
 import {
+  BotonCircular,
   Chip,
   ContenidoCentrado,
   TextField,
@@ -44,6 +45,10 @@ import {
 } from '@/shared/ui';
 import { etiquetaAudiencia } from '@/shared/lib/etiquetas';
 import { CuerpoMarkdown } from '@/features/comunicaciones/components/CuerpoMarkdown';
+import { EditorCuerpo } from '@/features/comunicaciones/components/EditorCuerpo';
+import { EditorCuerpoEnriquecido } from '@/features/comunicaciones/components/EditorCuerpoEnriquecido';
+import { PressableScale } from '@/shared/ui/PressableScale';
+import { ArrowLeftIcon, ImagesSquareIcon } from 'phosphor-react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { CLAVES_COMUNICADOS } from '@/features/comunicaciones/hooks/queryKeys';
 
@@ -226,18 +231,28 @@ export default function FormularioComunicadoScreen() {
         placeholder="Ej. Suspensión de clases del viernes"
       />
 
-      <TextField
-        label={`Cuerpo (Markdown) — ${cuerpo.length}/5000`}
-        error={errores.cuerpo ?? undefined}
-        hint="Puede usar **negritas**, listas y enlaces."
-        value={cuerpo}
-        onChangeText={setCuerpo}
-        multiline
-        maxLength={5000}
-        textAlignVertical="top"
-        editable={!pendiente}
-        style={estilos.textarea}
-      />
+      {Platform.OS === 'web' ? (
+        // Web = segunda clase: editor plano con barra que escribe la
+        // sintaxis (el editor enriquecido en web es experimental y va
+        // detrás del nativo en la librería).
+        <EditorCuerpo
+          value={cuerpo}
+          onChangeText={setCuerpo}
+          error={errores.cuerpo ?? undefined}
+          editable={!pendiente}
+        />
+      ) : (
+        // Nativo: no controlado — monta una sola vez con el markdown
+        // inicial (cuerpo cargado en edición; vacío en creación) y desde
+        // ahí emite cambios por onChangeMarkdown.
+        <EditorCuerpoEnriquecido
+          key={id ?? 'nuevo'}
+          valorInicial={esEdicion ? (detalle.data?.cuerpo ?? '') : ''}
+          onChangeMarkdown={setCuerpo}
+          error={errores.cuerpo ?? undefined}
+          editable={!pendiente}
+        />
+      )}
 
       <Campo label="Portada (opcional)">
         {tienePortadaActual ? (
@@ -247,34 +262,57 @@ export default function FormularioComunicadoScreen() {
             ) : portadaApi.url ? (
               <Image source={{ uri: portadaApi.url }} style={estilos.portada} resizeMode="cover" />
             ) : null}
-            <ThemedButton
-              title="Quitar portada"
-              variant="ghost"
-              size="sm"
-              onPress={eliminarPortadaElegida}
-            />
+            <View style={estilos.filaPortada}>
+              <ThemedButton
+                title="Cambiar"
+                variant="ghost"
+                size="sm"
+                onPress={() => void elegirPortada(false)}
+              />
+              {Platform.OS !== 'web' ? (
+                <ThemedButton
+                  title="Cámara"
+                  variant="ghost"
+                  size="sm"
+                  onPress={() => void elegirPortada(true)}
+                />
+              ) : null}
+              <ThemedButton
+                title="Quitar"
+                variant="ghost"
+                size="sm"
+                onPress={eliminarPortadaElegida}
+              />
+            </View>
           </View>
         ) : (
-          <View style={estilos.filaPortada}>
-            <ThemedButton
-              title="Galería"
-              variant="secondary"
-              size="sm"
+          <View style={estilos.bloquePortadaVacia}>
+            <PressableScale
               onPress={() => void elegirPortada(false)}
-            />
+              accessibilityRole="button"
+              accessibilityLabel="Añadir portada desde la galería">
+              <ThemedView variant="elevated" style={estilos.slotPortada}>
+                <ImagesSquareIcon size={28} color={colors.brand.primary} />
+                <ThemedText variant="bodySm" weight="semibold">
+                  Añadir portada
+                </ThemedText>
+                <ThemedText variant="caption" style={estilos.slotAyuda}>
+                  Galería o cámara · recorte 3:2
+                </ThemedText>
+              </ThemedView>
+            </PressableScale>
             {Platform.OS !== 'web' ? (
-              <ThemedButton
-                title="Cámara"
-                variant="secondary"
-                size="sm"
-                onPress={() => void elegirPortada(true)}
-              />
+              <View style={estilos.filaPortada}>
+                <ThemedButton
+                  title="Cámara"
+                  variant="ghost"
+                  size="sm"
+                  onPress={() => void elegirPortada(true)}
+                />
+              </View>
             ) : null}
           </View>
         )}
-        <ThemedText variant="caption" tone="secondary">
-          Recorte 3:2. Se sube al guardar.
-        </ThemedText>
       </Campo>
 
       <Campo
@@ -286,7 +324,7 @@ export default function FormularioComunicadoScreen() {
         }>
         {usuario?.rol === 'COMUNICADOR' ? (
           <ThemedText variant="body" tone="secondary">
-            Este comunicado irá únicamente a tu decanato (regla anti-global del sistema).
+            Se publicará únicamente en tu decanato.
           </ThemedText>
         ) : (
           <View style={estilos.audiencias}>
@@ -361,23 +399,26 @@ export default function FormularioComunicadoScreen() {
     // SafeAreaView lo duplicaría como franja fija. El inferior se suma
     // al scroll para respetar el nav del sistema.
     <View style={estilos.safe}>
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: esEdicion ? 'Editar comunicado' : 'Nuevo comunicado',
-          headerStyle: { backgroundColor: colors.primary },
-          headerTintColor: colors.text.onPrimary,
-        }}
-      />
+      <Stack.Screen options={{ headerShown: false }} />
       <KeyboardAvoidingView
         style={estilos.flex}
         behavior="padding">
         <ScrollView
+          keyboardShouldPersistTaps="handled"
           contentContainerStyle={[
             estilos.scroll,
             { paddingBottom: spacing.four + Math.max(insets.bottom, spacing.four) },
           ]}>
           <ContenidoCentrado style={estilos.anchoEditor}>
+            <View style={estilos.cabecera}>
+              <BotonCircular label="Volver" onPress={() => router.back()}>
+                <ArrowLeftIcon size={20} color={colors.brand.primary} weight="bold" />
+              </BotonCircular>
+              <ThemedText variant="title" weight="bold" style={estilos.tituloPantalla}>
+                {esEdicion ? 'Editar comunicado' : 'Nuevo comunicado'}
+              </ThemedText>
+              <View style={estilos.espacioSimetrico} />
+            </View>
             {esDesktop ? (
               <View style={estilos.filaEditor}>
                 <View style={estilos.formaCol}>{formulario}</View>
@@ -483,8 +524,8 @@ const estilos = StyleSheet.create({
   campo: {
     gap: spacing.one,
   },
-  textarea: {
-    minHeight: 180,
+  bloquePortadaVacia: {
+    gap: spacing.two,
   },
   audiencias: {
     flexDirection: 'row',
@@ -503,6 +544,17 @@ const estilos = StyleSheet.create({
   filaPortada: {
     flexDirection: 'row',
     gap: spacing.two,
+  },
+  slotPortada: {
+    minHeight: 44,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.lg,
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  slotAyuda: {
+    color: colors.brand.primary,
   },
   wrapPortada: {
     gap: spacing.xs,
@@ -527,6 +579,20 @@ const estilos = StyleSheet.create({
   },
   forma: { gap: spacing.four },
   formaCol: { flex: 1 },
+  tituloPantalla: {
+    flex: 1,
+    textAlign: 'center',
+  },
+  cabecera: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    marginBottom: spacing.four,
+  },
+  espacioSimetrico: {
+    width: 40,
+  },
   pestanas: {
     flexDirection: 'row',
     gap: spacing.two,
