@@ -298,7 +298,11 @@ function DetalleLector({
 
           <Divisor />
           <CuerpoMarkdown cuerpo={comunicado.cuerpo} />
-          <SeccionAdjuntos comunicadoId={comunicado.id} puedeEditar={acciones.puedeEditar} />
+          {/* Adjuntos en modo LISTA: agregar/quitar archivos es canal de
+              edición, exclusivo de la consola de gestión — el detalle solo
+              lista y abre (SeccionAdjuntos conserva su API para la futura
+              consola, que pasará puedeEditar=true). */}
+          <SeccionAdjuntos comunicadoId={comunicado.id} puedeEditar={false} />
 
           <View style={estilos.footer}>
             <ThemedText variant="caption" tone="tertiary">
