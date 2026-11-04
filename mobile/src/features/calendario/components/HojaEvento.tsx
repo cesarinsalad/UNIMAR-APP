@@ -1,7 +1,13 @@
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { MapPinIcon, ClockIcon, XIcon } from 'phosphor-react-native';
+import {
+  MapPinIcon,
+  ClockIcon,
+  XIcon,
+  PencilSimpleIcon,
+  TrashIcon,
+} from 'phosphor-react-native';
 
 import { eliminarEvento } from '../api/eventos.api';
 import { accionesPermitidasEvento } from '../hooks/eventos-permisos';
@@ -144,6 +150,13 @@ function Documento({
     router.push(`/eventos/nuevo?id=${eventoId}` as never);
   }
 
+  /** El círculo no trae disabled: el guard cubre el doble-tap mientras
+   *  corre la mutación (el círculo muestra el spinner en su lugar). */
+  function pedirBorrado() {
+    if (eliminar.isPending) return;
+    setConfirmarBorrado(true);
+  }
+
   return (
     <View style={estilos.cuerpo}>
       {/* ── Cabecera de identidad: X flotante (firma del sistema) + el card
@@ -221,22 +234,18 @@ function Documento({
           {hayAcciones ? (
             <View style={estilos.acciones}>
               {acciones.puedeEditar ? (
-                <ThemedButton
-                  title="Editar"
-                  variant="secondary"
-                  size="sm"
-                  onPress={abrirEdicion}
-                />
+                <BotonCircular label="Editar evento" onPress={abrirEdicion}>
+                  <PencilSimpleIcon size={20} color={colors.brand.primary} weight="bold" />
+                </BotonCircular>
               ) : null}
               {acciones.puedeEliminar ? (
-                <ThemedButton
-                  title="Eliminar"
-                  variant="secondary"
-                  size="sm"
-                  loading={eliminar.isPending}
-                  disabled={eliminar.isPending}
-                  onPress={() => setConfirmarBorrado(true)}
-                />
+                <BotonCircular label="Eliminar evento" onPress={pedirBorrado}>
+                  {eliminar.isPending ? (
+                    <ActivityIndicator size={20} color={colors.status.danger} />
+                  ) : (
+                    <TrashIcon size={20} color={colors.status.danger} weight="bold" />
+                  )}
+                </BotonCircular>
               ) : null}
             </View>
           ) : null}
