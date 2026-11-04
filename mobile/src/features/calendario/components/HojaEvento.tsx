@@ -95,9 +95,11 @@ function Estado({ mensaje, children }: { mensaje: string; children?: React.React
   );
 }
 
-/** Cuerpo de la hoja: vertical — header, descripción, organizador, CTA de
- *  agenda y acciones staff. `cerrar` viene de la hoja (vía su render
- *  prop): X y éxito de eliminación se despiden animados, no a secas. */
+/** Cuerpo de la hoja: vertical con el ritmo de STYLE.md §3 — `xl` (24)
+ *  entre secciones distintas, internos menores (regla de proximidad):
+ *  cabecera (X+header a md), secciones (sm), cluster de acciones (md).
+ *  `cerrar` viene de la hoja (vía su render prop): X y éxito de
+ *  eliminación se despiden animados, no a secas. */
 function Documento({
   evento,
   eventoId,
@@ -143,38 +145,41 @@ function Documento({
   }
 
   return (
-    <View>
-      {/* ── Cierre flotante, la firma del sistema (Volver del detalle) ── */}
-      <BotonCircular label="Cerrar" onPress={cerrar} style={estilos.botonCierre}>
-        <XIcon size={20} color={colors.brand.primary} weight="bold" />
-      </BotonCircular>
+    <View style={estilos.cuerpo}>
+      {/* ── Cabecera de identidad: X flotante (firma del sistema) + el card
+          expandido (día + barra + título + meta) — gap md interno ── */}
+      <View style={estilos.cabecera}>
+        <BotonCircular label="Cerrar" onPress={cerrar} style={estilos.botonCierre}>
+          <XIcon size={20} color={colors.brand.primary} weight="bold" />
+        </BotonCircular>
 
-      <View style={estilos.headerFila}>
-        <View style={estilos.fecha}>
-          <ThemedText variant="title" weight="bold">
-            {inicio.getDate().toString().padStart(2, '0')}
-          </ThemedText>
-          <ThemedText variant="caption" tone="secondary">
-            {new Intl.DateTimeFormat('es-VE', { month: 'short' })
-              .format(inicio)
-              .replace('.', '')}
-          </ThemedText>
-        </View>
-        <View style={[estilos.barra, { backgroundColor: colorBarra(evento) }]} />
-        <View style={estilos.headerCuerpo}>
-          <ThemedText variant="subtitle" weight="semibold" numberOfLines={3}>
-            {evento.titulo}
-          </ThemedText>
-          <FilaMeta
-            texto={evento.diaCompleto ? 'Todo el día' : horaRango(evento)}
-            icono={<ClockIcon size={14} color={colors.text.secondary} />}
-          />
-          {evento.lugar ? (
+        <View style={estilos.headerFila}>
+          <View style={estilos.fecha}>
+            <ThemedText variant="title" weight="bold">
+              {inicio.getDate().toString().padStart(2, '0')}
+            </ThemedText>
+            <ThemedText variant="caption" tone="secondary">
+              {new Intl.DateTimeFormat('es-VE', { month: 'short' })
+                .format(inicio)
+                .replace('.', '')}
+            </ThemedText>
+          </View>
+          <View style={[estilos.barra, { backgroundColor: colorBarra(evento) }]} />
+          <View style={estilos.headerCuerpo}>
+            <ThemedText variant="subtitle" weight="semibold" numberOfLines={3}>
+              {evento.titulo}
+            </ThemedText>
             <FilaMeta
-              texto={evento.lugar}
-              icono={<MapPinIcon size={14} color={colors.text.secondary} />}
+              texto={evento.diaCompleto ? 'Todo el día' : horaRango(evento)}
+              icono={<ClockIcon size={14} color={colors.text.secondary} />}
             />
-          ) : null}
+            {evento.lugar ? (
+              <FilaMeta
+                texto={evento.lugar}
+                icono={<MapPinIcon size={14} color={colors.text.secondary} />}
+              />
+            ) : null}
+          </View>
         </View>
       </View>
 
@@ -194,47 +199,54 @@ function Documento({
         </View>
       ) : null}
 
-      {evento.tipo === 'OFICIAL' ? (
-        <ThemedButton
-          title={evento.participo ? 'Quitar de mi agenda' : 'Agregar a mi agenda'}
-          variant={evento.participo ? 'secondary' : 'primary'}
-          size="md"
-          loading={participar.agregar.isPending || participar.quitar.isPending}
-          onPress={() =>
-            evento.participo
-              ? participar.quitar.mutate(evento.id)
-              : participar.agregar.mutate(evento.id)
-          }
-        />
-      ) : null}
-
-      {hayAcciones ? (
-        <View style={estilos.acciones}>
-          {acciones.puedeEditar ? (
+      {/* ── Cluster de acciones: lo mismo contexto — CTA de agenda + botones
+          staff + error de mutación, a md entre sí; el xl del cuerpo lo
+          separa de las secciones de arriba ── */}
+      {evento.tipo === 'OFICIAL' || hayAcciones || errorMutacion ? (
+        <View style={estilos.clusterAcciones}>
+          {evento.tipo === 'OFICIAL' ? (
             <ThemedButton
-              title="Editar"
-              variant="secondary"
-              size="sm"
-              onPress={abrirEdicion}
+              title={evento.participo ? 'Quitar de mi agenda' : 'Agregar a mi agenda'}
+              variant={evento.participo ? 'secondary' : 'primary'}
+              size="md"
+              loading={participar.agregar.isPending || participar.quitar.isPending}
+              onPress={() =>
+                evento.participo
+                  ? participar.quitar.mutate(evento.id)
+                  : participar.agregar.mutate(evento.id)
+              }
             />
           ) : null}
-          {acciones.puedeEliminar ? (
-            <ThemedButton
-              title="Eliminar"
-              variant="secondary"
-              size="sm"
-              loading={eliminar.isPending}
-              disabled={eliminar.isPending}
-              onPress={() => setConfirmarBorrado(true)}
-            />
+
+          {hayAcciones ? (
+            <View style={estilos.acciones}>
+              {acciones.puedeEditar ? (
+                <ThemedButton
+                  title="Editar"
+                  variant="secondary"
+                  size="sm"
+                  onPress={abrirEdicion}
+                />
+              ) : null}
+              {acciones.puedeEliminar ? (
+                <ThemedButton
+                  title="Eliminar"
+                  variant="secondary"
+                  size="sm"
+                  loading={eliminar.isPending}
+                  disabled={eliminar.isPending}
+                  onPress={() => setConfirmarBorrado(true)}
+                />
+              ) : null}
+            </View>
+          ) : null}
+
+          {errorMutacion ? (
+            <ThemedText variant="caption" style={estilos.errorTexto}>
+              {errorMutacion}
+            </ThemedText>
           ) : null}
         </View>
-      ) : null}
-
-      {errorMutacion ? (
-        <ThemedText variant="caption" style={estilos.errorTexto}>
-          {errorMutacion}
-        </ThemedText>
       ) : null}
 
       <ModalConfirmacion
@@ -266,9 +278,16 @@ function FilaMeta({ texto, icono }: { texto: string; icono: React.ReactNode }) {
 }
 
 const estilos = StyleSheet.create({
-  botonCierre: {
-    alignSelf: 'flex-end',
-    marginBottom: spacing.sm,
+  /** Raíz del Documento = jerarquía espacial según STYLE.md §3: gap xl
+   *  (24) entre secciones distintas; los internos van menor (regla de
+   *  proximidad) por cabecera (md), secciones (sm) y cluster (md). */
+  cuerpo: {
+    gap: spacing.xl,
+  },
+  /** Cabecera de identidad: X flotante + card expandido — mismo grupo
+   *  visual, gap md (12). Reemplaza el margin loose del botón X. */
+  cabecera: {
+    gap: spacing.md,
   },
   headerFila: {
     flexDirection: 'row',
@@ -293,8 +312,16 @@ const estilos = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
   },
+  /** Sección: título (SectionHeader) ↔ contenido a sm (8) — §3: la
+   *  separación título/aula de toda ficha del sistema. */
   seccion: {
-    gap: spacing.xs,
+    gap: spacing.sm,
+  },
+  clusterAcciones: {
+    gap: spacing.md,
+  },
+  botonCierre: {
+    alignSelf: 'flex-end',
   },
   acciones: {
     flexDirection: 'row',

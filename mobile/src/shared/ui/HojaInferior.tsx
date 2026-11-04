@@ -63,8 +63,11 @@ const estilos = StyleSheet.create({
   scroll: {
     maxHeight: '85%',
   },
+  /** Solo padding: el RITMO (rhythm) lo aporta el contenido con sus propios
+   *  gaps (misma regla de la variante native) — así cabecera, secciones y
+   *  cluster de acciones respiran idéntico en ambos dispositivos según
+   *  STYLE.md §3. */
   contenido: {
     padding: spacing.lg,
-    gap: spacing.md,
   },
 });
