@@ -107,7 +107,12 @@ function VerLecturas({
   const usuario = useSesionStore((s) => s.usuario);
   const stats = useEstadisticas(
     comunicadoId,
-    puedeVerEstadisticas(usuario?.rol ?? null, comunicado.autorId === usuario?.id),
+    puedeVerEstadisticas(
+      usuario?.rol ?? null,
+      comunicado.autorId === usuario?.id,
+      comunicado.decanatoIds,
+      usuario?.decanato_id ?? null,
+    ),
   );
 
   if (!stats.data) return null;

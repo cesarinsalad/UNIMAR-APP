@@ -1,14 +1,17 @@
 import type { Claims } from '../../../shared/security/jwt';
 import type { UnitOfWork } from '../../../shared/kernel/unitOfWork';
-import { ForbiddenError, NotFoundError } from '../../../shared/errors';
+import { NotFoundError } from '../../../shared/errors';
+import { exigirEstadisticas } from '../../../shared/security/estadisticas';
 import type { IComunicadoRepository } from '../domain/ports';
 
 /**
  * Caso de uso: contar cuántos usuarios han leído un comunicado.
  *
- * Disponible solo para el autor del comunicado o el ADMIN. Un estudiante que
- * pueda leer el comunicado no puede ver sus estadísticas (información propia
- * del comunicador).
+ * Alcance (shared kernel `exigirEstadisticas`): ADMIN, el autor, y el
+ * COMUNICADOR cuyo decanato está en la audiencia del comunicado — el
+ * comunicador gestiona y mide lo de su decanato (audiencia global entre
+ * comunicadores). Un estudiante que pueda leer el comunicado no puede ver
+ * sus estadísticas: son información del staff.
  */
 export class EstadisticasComunicado {
   constructor(
@@ -23,9 +26,11 @@ export class EstadisticasComunicado {
         throw new NotFoundError('Comunicado no encontrado');
       }
 
-      if (claims.role !== 'ADMIN' && existente.autorId !== claims.sub) {
-        throw new ForbiddenError('No puedes ver estadísticas de este comunicado');
-      }
+      exigirEstadisticas({
+        claims,
+        dueño: existente.autorId,
+        audienciaIds: existente.decanatoIds,
+      });
 
       const lecturas = await this.repo.contarLecturas(tx, id);
       return { lecturas };

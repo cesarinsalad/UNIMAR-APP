@@ -33,7 +33,7 @@ function makeUnitOfWork() {
   } as unknown as UnitOfWork;
 }
 
-function makeComComunicador(sub = 'uuid-com-1', decanato_id = 5): Claims {
+function makeComComunicador(sub = 'uuid-com-1', decanato_id: number | null = 5): Claims {
   return { sub, role: 'COMUNICADOR', decanato_id, nombre: 'COM' };
 }
 
@@ -417,10 +417,42 @@ describe('EstadisticasComunicado', () => {
     await expect(uc.ejecutar(makeAdminClaims(), 'com-id')).resolves.toEqual({ lecturas: 0 });
   });
 
-  it('Otro COMUNICADOR -> ForbiddenError', async () => {
+  // Política del panel del comunicador: quien gestiona el decanato mide sus
+  // comunicados. Audiencia [5] + comunicador del decanato 5 = permitido.
+  it('COMUNICADOR del decanato de la audiencia ve lecturas de un ajeno', async () => {
+    const { repo } = makeRepo(makeComunicado({ autorId: 'uuid-other', decanatoIds: [5] }));
+    const uc = new EstadisticasComunicado(repo, makeUnitOfWork());
+    await expect(
+      uc.ejecutar(makeComComunicador('uuid-c', 5), 'com-id'),
+    ).resolves.toEqual({ lecturas: 0 });
+  });
+
+  it('Audiencia global ([]): cualquier COMUNICADOR ve lecturas', async () => {
+    const { repo } = makeRepo(makeComunicado({ autorId: 'uuid-other', decanatoIds: [] }));
+    const uc = new EstadisticasComunicado(repo, makeUnitOfWork());
+    await expect(
+      uc.ejecutar(makeComComunicador('uuid-c', null), 'com-id'),
+    ).resolves.toEqual({ lecturas: 0 });
+  });
+
+  it('COMUNICADOR de otro decanato -> ForbiddenError', async () => {
+    const { repo } = makeRepo(makeComunicado({ autorId: 'uuid-other', decanatoIds: [5] }));
+    const uc = new EstadisticasComunicado(repo, makeUnitOfWork());
+    await expect(uc.ejecutar(makeComComunicador('uuid-c', 7), 'com-id')).rejects.toThrow(
+      ForbiddenError,
+    );
+  });
+
+  it('Estudiante -> ForbiddenError', async () => {
     const { repo } = makeRepo(makeComunicado({ autorId: 'uuid-other' }));
     const uc = new EstadisticasComunicado(repo, makeUnitOfWork());
-    await expect(uc.ejecutar(makeComComunicador('uuid-c', 5), 'com-id')).rejects.toThrow(ForbiddenError);
+    await expect(uc.ejecutar(makeEstudianteClaims(), 'com-id')).rejects.toThrow(ForbiddenError);
+  });
+
+  it('No existe -> NotFoundError', async () => {
+    const { repo } = makeRepo(null);
+    const uc = new EstadisticasComunicado(repo, makeUnitOfWork());
+    await expect(uc.ejecutar(makeAdminClaims(), 'com-missing')).rejects.toThrow(NotFoundError);
   });
 });
 

@@ -4,13 +4,23 @@ import { estadisticasComunicado } from '../api/comunicados.api';
 import type { Rol } from '@/features/identidad/types';
 
 /**
- * RBAC de estadísticas — espejo de EstadisticasComunicado del BFF:
- * autor o ADMIN. Función pura separada de accionesPermitidas para no
- * mutar sus fixtures de test (toEqual).
+ * RBAC de estadísticas — espejo del shared kernel `puedeVerEstadisticas`
+ * del BFF: ADMIN, el autor, o el COMUNICADOR cuyo decanato está en la
+ * audiencia (audiencia global [] = entre comunicadores). El cliente nunca
+ * decide el permiso final: solo evita disparar peticiones 403-aseguro.
  */
-export function puedeVerEstadisticas(rol: Rol | null, esAutor: boolean): boolean {
+export function puedeVerEstadisticas(
+  rol: Rol | null,
+  esAutor: boolean,
+  audienciasDecanato: number[],
+  decanatoPropio: number | null,
+): boolean {
   if (!rol) return false;
-  return rol === 'ADMIN' || esAutor;
+  if (rol === 'ADMIN') return true;
+  if (esAutor) return true;
+  if (rol !== 'COMUNICADOR') return false;
+  if (audienciasDecanato.length === 0) return true;
+  return decanatoPropio !== null && audienciasDecanato.includes(decanatoPropio);
 }
 
 /** "1 lectura" / "N lecturas". */
