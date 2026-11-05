@@ -2,6 +2,7 @@ import type { Claims } from '../../../shared/security/jwt';
 import type { UnitOfWork } from '../../../shared/kernel/unitOfWork';
 import type { IEventoRepository } from '../domain/ports';
 import type { Evento } from '../domain/evento';
+import type { TipoEvento } from '../domain/evento';
 
 /**
  * Página del listado con total conocido. El total se calcula bajo las mismas
@@ -38,6 +39,10 @@ export class ListarEventos {
       limit: number;
       offset: number;
       incluirOficiales: 'todos' | 'agregados';
+      /** Recorte por naturaleza (consola de gestión). */
+      tipo?: TipoEvento;
+      /** Búsqueda textual título O lugar (consola de gestión). */
+      q?: string;
     },
   ): Promise<PaginaEventos> {
     return this.uow.runAs(claims, async (tx) => {
@@ -52,6 +57,8 @@ export class ListarEventos {
         hasta: filtro.hasta,
         usuarioId: claims.sub,
         incluirOficiales: filtro.incluirOficiales,
+        tipo: filtro.tipo,
+        q: filtro.q,
       });
       return { items, total };
     });

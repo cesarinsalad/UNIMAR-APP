@@ -1,5 +1,5 @@
 import type { DbTx } from '../../../shared/kernel/db';
-import type { Evento } from './evento';
+import type { Evento, TipoEvento } from './evento';
 
 /**
  * Puerto de repositorio del componente Calendario.
@@ -43,6 +43,10 @@ export interface IEventoRepository {
       usuarioId: string;
       /** 'agregados': excluye los OFICIALES que el usuario no agregó. */
       incluirOficiales: 'todos' | 'agregados';
+      /** Recorte por naturaleza (consola de gestión). */
+      tipo?: TipoEvento;
+      /** Búsqueda textual título O lugar (consola de gestión). */
+      q?: string;
     },
   ): Promise<Evento[]>;
 
@@ -58,6 +62,10 @@ export interface IEventoRepository {
       hasta: Date;
       usuarioId: string;
       incluirOficiales: 'todos' | 'agregados';
+      /** Recorte por naturaleza (consola de gestión). */
+      tipo?: TipoEvento;
+      /** Búsqueda textual título O lugar (consola de gestión). */
+      q?: string;
     },
   ): Promise<number>;
 

@@ -1,6 +1,6 @@
 import type { DbTx } from '../../../shared/kernel/db';
 import type { IEventoRepository } from '../domain/ports';
-import type { Evento } from '../domain/evento';
+import type { Evento, TipoEvento } from '../domain/evento';
 
 interface EventoRow {
   id: string;
@@ -115,6 +115,10 @@ export class PostgresEventoRepository implements IEventoRepository {
       offset: number;
       usuarioId: string;
       incluirOficiales: 'todos' | 'agregados';
+      /** Recorte por naturaleza (consola de gestión). */
+      tipo?: TipoEvento;
+      /** Búsqueda textual título O lugar (consola de gestión). */
+      q?: string;
     },
   ): Promise<Evento[]> {
     const { whereSql, params } = this.construirWhere(filtro);
@@ -139,6 +143,10 @@ export class PostgresEventoRepository implements IEventoRepository {
       hasta: Date;
       usuarioId: string;
       incluirOficiales: 'todos' | 'agregados';
+      /** Recorte por naturaleza (consola de gestión). */
+      tipo?: TipoEvento;
+      /** Búsqueda textual título O lugar (consola de gestión). */
+      q?: string;
     },
   ): Promise<number> {
     const { whereSql, params } = this.construirWhere(filtro);
@@ -157,6 +165,8 @@ export class PostgresEventoRepository implements IEventoRepository {
       hasta: Date;
       usuarioId: string;
       incluirOficiales: 'todos' | 'agregados';
+      tipo?: TipoEvento;
+      q?: string;
     },
   ): { whereSql: string; params: (Date | string | number)[] } {
     const params: (Date | string | number)[] = [filtro.desde, filtro.hasta];
@@ -177,6 +187,20 @@ export class PostgresEventoRepository implements IEventoRepository {
         )`,
       );
     }
+
+    // Filtros del staff (consola de gestión): recorte por naturaleza y
+    // búsqueda título O lugar. Con el FILTER de array_agg intacto, el
+    // GROUP BY e.id tolera el extra sin inflar filas.
+    if (filtro.tipo) {
+      params.push(filtro.tipo);
+      where.push(`e.tipo = $${params.length}`);
+    }
+    if (filtro.q) {
+      params.push(`%${filtro.q}%`);
+      const marcador = `$${params.length}`;
+      where.push(`(e.titulo ILIKE ${marcador} OR e.lugar ILIKE ${marcador})`);
+    }
+
     return { whereSql: `WHERE ${where.join(' AND ')}`, params };
   }
 

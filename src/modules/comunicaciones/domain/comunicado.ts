@@ -39,6 +39,14 @@ export interface Comunicado {
   createdAt: Date;
   updatedAt: Date;
   decanatoIds: number[]; // audiencia; [] = GLOBAL
+  /**
+   * Lecturas confirmadas del comunicado. Solo lo pueblan las consultas de
+   * listado/detalle (subquery escalar en el repo): en contexto donde las
+   * políticas RLS de `comunicado_lecturas` no exponen filas (p.ej. comunicador
+   * no-autor) queda en 0, igual que `GET /:id/estadisticas`. Opcional para
+   * tolerar constructores que no lo calculan (tests, job del sistema).
+   */
+  lecturasCount?: number;
 }
 
 /** Input para crear un comunicado (viene validado por Zod en la capa HTTP). */

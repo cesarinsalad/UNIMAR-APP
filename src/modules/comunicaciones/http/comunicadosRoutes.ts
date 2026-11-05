@@ -13,6 +13,7 @@ import type { AprobarComunicado } from '../application/aprobarComunicado';
 import type { RechazarComunicado } from '../application/rechazarComunicado';
 import type { PublicarComunicado } from '../application/publicarComunicado';
 import type { ArchivarComunicado } from '../application/archivarComunicado';
+import type { DesarchivarComunicado } from '../application/desarchivarComunicado';
 import type { EstadisticasComunicado } from '../application/estadisticasComunicado';
 import type { AsignarPortada } from '../application/asignarPortada';
 import type { UrlPortada } from '../application/urlPortada';
@@ -46,6 +47,7 @@ export interface ComunicadosRoutesDeps {
   rechazar: RechazarComunicado;
   publicar: PublicarComunicado;
   archivar: ArchivarComunicado;
+  desarchivar: DesarchivarComunicado;
   estadisticas: EstadisticasComunicado;
   asignarPortada: AsignarPortada;
   urlPortada: UrlPortada;
@@ -98,6 +100,7 @@ export function comunicadosRoutes(deps: ComunicadosRoutesDeps): Router {
         estado: query.estado,
         categoria: query.categoria,
         q: query.q,
+        decanatoId: query.decanato_id,
         limit: query.limit,
         offset: query.offset,
       });
@@ -200,6 +203,17 @@ export function comunicadosRoutes(deps: ComunicadosRoutesDeps): Router {
     asyncHandler(async (req, res) => {
       const id = parseId(getParamId(req.params.id));
       const result = await deps.archivar.ejecutar(requireAuth(req)!, id);
+      res.json({ data: result });
+    }),
+  );
+
+  // Desarchivar: ARCHIVADO -> BORRADOR (autor o ADMIN; el caso de uso afina).
+  router.post(
+    '/:id/desarchivar',
+    authorize('COMUNICADOR'),
+    asyncHandler(async (req, res) => {
+      const id = parseId(getParamId(req.params.id));
+      const result = await deps.desarchivar.ejecutar(requireAuth(req)!, id);
       res.json({ data: result });
     }),
   );

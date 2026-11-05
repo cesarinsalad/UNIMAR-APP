@@ -19,6 +19,7 @@ import { AprobarComunicado } from './aprobarComunicado';
 import { RechazarComunicado } from './rechazarComunicado';
 import { PublicarComunicado } from './publicarComunicado';
 import { ArchivarComunicado } from './archivarComunicado';
+import { DesarchivarComunicado } from './desarchivarComunicado';
 import { EstadisticasComunicado } from './estadisticasComunicado';
 import { ObtenerComunicado } from './obtenerComunicado';
 import { ListarComunicados } from './listarComunicados';
@@ -123,6 +124,10 @@ function makeRepo(initial: Comunicado | null = null): { repo: IComunicadoReposit
     },
     contarLecturas: async (tx, id) => {
       calls.push({ method: 'contarLecturas', args: [id] });
+      return 0;
+    },
+    contarLecturasTotales: async (_tx) => {
+      calls.push({ method: 'contarLecturasTotales', args: [] });
       return 0;
     },
     asignarPortada: async (tx, id, imagenPath) => {
@@ -403,6 +408,53 @@ describe('ArchivarComunicado', () => {
   });
 });
 
+describe('DesarchivarComunicado', () => {
+  it('Autor desarchiva su ARCHIVADO -> BORRADOR y limpia metadatos publicados', async () => {
+    const { repo, calls } = makeRepo(
+      makeComunicado({ autorId: 'uuid-c', estado: 'ARCHIVADO', aprobadoPor: 'uuid-a', publicadoAt: new Date() }),
+    );
+    const uc = new DesarchivarComunicado(repo, makeUnitOfWork());
+    const result = await uc.ejecutar(makeComComunicador('uuid-c', 5), 'com-id');
+    expect(result.estado).toBe('BORRADOR');
+    expect(result.aprobadoPor).toBeNull();
+    expect(result.publicadoAt).toBeNull();
+    const call = calls.find((c) => c.method === 'transicionarEstado');
+    expect(call).toBeDefined();
+    expect((call!.args[1] as Record<string, unknown>).estado).toBe('BORRADOR');
+  });
+
+  it('ADMIN desarchiva cualquier ARCHIVADO', async () => {
+    const { repo } = makeRepo(makeComunicado({ autorId: 'uuid-other', estado: 'ARCHIVADO' }));
+    const uc = new DesarchivarComunicado(repo, makeUnitOfWork());
+    const result = await uc.ejecutar(makeAdminClaims(), 'com-id');
+    expect(result.estado).toBe('BORRADOR');
+  });
+
+  it('COMUNICADOR desarchiva comunicado ajeno -> ForbiddenError', async () => {
+    const { repo } = makeRepo(makeComunicado({ autorId: 'uuid-other', estado: 'ARCHIVADO' }));
+    const uc = new DesarchivarComunicado(repo, makeUnitOfWork());
+    await expect(uc.ejecutar(makeComComunicador('uuid-c', 5), 'com-id')).rejects.toThrow(ForbiddenError);
+  });
+
+  it('Desarchivar un BORRADOR -> BadRequestError', async () => {
+    const { repo } = makeRepo(makeComunicado({ autorId: 'uuid-c', estado: 'BORRADOR' }));
+    const uc = new DesarchivarComunicado(repo, makeUnitOfWork());
+    await expect(uc.ejecutar(makeComComunicador('uuid-c', 5), 'com-id')).rejects.toThrow(BadRequestError);
+  });
+
+  it('Desarchivar un PUBLICADO -> BadRequestError', async () => {
+    const { repo } = makeRepo(makeComunicado({ estado: 'PUBLICADO' }));
+    const uc = new DesarchivarComunicado(repo, makeUnitOfWork());
+    await expect(uc.ejecutar(makeAdminClaims(), 'com-id')).rejects.toThrow(BadRequestError);
+  });
+
+  it('No existe -> NotFoundError', async () => {
+    const { repo } = makeRepo(null);
+    const uc = new DesarchivarComunicado(repo, makeUnitOfWork());
+    await expect(uc.ejecutar(makeAdminClaims(), 'com-missing')).rejects.toThrow(NotFoundError);
+  });
+});
+
 describe('EstadisticasComunicado', () => {
   it('Autor ve lecturas', async () => {
     const { repo } = makeRepo(makeComunicado({ autorId: 'uuid-c' }));
@@ -498,15 +550,27 @@ describe('ListarComunicados', () => {
     expect(result.items.length).toBe(0);
     expect(result.total).toBe(0);
   });
+
+  it('propaga decanatoId a listar y contar (filtro del ADMIN en gestión)', async () => {
+    const { repo, calls } = makeRepo(makeComunicado({ decanatoIds: [3] }));
+    const uc = new ListarComunicados(repo, makeUnitOfWork());
+    await uc.ejecutar(makeAdminClaims(), { decanatoId: 3, limit: 10, offset: 0 });
+    const listar = calls.find((c) => c.method === 'listar');
+    const contar = calls.find((c) => c.method === 'contar');
+    expect((listar!.args[0] as { decanatoId?: number }).decanatoId).toBe(3);
+    expect((contar!.args[0] as { decanatoId?: number }).decanatoId).toBe(3);
+  });
 });
 
 describe('ConteosComunicados', () => {
-  it('delega a contarPorEstado y devuelve un conteo por estado', async () => {
+  it('devuelve un conteo por estado + lecturasTotales del alcance', async () => {
     const { repo, calls } = makeRepo(makeComunicado({ estado: 'BORRADOR' }));
     const uc = new ConteosComunicados(repo, makeUnitOfWork());
     const conteos = await uc.ejecutar(makeComComunicador());
     expect(conteos.BORRADOR).toBe(1);
     expect(conteos.PENDIENTE).toBe(0);
+    expect(conteos.lecturasTotales).toBe(0);
     expect(calls.some((c) => c.method === 'contarPorEstado')).toBe(true);
+    expect(calls.some((c) => c.method === 'contarLecturasTotales')).toBe(true);
   });
 });

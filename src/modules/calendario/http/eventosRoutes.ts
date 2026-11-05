@@ -93,6 +93,8 @@ export function eventosRoutes(deps: EventosRoutesDeps): Router {
         desde,
         hasta,
         incluirOficiales: query.incluir_oficiales,
+        tipo: query.tipo,
+        q: query.q,
         limit: query.limit,
         offset: query.offset,
       });

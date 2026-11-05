@@ -3,6 +3,23 @@ import type { Adjunto, CrearAdjuntoInput } from './adjunto';
 import type { Comunicado, Estado } from './comunicado';
 
 /**
+ * Filtros compartidos por `listar` y `contar` (el total y los items nunca
+ * desincronizan por usar exactamente el mismo WHERE).
+ */
+export interface FiltroListadoComunicados {
+  estado?: Estado;
+  categoria?: string;
+  /** Búsqueda textual: título O cuerpo (ILIKE, case-insensitive). */
+  q?: string;
+  /**
+   * Recorta al alcance de un decanato: comunicados dirigidos a él o
+   * GLOBAL (sin filas de audiencia). Pensado para el selector del ADMIN
+   * en la consola de gestión; RLS ya recorta el universe visible antes.
+   */
+  decanatoId?: number;
+}
+
+/**
  * Puerto de repositorio del componente Comunicaciones.
  *
  * Cada método recibe explícitamente la transacción (`DbTx`) porque toda
@@ -28,7 +45,7 @@ export interface IComunicadoRepository {
 
   listar(
     tx: DbTx,
-    filtro: { estado?: Estado; categoria?: string; q?: string; limit: number; offset: number },
+    filtro: FiltroListadoComunicados & { limit: number; offset: number },
   ): Promise<Comunicado[]>;
 
   /**
@@ -36,13 +53,19 @@ export interface IComunicadoRepository {
    * paginación con total conocido ("N de M"). RLS recorta el count igual
    * que el listado (mismas claims dentro del UnitOfWork).
    */
-  contar(
-    tx: DbTx,
-    filtro: { estado?: Estado; categoria?: string; q?: string },
-  ): Promise<number>;
+  contar(tx: DbTx, filtro: FiltroListadoComunicados): Promise<number>;
 
   /** Conteo agrupado por estado (una sola query, bajo RLS). Para el Panel. */
   contarPorEstado(tx: DbTx): Promise<Record<Estado, number>>;
+
+  /**
+   * Sumatoria de lecturas confirmadas de los comunicados VISIBLES para las
+   * claims actuales (join contra `comunicados` bajo RLS + RLS de la propia
+   * `comunicado_lecturas`). KPI "Alcance acumulado" del Resumen. Quirk
+   * conocido: un COMUNICADOR no-autor ve 0 por la RLS de lecturas, igual
+   * que `contarLecturas`/`GET /:id/estadisticas`.
+   */
+  contarLecturasTotales(tx: DbTx): Promise<number>;
 
   actualizar(
     tx: DbTx,

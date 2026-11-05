@@ -50,6 +50,10 @@ export const listarEventosQuerySchema = z.object({
   hasta: isoDateTime,
   /** 'agregados': solo PERSONAL propios + OFICIALES agregados + INSTITUCIONAL/FERIADO (agenda). */
   incluir_oficiales: z.enum(['todos', 'agregados']).default('todos'),
+  /** Recorte por naturaleza del evento (consola de gestión; PERSONAL no se pide). */
+  tipo: z.enum(TIPOS_EVENTO).optional(),
+  /** Búsqueda textual: título O lugar (consola de gestión; ILIKE case-insensitive). */
+  q: z.string().trim().min(1, 'La búsqueda no puede quedar vacía').max(100, 'Máximo 100 caracteres').optional(),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   offset: z.coerce.number().int().min(0).default(0),
 });

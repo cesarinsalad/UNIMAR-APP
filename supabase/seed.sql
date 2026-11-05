@@ -54,6 +54,39 @@ SELECT c.id, d.id FROM comunicados c, decanatos d
  WHERE c.titulo = 'Semana de la Salud Mental'
    AND d.id = 2;
 
+-- Comunicados del FLUJO DE GESTIÓN (consola de staff): borrador en redacción,
+-- pendiente de revisión, devuelto con motivo y archivado (historial). INSERT
+-- directos: no disparan el bus ni push, igual que los PUBLICADOS de arriba.
+INSERT INTO comunicados (titulo, cuerpo, autor_id, estado, categoria) VALUES
+  ('Convocatoria: taller de robótica educativa para docentes', E'El Decanato de Ingeniería y Afines prepara el **taller «Robótica Educativa en el Aula»**, una jornada práctica con sensores, placas de desarrollo y pensamiento computacional para docentes de educación media.\n\n## Ficha preliminar\n\n- **Fecha tentativa:** por confirmar (noviembre).\n- **Lugar:** Laboratorio de Ingeniería, Campus UNIMAR.\n- **Cupo:** 25 participantes.\n\n*Borrador en redacción: falta confirmar fecha y abrir el formulario de registro.*',
+      (SELECT id FROM usuarios WHERE cedula = '17420667'), 'BORRADOR', 'EVENTO'),
+  ('Cronograma especial de atención administrativa', E'La Dirección de Asuntos Estudiantiles anuncia un cronograma ajustado de atención administrativa durante la semana de evaluaciones parciales, con turnos ampliados de 8:00 a.m. a 5:00 p.m.\n\n*Pendiente de la firma de la Secretaría General antes de publicar.*',
+      (SELECT id FROM usuarios WHERE cedula = '17420667'), 'PENDIENTE', 'INSTITUCIONAL'),
+  ('Indicaciones para el proceso de matrícula tardía', E'La matrícula tardía se habilitará durante la primera semana del semestre con recargo del 10%, según el calendario académico oficial.\n\n## Requisitos\n\n- Solicitud escrita ante el decanato respectivo.\n- Aprobación del decano o su delegado.\n- Estar al día en el pensum de la cohorte anterior.',
+      (SELECT id FROM usuarios WHERE cedula = '17420667'), 'BORRADOR', 'ACADEMICO');
+-- El "devuelto": rechazo del ADMIN sobre un PENDIENTE (estado vuelve a
+-- BORRADOR con motivo_rechazo — el badge «Devuelto» de la consola).
+UPDATE comunicados
+   SET motivo_rechazo = 'Falta el link oficial del formulario de inscripción y el nombre del coordinador responsable. Por favor completa antes de re-enviar a revisión.'
+ WHERE estado = 'BORRADOR'
+   AND titulo = 'Indicaciones para el proceso de matrícula tardía';
+-- Un archivado del ADMIN (retiro del feed, historial conservado).
+UPDATE comunicados
+   SET estado = 'ARCHIVADO'
+ WHERE titulo = 'Semana de la Salud Mental'
+   AND estado = 'PUBLICADO';
+
+-- Audiencias de los comunicados del flujo de gestión (Flavio emite para el
+-- decanato 5; el cronograma queda GLOBAL sin filas, como los PUBLICADOS).
+INSERT INTO comunicado_audiencias (comunicado_id, decanato_id)
+SELECT c.id, d.id FROM comunicados c, decanatos d
+ WHERE c.titulo = 'Convocatoria: taller de robótica educativa para docentes'
+   AND d.id = 5;
+INSERT INTO comunicado_audiencias (comunicado_id, decanato_id)
+SELECT c.id, d.id FROM comunicados c, decanatos d
+ WHERE c.titulo = 'Indicaciones para el proceso de matrícula tardía'
+   AND d.id = 5;
+
 -- Eventos OFICIALES del calendario institucional, espejo de los comunicados
 -- con categoria='EVENTO' (no hay FK comunicado↔evento; solo coherencia
 -- editorial). INSERT directos: no disparan el bus ni push, igual que arriba.

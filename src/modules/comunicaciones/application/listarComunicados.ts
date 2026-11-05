@@ -33,6 +33,8 @@ export class ListarComunicados {
       categoria?: string;
       /** Búsqueda textual: título O cuerpo (ILIKE). */
       q?: string;
+      /** Alcance de un decanato (el ADMIN recorta en la consola de gestión). */
+      decanatoId?: number;
       limit: number;
       offset: number;
     },
@@ -40,7 +42,7 @@ export class ListarComunicados {
     return this.uow.runAs(claims, async (tx) => {
       const [items, total] = await Promise.all([
         this.repo.listar(tx, filtro),
-        this.repo.contar(tx, { estado: filtro.estado, categoria: filtro.categoria, q: filtro.q }),
+        this.repo.contar(tx, filtro),
       ]);
       return { items, total };
     });

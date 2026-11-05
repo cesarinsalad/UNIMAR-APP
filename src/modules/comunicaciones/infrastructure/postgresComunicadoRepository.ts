@@ -1,4 +1,5 @@
 import type { DbTx } from '../../../shared/kernel/db';
+import { FiltroListadoComunicados } from '../domain/ports';
 import type { IComunicadoRepository } from '../domain/ports';
 import type { Comunicado, Estado } from '../domain/comunicado';
 import { ESTADOS } from '../domain/comunicado';
@@ -21,6 +22,7 @@ interface ComunicadoRow {
   created_at: Date;
   updated_at: Date;
   decanato_ids: number[];
+  lecturas_count?: number;
 }
 
 function mapRow(row: ComunicadoRow): Comunicado {
@@ -44,6 +46,8 @@ function mapRow(row: ComunicadoRow): Comunicado {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     decanatoIds: row.decanato_ids ?? [],
+    // ?? 0: tolera DB sin la subquery (o comunicado_lecturas vacía).
+    lecturasCount: row.lecturas_count ?? 0,
   };
 }
 
@@ -51,21 +55,20 @@ function mapRow(row: ComunicadoRow): Comunicado {
 // (tabla del módulo Identidad — misma DB, JOIN de lectura puro: sin cruce
 // de código entre módulos). Subquery en vez de JOIN para notene tocar el
 // GROUP BY c.id (el JOIN forzaría agrupar por u.nombre: error 42803).
+// `lecturas_count` igual: subquery escalar sobre `comunicado_lecturas`,
+// cuyo RLS ya recorta qué filas ve cada rol (autor/ADMIN/lector).
 const BASE_SELECT = `
   SELECT
     c.*,
     (SELECT u.nombre FROM usuarios u WHERE u.id = c.autor_id) AS autor_nombre,
+    (SELECT count(*)::int FROM comunicado_lecturas l WHERE l.comunicado_id = c.id) AS lecturas_count,
     COALESCE(array_agg(ca.decanato_id) FILTER (WHERE ca.decanato_id IS NOT NULL), '{}') AS decanato_ids
   FROM comunicados c
   LEFT JOIN comunicado_audiencias ca ON ca.comunicado_id = c.id
 `;
 
-interface FiltroComunicados {
-  estado?: Estado;
-  categoria?: string;
-  /** Búsqueda textual: título O cuerpo (ILIKE, case-insensitive). */
-  q?: string;
-}
+// Filtro del repositorio = el del puerto (documentado en domain/ports.ts).
+type FiltroComunicados = FiltroListadoComunicados;
 
 /**
  * Constructor de WHERE compartido entre `listar` y `contar`: el total y los
@@ -91,6 +94,21 @@ function construirWhere(filtro: FiltroComunicados): {
   if (filtro.q) {
     params.push(`%${filtro.q}%`);
     where.push(`(c.titulo ILIKE $${params.length} OR c.cuerpo ILIKE $${params.length})`);
+  }
+  if (filtro.decanatoId !== undefined) {
+    params.push(filtro.decanatoId);
+    where.push(
+      // El GLOBAL (sin filas de audiencia) también alcanza al decanato:
+      // "comunicados cuyo alcance incluye el decanato N".
+      `(NOT EXISTS (
+         SELECT 1 FROM comunicado_audiencias cag
+         WHERE cag.comunicado_id = c.id
+       )
+       OR EXISTS (
+         SELECT 1 FROM comunicado_audiencias cad
+         WHERE cad.comunicado_id = c.id AND cad.decanato_id = $${params.length}
+       ))`,
+    );
   }
 
   return { whereSql: where.length > 0 ? `WHERE ${where.join(' AND ')}` : '', params };
@@ -160,11 +178,7 @@ export class PostgresComunicadoRepository implements IComunicadoRepository {
 
   async listar(
     tx: DbTx,
-    filtro: {
-      estado?: Estado;
-      categoria?: string;
-      /** Búsqueda textual: título O cuerpo (ILIKE, case-insensitive). */
-      q?: string;
+    filtro: FiltroComunicados & {
       limit: number;
       offset: number;
     },
@@ -179,10 +193,7 @@ export class PostgresComunicadoRepository implements IComunicadoRepository {
     return result.rows.map(mapRow);
   }
 
-  async contar(
-    tx: DbTx,
-    filtro: { estado?: Estado; categoria?: string; q?: string },
-  ): Promise<number> {
+  async contar(tx: DbTx, filtro: FiltroComunicados): Promise<number> {
     const { whereSql, params } = construirWhere(filtro);
     // Sin LEFT JOIN de audiencias (el WHERE no lo usa): un JOIN agrupado
     // inflaría filas sin COUNT(DISTINCT). RLS recorta el count con las
@@ -327,6 +338,15 @@ export class PostgresComunicadoRepository implements IComunicadoRepository {
     const result = await tx.query<{ n: number }>(
       'SELECT count(*)::int AS n FROM comunicado_lecturas WHERE comunicado_id = $1',
       [comunicadoId],
+    );
+    return result.rows[0]?.n ?? 0;
+  }
+
+  async contarLecturasTotales(tx: DbTx): Promise<number> {
+    // La suma vive en un JOIN: RLS de `comunicados` acota a los visibles y
+    // la de `comunicado_lecturas` a las lecturas legibles según el rol.
+    const result = await tx.query<{ n: number }>(
+      'SELECT count(*)::int AS n FROM comunicado_lecturas l JOIN comunicados c ON c.id = l.comunicado_id',
     );
     return result.rows[0]?.n ?? 0;
   }

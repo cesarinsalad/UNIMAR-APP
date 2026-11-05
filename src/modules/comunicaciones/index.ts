@@ -27,6 +27,7 @@ import { AprobarComunicado } from './application/aprobarComunicado';
 import { RechazarComunicado } from './application/rechazarComunicado';
 import { PublicarComunicado } from './application/publicarComunicado';
 import { ArchivarComunicado } from './application/archivarComunicado';
+import { DesarchivarComunicado } from './application/desarchivarComunicado';
 import { EstadisticasComunicado } from './application/estadisticasComunicado';
 import { AsignarPortada } from './application/asignarPortada';
 import { UrlPortada } from './application/urlPortada';
@@ -74,6 +75,7 @@ export function createComunicacionesModule(deps: ComunicacionesModuleDeps): Comu
   const rechazar = new RechazarComunicado(comunicadoRepo, deps.uow, deps.eventos);
   const publicar = new PublicarComunicado(comunicadoRepo, deps.uow, deps.eventos);
   const archivar = new ArchivarComunicado(comunicadoRepo, deps.uow);
+  const desarchivar = new DesarchivarComunicado(comunicadoRepo, deps.uow);
   const estadisticas = new EstadisticasComunicado(comunicadoRepo, deps.uow);
   const asignarPortada = new AsignarPortada(comunicadoRepo, adjuntoRepo, deps.uow);
   const urlPortada = new UrlPortada(comunicadoRepo, deps.storageService, deps.uow);
@@ -109,6 +111,7 @@ export function createComunicacionesModule(deps: ComunicacionesModuleDeps): Comu
       rechazar,
       publicar,
       archivar,
+      desarchivar,
       estadisticas,
       asignarPortada,
       urlPortada,
