@@ -1,9 +1,9 @@
 import { StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { ArrowLeftIcon } from 'phosphor-react-native';
 
 import { colors, spacing } from '@/shared/ui';
-import { ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
+import { BotonCircular, ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
 import { rutaParaNotificacion } from '@/shared/notifications';
 import { useNoLeidas } from '@/features/notificaciones/hooks/useNoLeidas';
 import { useMarcarLeida } from '@/features/notificaciones/hooks/useMarcarLeida';
@@ -11,14 +11,26 @@ import { useMarcarTodasLeidas } from '@/features/notificaciones/hooks/useMarcarT
 import { NotificacionesList } from '@/features/notificaciones/components/NotificacionesList';
 import type { Notificacion } from '@/features/notificaciones/types';
 
+/**
+ * Bandeja de notificaciones: convención de detalle de la casa (el título
+ * vive EN CONTENIDO, back circular flotante; la campana de la barra ya
+ * trae el punto naranja). Sobre superficie clara el botón configurable
+ * ("Marcar todo leído") puede ser ghost — sobre la franja azul anterior
+ * su etiqueta azul era invisible sobre azul.
+ */
 export default function NotificacionesScreen() {
   const { data } = useNoLeidas();
   const marcarLeida = useMarcarLeida();
   const marcarTodas = useMarcarTodasLeidas();
   const total = data?.total ?? 0;
-  // El inset superior es de la BarraInstitucional (fuera del Stack); el
-  // inferior se suma manual al contenido para respetar el nav del sistema.
-  const insets = useSafeAreaInsets();
+
+  function volver() {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/');
+    }
+  }
 
   function abrir(notificacion: Notificacion) {
     if (!notificacion.leida) {
@@ -31,44 +43,49 @@ export default function NotificacionesScreen() {
   }
 
   return (
-    <View style={styles.safe}>
-      <ThemedView variant="base" style={styles.header}>
-        <ThemedText variant="subtitle" weight="semibold">
-          Bandeja
+    <ThemedView variant="base" style={styles.pantalla}>
+      {/* Fila de control bajo la BarraInstitucional (el inset superior la
+          administra ella; aquí no se vuelve a sumar) + headline en contenido. */}
+      <View style={styles.cabecera}>
+        <View style={styles.filaControl}>
+          <BotonCircular label="Volver" onPress={volver}>
+            <ArrowLeftIcon size={20} color={colors.brand.primary} weight="bold" />
+          </BotonCircular>
+          {total > 0 ? (
+            <ThemedButton
+              title="Marcar todo leído"
+              variant="ghost"
+              size="sm"
+              loading={marcarTodas.isPending}
+              onPress={() => marcarTodas.mutate()}
+            />
+          ) : null}
+        </View>
+        <ThemedText variant="headline" weight="semibold" style={styles.titulo}>
+          Notificaciones
         </ThemedText>
-        {total > 0 ? (
-          <ThemedButton
-            title="Marcar todo leído"
-            variant="ghost"
-            size="sm"
-            loading={marcarTodas.isPending}
-            onPress={() => marcarTodas.mutate()}
-          />
-        ) : null}
-      </ThemedView>
-      <View style={[styles.contenido, { paddingBottom: insets.bottom }]}>
-        <NotificacionesList onAbrir={abrir} />
       </View>
-    </View>
+      <NotificacionesList onAbrir={abrir} />
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: {
+  pantalla: {
     flex: 1,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.bg.canvas,
   },
-  header: {
-    backgroundColor: colors.primary,
+  cabecera: {
+    gap: spacing.md,
+  },
+  filaControl: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.four,
-    paddingTop: spacing.three,
-    paddingBottom: spacing.three,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
   },
-  contenido: {
-    flex: 1,
-    backgroundColor: colors.background.base,
+  titulo: {
+    paddingHorizontal: spacing.lg,
   },
 });

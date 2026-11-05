@@ -10,8 +10,9 @@ export {
   touchTarget,
   layout,
   PALETA_CALENDARIO_UNIMAR,
+  PALETA_ESTADO_PUBLICACION,
 } from './theme';
-export type { Theme, TipoEventoCalendario } from './theme';
+export type { Theme, TipoEventoCalendario, EstadoPublicacionVisual } from './theme';
 export { ThemedText, type ThemedTextVariant } from './ThemedText';
 export { ThemedButton } from './ThemedButton';
 export { ThemedView } from './ThemedView';
@@ -37,3 +38,13 @@ export { ListItem, type ListItemProps } from './ListItem';
 export { EmptyState, type EmptyStateProps } from './EmptyState';
 export { IconTile, type IconTileProps } from './IconTile';
 export { BarraInstitucional } from './BarraInstitucional';
+export {
+  useBreakpoint,
+  breakpointDesdeAncho,
+  UMBRAL_TABLET,
+  UMBRAL_ESCRITORIO,
+} from './useBreakpoint';
+export type { Breakpoint } from './useBreakpoint';
+export { BadgeEstado, type BadgeEstadoProps } from './BadgeEstado';
+export { TablaDatos, Celda, estiloColumna, type TablaDatosProps, type ColumnaTabla } from './TablaDatos';
+export { MenuAcciones, HojaMenuAcciones, type MenuAccionesProps, type AccionGestionItem, type PesoIcono } from './MenuAcciones';

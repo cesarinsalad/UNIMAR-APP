@@ -56,7 +56,7 @@ export function NotificacionCard({ notificacion, onAbrir }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    gap: spacing.two,
+    gap: spacing.sm,
   },
   noLeida: {
     borderLeftWidth: 3,

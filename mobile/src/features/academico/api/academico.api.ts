@@ -1,6 +1,5 @@
 import { api } from '@/shared/api/axios';
 import type {
-  HistorialMedicoDTO,
   MateriaDTO,
   PensumDTO,
   PerfilAcademico,
@@ -42,11 +41,5 @@ export async function getPensum(carreraId: string): Promise<PensumDTO> {
   const { data } = await api.get<PensumDTO>('/academico/pensum', {
     params: { carrera_id: carreraId },
   });
-  return data;
-}
-
-/** GET /academico/historial-medico — solo lectura en v1; 403 si no eres el estudiante. */
-export async function getHistorialMedico(): Promise<HistorialMedicoDTO> {
-  const { data } = await api.get<HistorialMedicoDTO>('/academico/historial-medico');
   return data;
 }

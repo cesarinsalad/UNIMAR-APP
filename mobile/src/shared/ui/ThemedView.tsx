@@ -32,13 +32,13 @@ export function ThemedView({
 }
 
 const VARIANT_STYLES: Record<Variant, ViewStyle> = {
-  base: { backgroundColor: colors.background.base },
-  elevated: { backgroundColor: colors.background.elevated },
-  sunken: { backgroundColor: colors.background.sunken },
+  base: { backgroundColor: colors.bg.surface },
+  elevated: { backgroundColor: colors.brand.surfaceBlue },
+  sunken: { backgroundColor: colors.bg.sunken },
   card: {
-    backgroundColor: colors.background.base,
+    backgroundColor: colors.bg.surface,
     borderRadius: radius.card,
-    padding: spacing.four,
+    padding: spacing.lg,
   },
 };
 

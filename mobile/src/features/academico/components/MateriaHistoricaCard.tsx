@@ -52,13 +52,13 @@ function colorDeNota(nota: number | null): string {
     case 'danger':
       return colors.status.danger;
     case 'muted':
-      return colors.text.tertiary;
+      return colors.text.secondary;
   }
 }
 
 const estilos = StyleSheet.create({
   tarjeta: {
-    gap: spacing.two,
+    gap: spacing.sm,
   },
   cabecera: {
     flexDirection: 'row',
@@ -66,15 +66,15 @@ const estilos = StyleSheet.create({
     alignItems: 'center',
   },
   badge: {
-    paddingHorizontal: spacing.two,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     borderRadius: radius.pill,
   },
   badgeOk: {
-    backgroundColor: colors.background.sunken,
+    backgroundColor: colors.bg.sunken,
   },
   badgeNo: {
-    backgroundColor: colors.background.elevated,
+    backgroundColor: colors.brand.surfaceBlue,
     borderWidth: 1,
     borderColor: colors.status.danger,
   },
@@ -82,7 +82,7 @@ const estilos = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: spacing.two,
+    gap: spacing.sm,
   },
   nombre: {
     flex: 1,

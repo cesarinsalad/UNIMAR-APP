@@ -35,7 +35,7 @@ export function CampanaConBadge({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={
-        total > 0 ? `Bandeja, ${total} notificaciones sin leer` : 'Bandeja de notificaciones'
+        total > 0 ? `Notificaciones, ${total} sin leer` : 'Notificaciones'
       }
       onPress={() => router.push('/notificaciones')}
       hitSlop={8}
@@ -61,8 +61,10 @@ const pillBase = {
   right: spacing.xs,
   backgroundColor: colors.accent.urgent,
   borderRadius: radius.pill,
-  minWidth: 17,
-  height: 17,
+  // Piso de legibilidad de la auditoría (AA): cifra a 12px exige pill más
+  // alta que la de 10px; el borde canvas la separa del icono.
+  minWidth: 20,
+  height: 19,
   alignItems: 'center',
   justifyContent: 'center',
   paddingHorizontal: spacing.xs / 2,
@@ -90,7 +92,7 @@ const estilos = StyleSheet.create({
   cifraBadge: {
     color: colors.text.onPrimary,
     fontFamily: fontFamily.bold,
-    fontSize: 10,
+    fontSize: 12,
     lineHeight: typography.size.caption,
   },
 });

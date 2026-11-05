@@ -14,7 +14,7 @@ import { DetalleMateriaHistorica } from '@/features/academico/components/Detalle
 import { useMateriaDetalle } from '@/features/academico/hooks/useMateriaDetalle';
 import type { MateriaDTO } from '@/features/academico/types';
 import { colors, spacing } from '@/shared/ui';
-import { BotonCircular, ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
+import { BotonCircular, EstadoCentrado, ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
 import { ApiError } from '@/shared/api/axios';
 
 /**
@@ -36,18 +36,18 @@ export default function MateriaDetalleScreen() {
     <ThemedView variant="base" style={estilos.container}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View style={[estilos.filaBotones, { top: insets.top }]}>
+      <View style={estilos.filaBotones}>
         <BotonCircular label="Volver" onPress={volver}>
           <ArrowLeftIcon size={20} color={colors.brand.primary} weight="bold" />
         </BotonCircular>
       </View>
 
       {query.isPending ? (
-        <Centrado a11yLabel="Cargando la materia">
+        <EstadoCentrado a11yLabel="Cargando la materia">
           <ActivityIndicator color={colors.brand.primary} />
-        </Centrado>
+        </EstadoCentrado>
       ) : query.isError ? (
-        <Centrado gap>
+        <EstadoCentrado gap>
           <ThemedText variant="subtitle" weight="semibold">
             {mensajeError(query.error)}
           </ThemedText>
@@ -56,16 +56,17 @@ export default function MateriaDetalleScreen() {
             variant="secondary"
             onPress={() => void query.refetch()}
           />
-        </Centrado>
+        </EstadoCentrado>
       ) : query.data ? (
         <ScrollView
           contentContainerStyle={[
             estilos.scroll,
             {
-              // Compacto: el back (40) queda al ras del safe area y el
-              // título arranca 8px debajo de él — el detalle debe caber
-              // sin scroll en la mayoría de pantallas.
-              paddingTop: insets.top + 40 + spacing.sm,
+              // Compacto: el back (40) vive bajo la BarraInstitucional (el
+              // inset superior es de la barra; aquí no se vuelve a sumar) y
+              // el título arranca a aire fijo — el detalle debe caber sin
+              // scroll en la mayoría de pantallas.
+              paddingTop: spacing.md + 40 + spacing.sm,
               paddingBottom: insets.bottom + spacing.lg,
             },
           ]}
@@ -127,27 +128,6 @@ function CabeceraMateria({ data }: { data: MateriaDTO }) {
   );
 }
 
-function Centrado({
-  children,
-  gap = false,
-  a11yLabel,
-}: {
-  children: React.ReactNode;
-  gap?: boolean;
-  /** Etiqueta accesible para estados sin texto propio (el spinner). */
-  a11yLabel?: string;
-}) {
-  return (
-    <ThemedView
-      variant="base"
-      accessible={a11yLabel ? true : undefined}
-      accessibilityLabel={a11yLabel}
-      style={[estilos.centro, gap && estilos.centroConGap]}>
-      {children}
-    </ThemedView>
-  );
-}
-
 const estilos = StyleSheet.create({
   container: {
     flex: 1,
@@ -166,15 +146,5 @@ const estilos = StyleSheet.create({
   },
   cabecera: {
     gap: spacing.sm,
-  },
-  centro: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.xl,
-    gap: spacing.sm,
-  },
-  centroConGap: {
-    gap: spacing.lg,
   },
 });

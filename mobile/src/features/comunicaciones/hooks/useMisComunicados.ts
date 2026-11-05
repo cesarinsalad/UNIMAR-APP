@@ -7,26 +7,34 @@ import { PAGE_SIZE_COMUNICADOS } from './useComunicadosFeed';
 import type { EstadoComunicado } from '../types';
 
 /**
- * Listado de gestión por estado (el query infinito que antes vivía inline
- * en mis.tsx). La RLS decide el alcance: un ADMIN ve la cola GLOBAL del
- * estado pedido (acá vive la cola "Por revisar"); un COMUNICADOR solo los
- * propios; un ESTUDIANTE obtiene lista vacía para BORRADOR/PENDIENTE.
+ * Listado de gestión por estado o "todos" (null = sin recorte de estado:
+ * la RLS entrega todo el universo visible del rol). La RLS decide el
+ * alcance: un ADMIN ve la cola GLOBAL del estado pedido (acá vive la cola
+ * "Por revisar"); un COMUNICADOR solo los propios; un ESTUDIANTE obtiene
+ * lista vacía para BORRADOR/PENDIENTE.
  *
- * `filtro.q` (búsqueda server-side: título O cuerpo) y `filtro.categoria`
- * entran en la queryKey, así cada combinación tiene caché propia.
+ * `filtro.q` (búsqueda server-side: título O cuerpo), `filtro.categoria` y
+ * `filtro.decanatoId` (recorte del ADMIN) entran en la queryKey, así cada
+ * combinación tiene caché propia.
  */
 export function useMisComunicados(
-  estado: EstadoComunicado,
-  filtro: { q?: string; categoria?: string } = {},
+  estado: EstadoComunicado | null,
+  filtro: { q?: string; categoria?: string; decanatoId?: number } = {},
 ) {
   const query = useInfiniteQuery({
-    queryKey: [...CLAVES_COMUNICADOS.mis(estado), filtro.q ?? '', filtro.categoria ?? ''],
+    queryKey: [
+      ...CLAVES_COMUNICADOS.mis(estado ?? 'TODOS'),
+      filtro.q ?? '',
+      filtro.categoria ?? '',
+      filtro.decanatoId ?? '',
+    ],
     initialPageParam: 0,
     queryFn: ({ pageParam }) =>
       listarComunicados({
-        estado,
+        estado: estado ?? undefined,
         q: filtro.q || undefined,
         categoria: filtro.categoria || undefined,
+        decanatoId: filtro.decanatoId,
         limit: PAGE_SIZE_COMUNICADOS,
         offset: pageParam as number,
       }),

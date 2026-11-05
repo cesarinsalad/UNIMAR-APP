@@ -35,6 +35,12 @@ export interface Comunicado {
   updatedAt: string;
   /** Audiencia; [] = GLOBAL (toda la universidad). */
   decanatoIds: number[];
+  /**
+   * Lecturas confirmadas. El BFF la calcula como subquery escalar para
+   * listados y detalle; opcional en el espejo porque endpoints antiguos
+   * o mocks pueden omitirla. Quirk de RLS: comunicador no-autor ve 0.
+   */
+  lecturasCount?: number;
 }
 
 /** Espejo del wire de /adjuntos (camelCase, ver Notificacion). */
@@ -58,5 +64,5 @@ export type MimePermitido = (typeof MIMES_PERMITIDOS)[number];
 
 /** Espejo de MAX_TAMANO_ADJUNTO_BYTES del dominio backend. */
 export const MAX_TAMANO_ADJUNTO_BYTES = 5 * 1024 * 1024;
-/** Umbral para la UI: ABOVE este tamaño resultará en 400 severido. */
+/** Umbral para la UI: el backend responderá 400 por encima. */
 export const TAMANO_MAX_MB = 5;

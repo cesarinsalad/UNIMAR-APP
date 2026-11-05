@@ -347,9 +347,9 @@ const estilos = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.md,
-    marginHorizontal: spacing.half,
+    marginHorizontal: 2,
   },
-  botonActivo: { backgroundColor: colors.background.sunken },
+  botonActivo: { backgroundColor: colors.bg.sunken },
   botonInhabilitado: { opacity: 0.4 },
   divisorBarra: {
     height: 1,
@@ -364,7 +364,7 @@ const estilos = StyleSheet.create({
   filaEnlace: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.two,
+    gap: spacing.sm,
   },
   textarea: {
     color: colors.text.primary,

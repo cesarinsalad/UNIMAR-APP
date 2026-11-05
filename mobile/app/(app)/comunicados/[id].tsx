@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import {
   aprobarComunicado,
+  desarchivarComunicado,
   publicarComunicado,
   rechazarComunicado,
   solicitarRevisionComunicado,
@@ -36,7 +37,7 @@ import { ApiError } from '@/shared/api/axios';
 import { haceRelativo, minutosLectura } from '@/shared/lib/tiempo';
 import { excerpt } from '@/shared/lib/markdown';
 import { colors, elevation, layout, radius, spacing } from '@/shared/ui';
-import { ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
+import { EstadoCentrado, ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
 
 const FORMATO_FECHA_LARGA = new Intl.DateTimeFormat('es-VE', {
   dateStyle: 'long',
@@ -45,11 +46,11 @@ const FORMATO_FECHA_LARGA = new Intl.DateTimeFormat('es-VE', {
 
 /**
  * Transiciones del ciclo editorial que el DETALLE ofrece: solicitar,
- * aprobar, rechazar y publicar. Editar y archivar NO están aquí — son
- * exclusivos de la consola de gestión (editor + colas): el detalle es
- * lectura del estado editorial para todos los roles.
+ * aprobar, rechazar, publicar y desarchivar. Editar y archivar NO están
+ * aquí — son exclusivos de la consola de gestión (editor + colas): el
+ * detalle es lectura del estado editorial para todos los roles.
  */
-type AccionDetalle = 'solicitar' | 'aprobar' | 'rechazar' | 'publicar';
+type AccionDetalle = 'solicitar' | 'aprobar' | 'rechazar' | 'publicar' | 'desarchivar';
 
 export default function ComunicadoDetalleScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -61,17 +62,17 @@ export default function ComunicadoDetalleScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       {query.isPending ? (
-        <Centrado>
+        <EstadoCentrado>
           <ActivityIndicator color={colors.brand.primary} />
-        </Centrado>
+        </EstadoCentrado>
       ) : query.isError ? (
-        <Centrado gap>
+        <EstadoCentrado gap>
           <ThemedText variant="subtitle" weight="semibold">
             {query.error instanceof ApiError && query.error.status === 404
               ? 'Esta noticia ya no está disponible.'
               : 'No se pudo cargar la noticia.'}
           </ThemedText>
-        </Centrado>
+        </EstadoCentrado>
       ) : query.data ? (
         <DetalleLector comunicado={query.data} comunicadoId={id} />
       ) : null}
@@ -160,7 +161,8 @@ function DetalleLector({
     acciones.puedeSolicitarRevision ||
     acciones.puedeAprobar ||
     acciones.puedeRechazar ||
-    acciones.puedePublicar;
+    acciones.puedePublicar ||
+    acciones.puedeDesarchivar;
 
   /**
    * UNA mutación de transición (optimista) para las 5 acciones del ciclo:
@@ -178,6 +180,8 @@ function DetalleLector({
           return rechazarComunicado(id, motivo);
         case 'publicar':
           return publicarComunicado(id);
+        case 'desarchivar':
+          return desarchivarComunicado(id);
       }
     },
   );
@@ -259,6 +263,15 @@ function DetalleLector({
                 size="sm"
                 disabled={algunaPendiente}
                 onPress={() => void ejecutarAccion('publicar')}
+              />
+            ) : null}
+            {acciones.puedeDesarchivar ? (
+              <ThemedButton
+                title="Desarchivar"
+                variant="ghost"
+                size="sm"
+                disabled={algunaPendiente}
+                onPress={() => void ejecutarAccion('desarchivar')}
               />
             ) : null}
           </View>
@@ -411,23 +424,12 @@ function PortadaDetalle({ comunicadoId, pie }: { comunicadoId: string; pie: stri
   );
 }
 
-function Centrado({
-  children,
-  gap = false,
-}: {
-  children: React.ReactNode;
-  gap?: boolean;
-}) {
-  return (
-    <ThemedView variant="base" style={[estilos.centro, gap && estilos.centroConGap]}>
-      {children}
-    </ThemedView>
-  );
-}
-
 const estilos = StyleSheet.create({
   portadaWrap: { position: 'relative' },
-  portadaDetalle: { width: '100%', aspectRatio: 4 / 3, borderRadius: radius.card },
+  // Recorte 3:2, el contrato de la portada (editor y NoticiaCard): el
+  // detalle era el outlier (4:3) y mostraba la misma imagen con otro
+  // encuadre que el resto del sistema.
+  portadaDetalle: { width: '100%', aspectRatio: 3 / 2, borderRadius: radius.card },
   pieGradiente: {
     position: 'absolute',
     left: 0,
@@ -467,17 +469,9 @@ const estilos = StyleSheet.create({
     justifyContent: 'center',
     ...elevation.md,
   },
-  centro: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.six,
-    gap: spacing.two,
-  },
-  centroConGap: { gap: spacing.four },
   scroll: {
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.twelve,
+    paddingTop: 64,
     paddingBottom: layout.bottomTabInset,
     gap: spacing.lg,
   },
@@ -492,24 +486,24 @@ const estilos = StyleSheet.create({
   metaFila: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.two,
+    gap: spacing.sm,
     flexWrap: 'wrap',
   },
   chip: {
     alignSelf: 'flex-start',
-    paddingHorizontal: spacing.two,
-    paddingVertical: spacing.one,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
     borderRadius: radius.sm,
   },
   acciones: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.two,
+    gap: spacing.sm,
   },
   motivoBox: {
     borderColor: colors.status.danger,
     borderWidth: 1,
-    backgroundColor: colors.background.elevated,
+    backgroundColor: colors.brand.surfaceBlue,
     gap: spacing.xs,
   },
   motivoTitulo: { color: colors.status.danger },
@@ -530,7 +524,7 @@ const estilos = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  autorTextos: { flex: 1, gap: spacing.half },
+  autorTextos: { flex: 1, gap: 2 },
   autorMeta: {
     flexDirection: 'row',
     alignItems: 'center',

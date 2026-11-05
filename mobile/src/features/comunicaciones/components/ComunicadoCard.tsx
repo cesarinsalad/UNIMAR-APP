@@ -81,11 +81,11 @@ function BannerPortada({ url }: { url?: string }) {
   );
 }
 
-const BORDES_CARD = spacing.four; // padding del variant="card" (theme)
+const BORDES_CARD = spacing.lg; // padding del variant="card" (theme)
 
 const styles = StyleSheet.create({
   card: {
-    gap: spacing.two,
+    gap: spacing.sm,
     overflow: 'hidden',
   },
   banner: {
@@ -101,11 +101,11 @@ const styles = StyleSheet.create({
   placeholder: {
     backgroundColor: colors.brand.surfaceBlue,
   },
-  contenido: { gap: spacing.two },
+  contenido: { gap: spacing.sm },
   motivo: { color: colors.status.danger },
   banda: {
-    marginTop: spacing.two,
-    paddingTop: spacing.three,
+    marginTop: spacing.sm,
+    paddingTop: spacing.md,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border.subtle,
   },

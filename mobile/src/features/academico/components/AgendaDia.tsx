@@ -125,7 +125,7 @@ const estilos = StyleSheet.create({
   hora: {
     width: 52,
     marginLeft: spacing.md,
-    gap: spacing.half,
+    gap: 2,
   },
   info: {
     flex: 1,

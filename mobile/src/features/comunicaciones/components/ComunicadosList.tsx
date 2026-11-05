@@ -79,8 +79,8 @@ export function ComunicadosList() {
         <RefreshControl
           refreshing={query.isRefetching}
           onRefresh={() => void query.refetch()}
-          colors={[colors.primary]}
-          tintColor={colors.primary}
+          colors={[colors.brand.primary]}
+          tintColor={colors.brand.primary}
         />
       }
     />
@@ -115,33 +115,33 @@ function PieDePagina() {
 
 const styles = StyleSheet.create({
   contenido: {
-    padding: spacing.four,
-    gap: spacing.three,
-    backgroundColor: colors.background.base,
+    padding: spacing.lg,
+    gap: spacing.md,
+    backgroundColor: colors.bg.surface,
   },
   separador: {
-    height: spacing.three,
+    height: spacing.md,
   },
   estado: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.six,
-    gap: spacing.two,
-    backgroundColor: colors.background.base,
+    padding: spacing.xl,
+    gap: spacing.sm,
+    backgroundColor: colors.bg.surface,
   },
   estadoConGap: {
-    gap: spacing.four,
+    gap: spacing.lg,
   },
   errorDetalle: {
     textAlign: 'center',
   },
   reintentar: {
-    color: colors.primary,
+    color: colors.brand.primary,
     textDecorationLine: 'underline',
   },
   footer: {
     textAlign: 'center',
-    paddingVertical: spacing.four,
+    paddingVertical: spacing.lg,
   },
 });

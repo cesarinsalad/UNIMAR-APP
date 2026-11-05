@@ -58,20 +58,20 @@ export function ThemedButton({
 const SIZE_STYLES: Record<Size, { container: ViewStyle }> = {
   sm: {
     container: {
-      paddingHorizontal: spacing.three,
-      paddingVertical: spacing.two,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
     },
   },
   md: {
     container: {
-      paddingHorizontal: spacing.four,
-      paddingVertical: spacing.three,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
     },
   },
   lg: {
     container: {
-      paddingHorizontal: spacing.six,
-      paddingVertical: spacing.four,
+      paddingHorizontal: spacing.xl,
+      paddingVertical: spacing.lg,
     },
   },
 };
@@ -79,14 +79,14 @@ const SIZE_STYLES: Record<Size, { container: ViewStyle }> = {
 const VARIANT_STYLES: Record<Variant, { container: ViewStyle; labelColor: string }> = {
   primary: {
     container: {
-      backgroundColor: colors.primary,
+      backgroundColor: colors.brand.primary,
       ...elevation.sm,
     },
     labelColor: colors.text.onPrimary,
   },
   secondary: {
     container: {
-      backgroundColor: colors.background.elevated,
+      backgroundColor: colors.brand.surfaceBlue,
       borderWidth: 1,
       borderColor: colors.border.subtle,
     },
@@ -96,7 +96,7 @@ const VARIANT_STYLES: Record<Variant, { container: ViewStyle; labelColor: string
     container: {
       backgroundColor: 'transparent',
     },
-    labelColor: colors.primary,
+    labelColor: colors.brand.primary,
   },
   // Pill tonal (§1.1/§4): acción ACTIVA/retirable sobre superficie blanca —
   // se distingue por tinte (brand/surfaceBlue) sin borde ni elevación, no

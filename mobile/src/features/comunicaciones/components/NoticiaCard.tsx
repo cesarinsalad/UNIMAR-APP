@@ -65,7 +65,7 @@ const estilos = StyleSheet.create({
     padding: 0,
   },
   banner: { position: 'relative' },
-  imagen: { width: '100%', aspectRatio: 2 / 1 },
+  imagen: { width: '100%', aspectRatio: 3 / 2 },
   contenido: {
     padding: spacing.md,
     gap: spacing.xs,

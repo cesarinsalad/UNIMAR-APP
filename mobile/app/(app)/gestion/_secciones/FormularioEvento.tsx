@@ -215,7 +215,7 @@ export function FormularioEvento({
       <ScrollView
         contentContainerStyle={[
           estilos.scroll,
-          { paddingBottom: insets.bottom + spacing.eight },
+          { paddingBottom: insets.bottom + spacing.xxl },
         ]}
         showsVerticalScrollIndicator={false}>
         {/* Chrome de consola: título a la izquierda, acciones a la derecha. */}
@@ -456,7 +456,7 @@ const estilos = StyleSheet.create({
     backgroundColor: colors.bg.canvas,
   },
   scroll: {
-    padding: spacing.four,
+    padding: spacing.lg,
     gap: spacing.lg,
   },
   centro: {

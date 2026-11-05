@@ -1,6 +1,6 @@
 /**
  * Formatos de fecha compartidos (Intl es-VE). Centralizados aquí porque
- * ColasSeccion, EventosSeccion y ComunicadoCard los declaraban iguales.
+ * ComunicadosSeccion, EventosSeccion y ComunicadoCard los declaraban iguales.
  */
 export const FORMATO_FECHA_MEDIO = new Intl.DateTimeFormat('es-VE', {
   dateStyle: 'medium',

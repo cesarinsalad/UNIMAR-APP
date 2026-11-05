@@ -8,14 +8,21 @@ import { ThemedView } from './ThemedView';
 export function EstadoCentrado({
   children,
   gap = false,
+  a11yLabel,
   style,
 }: {
   children: React.ReactNode;
   gap?: boolean;
+  /** Etiqueta accesible para estados sin texto propio (el spinner). */
+  a11yLabel?: string;
   style?: ViewStyle;
 }) {
   return (
-    <ThemedView variant="base" style={[estilos.estado, gap && estilos.estadoConGap, style]}>
+    <ThemedView
+      variant="base"
+      accessible={a11yLabel ? true : undefined}
+      accessibilityLabel={a11yLabel}
+      style={[estilos.estado, gap && estilos.estadoConGap, style]}>
       {children}
     </ThemedView>
   );
@@ -45,15 +52,15 @@ const estilos = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.six,
-    gap: spacing.two,
+    padding: spacing.xl,
+    gap: spacing.sm,
   },
-  estadoConGap: { gap: spacing.four },
-  separador: { height: spacing.three },
+  estadoConGap: { gap: spacing.lg },
+  separador: { height: spacing.md },
   separadorFino: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.border.subtle,
-    marginHorizontal: spacing.four,
+    marginHorizontal: spacing.lg,
   },
   textoError: { color: colors.status.danger },
 });

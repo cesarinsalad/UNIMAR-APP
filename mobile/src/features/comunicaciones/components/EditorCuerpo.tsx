@@ -240,9 +240,9 @@ const estilos = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.md,
-    marginHorizontal: spacing.half,
+    marginHorizontal: 2,
   },
-  botonPresionado: { backgroundColor: colors.background.sunken },
+  botonPresionado: { backgroundColor: colors.bg.sunken },
   botonInhabilitado: { opacity: 0.4 },
   divisorBarra: {
     height: 1,

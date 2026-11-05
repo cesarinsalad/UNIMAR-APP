@@ -150,7 +150,7 @@ const estilos = StyleSheet.create({
   // Cápsula gris muy suave que corona el mes: el membrete de la semana.
   capsulaSemana: {
     flexDirection: 'row',
-    backgroundColor: colors.background.sunken,
+    backgroundColor: colors.bg.sunken,
     borderRadius: radius.pill,
     paddingVertical: spacing.sm,
     marginBottom: spacing.sm,

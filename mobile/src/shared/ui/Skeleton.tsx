@@ -75,10 +75,10 @@ const estilos = StyleSheet.create({
     borderRadius: radius.pill,
   },
   card: {
-    gap: spacing.two,
-    padding: spacing.four,
+    gap: spacing.sm,
+    padding: spacing.lg,
     borderRadius: radius.md,
-    backgroundColor: colors.background.base,
+    backgroundColor: colors.bg.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border.subtle,
   },

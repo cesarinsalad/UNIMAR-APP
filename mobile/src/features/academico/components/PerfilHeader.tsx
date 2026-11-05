@@ -8,7 +8,7 @@ import type { PerfilAcademico } from '../types';
 const TONO_NOTA = {
   success: colors.status.success,
   danger: colors.status.danger,
-  muted: colors.text.tertiary,
+  muted: colors.text.secondary,
 } as const;
 
 /**
@@ -58,13 +58,13 @@ function Dato({ etiqueta, valor }: { etiqueta: string; valor: string }) {
 
 const estilos = StyleSheet.create({
   tarjeta: {
-    gap: spacing.two,
+    gap: spacing.sm,
   },
   fila: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
-    gap: spacing.two,
+    gap: spacing.sm,
   },
   promedio: {
     alignItems: 'flex-end',

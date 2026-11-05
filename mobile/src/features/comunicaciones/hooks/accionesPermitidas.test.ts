@@ -11,6 +11,7 @@ const sinAcciones = {
   puedeRechazar: false,
   puedePublicar: false,
   puedeArchivar: false,
+  puedeDesarchivar: false,
 };
 
 describe('accionesPermitidas', () => {
@@ -41,6 +42,7 @@ describe('accionesPermitidas', () => {
     expect(r.puedeAprobar).toBe(false);
     expect(r.puedeRechazar).toBe(false);
     expect(r.puedePublicar).toBe(false);
+    expect(r.puedeDesarchivar).toBe(false);
   });
 
   it('COMUNICADOR ajeno → nada (ni siquiera PUBLICADO)', () => {
@@ -81,7 +83,25 @@ describe('accionesPermitidas', () => {
     expect(r.puedeRechazar).toBe(false);
   });
 
-  it('ADMIN en ARCHIVADO → nada (estado terminal)', () => {
-    expect(accionesPermitidas({ ...contexto('ADMIN', false), estado: 'ARCHIVADO' })).toEqual(sinAcciones);
+  it('ADMIN en ARCHIVADO → solo desarchivar (el único camino de salida)', () => {
+    const r = accionesPermitidas({ ...contexto('ADMIN', false), estado: 'ARCHIVADO' });
+    expect(r).toEqual({
+      puedeEditar: false,
+      puedeSolicitarRevision: false,
+      puedeAprobar: false,
+      puedeRechazar: false,
+      puedePublicar: false,
+      puedeArchivar: false,
+      puedeDesarchivar: true,
+    });
+  });
+
+  it('COMUNICADOR autor desarchiva su ARCHIVADO; ajeno no', () => {
+    expect(
+      accionesPermitidas({ ...contexto('COMUNICADOR', true), estado: 'ARCHIVADO' }).puedeDesarchivar,
+    ).toBe(true);
+    expect(
+      accionesPermitidas({ ...contexto('COMUNICADOR', false), estado: 'ARCHIVADO' }).puedeDesarchivar,
+    ).toBe(false);
   });
 });

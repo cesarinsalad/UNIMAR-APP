@@ -3,7 +3,7 @@
  *
  * ATENCIÓN — nomenclatura mixta del contrato, copiada literal:
  *  - snake_case: `es_actual`, `nota_final`
- *  - camelCase: `semestreSugerido` (pénsum, 5c), `tipoSangre` (historial, 5d)
+ *  - camelCase: `semestreSugerido` (pénsum, 5c)
  * No "normalizar": los tipos deben romperse en compilación si el wire cambia.
  */
 
@@ -76,25 +76,6 @@ export interface PerfilAcademico {
   semestre: number;
   promedio: number | null;
   estatus: EstatusAcademico;
-}
-
-/**
- * Historial médico (wire camelCase: `tipoSangre`).
- * Recurso sensible: el BFF nunca lo cachea y solo lo sirve al propio
- * estudiante (403 al resto, incluido ADMIN). Solo lectura en v1 — la
- * edición requeriría endpoint de escritura contra UNIMAR (mejora futura).
- */
-export interface VacunaDTO {
-  nombre: string;
-  /** ISO 8601. */
-  fecha: string;
-}
-
-export interface HistorialMedicoDTO {
-  cedula: string;
-  tipoSangre: string;
-  alergias: string[];
-  vacunas: VacunaDTO[];
 }
 
 /**

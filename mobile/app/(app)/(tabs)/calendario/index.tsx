@@ -34,13 +34,13 @@ import { colors, layout, radius, spacing } from '@/shared/ui';
 import {
   Card,
   EmptyState,
+  EstadoCentrado,
   HeaderTab,
   PALETA_CALENDARIO_UNIMAR,
   PressableScale,
   SectionHeader,
   ThemedButton,
   ThemedText,
-  ThemedView,
 } from '@/shared/ui';
 
 /**
@@ -254,11 +254,11 @@ export default function CalendarioScreen() {
           style={estilos.seccionProximos}
         />
         {agenda.isPending ? (
-          <Centrado>
+          <EstadoCentrado>
             <ActivityIndicator color={colors.brand.primary} />
-          </Centrado>
+          </EstadoCentrado>
         ) : agenda.isError ? (
-          <Centrado gap>
+          <EstadoCentrado gap>
             <ThemedText tone="secondary">No se pudo cargar la agenda.</ThemedText>
             <ThemedButton
               title="Reintentar"
@@ -266,7 +266,7 @@ export default function CalendarioScreen() {
               size="sm"
               onPress={() => void agenda.refetch()}
             />
-          </Centrado>
+          </EstadoCentrado>
         ) : proximos.length > 0 ? (
           <View style={estilos.listaProximos}>
             {proximos.map((grupo: GrupoDia) =>
@@ -345,20 +345,6 @@ function ItemLeyenda({ color, etiqueta }: { color: string; etiqueta: string }) {
         {etiqueta}
       </ThemedText>
     </View>
-  );
-}
-
-function Centrado({
-  children,
-  gap = false,
-}: {
-  children: React.ReactNode;
-  gap?: boolean;
-}) {
-  return (
-    <ThemedView variant="base" style={[estilos.centro, gap && estilos.centroConGap]}>
-      {children}
-    </ThemedView>
   );
 }
 
@@ -474,15 +460,6 @@ const estilos = StyleSheet.create({
   },
   pillHoyTexto: {
     color: colors.brand.primary,
-  },
-  centro: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.xl,
-    gap: spacing.sm,
-  },
-  centroConGap: {
-    gap: spacing.lg,
   },
   footer: {
     textAlign: 'center',

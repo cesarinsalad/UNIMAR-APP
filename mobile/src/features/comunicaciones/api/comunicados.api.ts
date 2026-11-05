@@ -7,6 +7,8 @@ export interface FiltroComunicados {
   categoria?: string;
   /** Búsqueda textual: título O cuerpo (el BFF aplica ILIKE). */
   q?: string;
+  /** Alcance de un decanato (selector del ADMIN en gestión). */
+  decanatoId?: number;
   limit: number;
   offset: number;
 }
@@ -24,6 +26,7 @@ export async function listarComunicados(
       estado: filtro.estado,
       categoria: filtro.categoria,
       q: filtro.q,
+      decanato_id: filtro.decanatoId,
       limit: filtro.limit,
       offset: filtro.offset,
     },
@@ -31,8 +34,14 @@ export async function listarComunicados(
   return data;
 }
 
-/** Conteos por estado para el Panel de Gestión (números exactos, no cotas). */
-export type ConteosComunicados = Record<EstadoComunicado, number>;
+/**
+ * Resumen del Resumen de gestión (RLS): conteos por estado + alcance
+ * acumulado de lecturas. `lecturasTotales` puede faltar si el BFF aún no
+ * tiene el deploy — la UI degrada a `?? 0`.
+ */
+export type ConteosComunicados = Record<EstadoComunicado, number> & {
+  lecturasTotales?: number;
+};
 
 export async function conteosComunicados(): Promise<ConteosComunicados> {
   const { data } = await api.get<ConteosComunicados>('/comunicados/conteos');
@@ -99,6 +108,12 @@ export async function publicarComunicado(id: string): Promise<Comunicado> {
 
 export async function archivarComunicado(id: string): Promise<Comunicado> {
   const { data } = await api.post<Comunicado>(`/comunicados/${id}/archivar`);
+  return data;
+}
+
+/** ARCHIVADO → BORRADOR (autor o ADMIN): la restauración determinista. */
+export async function desarchivarComunicado(id: string): Promise<Comunicado> {
+  const { data } = await api.post<Comunicado>(`/comunicados/${id}/desarchivar`);
   return data;
 }
 

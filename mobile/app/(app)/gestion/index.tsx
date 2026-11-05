@@ -12,41 +12,52 @@ import {
 import { usePermisos } from '@/features/identidad/hooks/usePermisos';
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import { colors, radius, spacing, touchTarget } from '@/shared/ui';
-import { ThemedText, ThemedView, useEsDesktop } from '@/shared/ui';
+import { BotonCircular, ThemedText, ThemedView, useBreakpoint } from '@/shared/ui';
+import { useDecanatos } from '@/features/identidad/hooks/useDecanatos';
 import type { EstadoComunicado } from '@/features/comunicaciones/types';
-import { PanelSeccion } from './_secciones/PanelSeccion';
-import { ColasSeccion } from './_secciones/ColasSeccion';
+import { ResumenSeccion } from './_secciones/ResumenSeccion';
+import { ComunicadosSeccion, type EstadoCola } from './_secciones/ComunicadosSeccion';
 import { EventosSeccion, type ModoEventos } from './_secciones/EventosSeccion';
 
-type Seccion = 'panel' | 'colas' | 'eventos';
+type Seccion = 'resumen' | 'comunicados' | 'eventos';
 
 /** Nav de la consola; hrefs/fila únicos, sin navegadores anidados. */
 const NAV: { clave: Seccion; etiqueta: string; icono: typeof SquaresFourIcon }[] = [
-  { clave: 'panel', etiqueta: 'Panel', icono: SquaresFourIcon },
-  { clave: 'colas', etiqueta: 'Comunicados', icono: ClipboardTextIcon },
+  { clave: 'resumen', etiqueta: 'Resumen', icono: SquaresFourIcon },
+  { clave: 'comunicados', etiqueta: 'Comunicados', icono: ClipboardTextIcon },
   { clave: 'eventos', etiqueta: 'Eventos', icono: CalendarBlankIcon },
 ];
 
-const ESTADOS_VALIDOS: EstadoComunicado[] = [
+const ESTADOS_VALIDOS: string[] = [
   'BORRADOR',
   'PENDIENTE',
   'PUBLICADO',
   'ARCHIVADO',
 ];
 
+/** Deep-links tolerantes: ?seccion=colas (alias histórico) sigue resolviendo. */
+function seccionDeParam(accion: string | undefined): Seccion {
+  if (accion === 'colas') return 'comunicados';
+  if (accion === 'comunicados') return 'comunicados';
+  if (accion === 'eventos') return 'eventos';
+  return 'resumen';
+}
+
 /**
- * Consola de staff — UNA pantalla con secciones por estado (Panel /
- * Comunicados / Eventos), sin navegadores anidados: el shell renderiza la
- * sección activa como View normal con flex propio (la receta que funciona
- * en toda la app, móvil y web). Guard de rol al frente: el estudiante que
- * teclea la URL en web rebota al tabs. Los editores
- * (/comunicados/nuevo, /eventos/nuevo) siguen siendo pantallas full-screen
- * del Stack del (app) que se abren sobre la consola.
+ * Consola de staff — UNA pantalla con 3 secciones (doc §2): Resumen /
+ * Comunicados (Camino A) / Eventos (Camino B). Navegación adaptativa
+ * (doc §3): sidebar en escritorio, segmented control tactile bajo el
+ * encabezado contextual en móvil/tablet. Sin navegadores anidados: el
+ * shell renderiza la sección activa como View con flex propio. Guard de
+ * rol al frente: el estudiante que teclea la URL rebota a los tabs. Los
+ * editores de comunicados siguen como pantallas full-screen del Stack
+ * (/comunicados/nuevo) abiertas sobre la consola.
  */
 export default function ConsolaGestionScreen() {
   const permisos = usePermisos();
   const usuario = useSesionStore((s) => s.usuario);
-  const esDesktop = useEsDesktop();
+  const breakpoint = useBreakpoint();
+  const esEscritorio = breakpoint === 'escritorio';
   // En web no existe "la app": el link "Volver a la app" sería muerto
   // (la compuerta del root rebota `/` de vuelta a la consola).
   const esWeb = Platform.OS === 'web';
@@ -57,9 +68,9 @@ export default function ConsolaGestionScreen() {
 
   // Deep-link tolerante: ?seccion=colas&estado=PENDIENTE pre-selecciona.
   const [seccion, setSeccion] = useState<Seccion>(
-    seccionParam === 'colas' || seccionParam === 'eventos' ? seccionParam : 'panel',
+    seccionParam ? seccionDeParam(String(seccionParam)) : 'resumen',
   );
-  const [estadoColas, setEstadoColas] = useState<EstadoComunicado>(
+  const [estadoCola, setEstadoCola] = useState<EstadoCola>(
     (ESTADOS_VALIDOS as string[]).includes(estadoParam ?? '')
       ? (estadoParam as EstadoComunicado)
       : 'BORRADOR',
@@ -72,14 +83,18 @@ export default function ConsolaGestionScreen() {
     return <Redirect href="/" />;
   }
 
-  function irColas(estado: EstadoComunicado) {
-    setEstadoColas(estado);
-    setSeccion('colas');
+  function irCola(estado: EstadoComunicado) {
+    setEstadoCola(estado);
+    setSeccion('comunicados');
   }
 
   function irEventos() {
     setModoEventos({ vista: 'lista' });
     setSeccion('eventos');
+  }
+
+  function volverALaApp() {
+    router.navigate('/');
   }
 
   function nuevoEvento() {
@@ -88,24 +103,19 @@ export default function ConsolaGestionScreen() {
   }
 
   const seccionActiva =
-    seccion === 'panel' ? (
-      <PanelSeccion
-        onIrColas={irColas}
-        onIrEventos={irEventos}
-        onNuevoEvento={nuevoEvento}
-      />
-    ) : seccion === 'colas' ? (
-      <ColasSeccion estado={estadoColas} onEstado={setEstadoColas} />
+    seccion === 'resumen' ? (
+      <ResumenSeccion onIrCola={irCola} onIrEventos={irEventos} onNuevoEvento={nuevoEvento} />
+    ) : seccion === 'comunicados' ? (
+      <ComunicadosSeccion estado={estadoCola} onEstado={setEstadoCola} />
     ) : (
       <EventosSeccion modo={modoEventos} onModo={setModoEventos} />
     );
 
-  if (esDesktop) {
+  if (esEscritorio) {
     return (
       <View style={estilos.fila}>
         <ThemedView variant="base" style={estilos.sidebar}>
-          {/* Masthead del rail: mismo tratamiento que el móvil — título en
-              voz de la casa (semibold, no bold) y el rol como metadato pill. */}
+          {/* Masthead del rail: título en voz de la casa + rol pill. */}
           <View style={estilos.sidebarCabecera}>
             <ThemedText variant="title" weight="semibold">
               Gestión
@@ -116,12 +126,7 @@ export default function ConsolaGestionScreen() {
               </ThemedText>
             </ThemedView>
           </View>
-          {usuario?.nombre ? (
-            <ThemedText variant="caption" tone="secondary" numberOfLines={1} style={estilos.nombreSidebar}>
-              {usuario.nombre}
-            </ThemedText>
-          ) : null}
-
+          <EncabezadoAlcance />
           <View style={estilos.nav}>
             {NAV.map(({ clave, etiqueta, icono: Icono }) => {
               const activo = seccion === clave;
@@ -190,42 +195,83 @@ export default function ConsolaGestionScreen() {
 
   return (
     <View style={estilos.col}>
-      {/* Masthead de la casa: headline 28 en contenido (firma de los tabs);
-          el rol queda como metadato pill, no como segundo título. */}
+      {/* Header contextual (doc §Vista 1): título por rol + alcance. El back
+          circular da salida en el teléfono (en escritorio lo da el sidebar
+          "Volver a la app"); sin él, iOS no ofrecía gesto de vuelta — el
+          headerShown: false elimina el gesto nativo. */}
       <View style={estilos.cabeceraMovil}>
-        <ThemedText variant="headline" weight="semibold">
-          Gestión
-        </ThemedText>
+        <BotonCircular label="Volver a la app" onPress={volverALaApp}>
+          <ArrowLeftIcon size={20} color={colors.brand.primary} weight="bold" />
+        </BotonCircular>
+        <View style={{ flexShrink: 1, gap: 2 }}>
+          <ThemedText variant="headline" weight="semibold" numberOfLines={2}>
+            {permisos.esAdmin ? 'Consola Central de Gestión' : 'Gestión Decanal'}
+          </ThemedText>
+          <ThemedText variant="caption" tone="secondary" numberOfLines={1}>
+            {permisos.esAdmin ? 'UNIMAR · alcance institucional' : 'Alcance de tu decanato'}
+          </ThemedText>
+        </View>
         <ThemedView variant="sunken" style={estilos.pillRol}>
           <ThemedText variant="caption" weight="semibold" style={estilos.pillRolTexto}>
             {usuario?.rol ?? ''}
           </ThemedText>
         </ThemedView>
       </View>
-      {/* Nav interna: fila fija de pills táctiles; NUNCA flexea el alto —
-          el resto de la pantalla es de la sección activa. View (no
-          ScrollView): altura intrínseca y el wrap absorbe anchos muy
-          angostos sin estirar el contenedor. */}
-      <View style={estilos.chips}>
-        {NAV.map(({ clave, etiqueta, icono: Icono }) => {
+
+      {/* Segmented control fijo bajo el header (tabulaciones táctiles). */}
+      <SegmentoNavegacion
+        seccion={seccion}
+        onSelect={setSeccion}
+      />
+      <View style={estilos.contenido}>{seccionActiva}</View>
+    </View>
+  );
+}
+
+/** Nombre del decanato activo (catálogo), para el encabezado decanal. */
+function EncabezadoAlcance() {
+  const usuario = useSesionStore((s) => s.usuario);
+  const permisos = usePermisos();
+  const decanatos = useDecanatos();
+
+  const alcance = permisos.esAdmin
+    ? 'Toda la plataforma'
+    : decanatos.data?.find((d) => d.id === usuario?.decanato_id)?.nombre ??
+      `Decanato ${usuario?.decanato_id ?? '—'}`;
+  return (
+    <ThemedText variant="caption" tone="secondary" numberOfLines={2} style={estilos.alcanceSidebar}>
+      {alcance}
+    </ThemedText>
+  );
+}
+
+/** Segmented control táctil (doc §3 móvil): píldora de 3 segmentos. Solo
+ *  texto: a 360dp el icono + etiqueta truncaba («Comunica…») — el estado
+ *  activo ya vive en el tinte azul + semibold, el icono era ruido. */
+function SegmentoNavegacion({
+  seccion,
+  onSelect,
+}: {
+  seccion: Seccion;
+  onSelect: (seccion: Seccion) => void;
+}) {
+  return (
+    <View style={estilos.segmentoWrap}>
+      <View style={estilos.segmento}>
+        {NAV.map(({ clave, etiqueta }) => {
           const activo = seccion === clave;
           return (
             <Pressable
               key={clave}
               accessibilityRole="tab"
               accessibilityState={{ selected: activo }}
-              onPress={() => setSeccion(clave)}>
-              <ThemedView
-                variant={activo ? 'sunken' : 'card'}
-                style={estilos.itemNavMovil}>
-                <Icono
-                  size={18}
-                  color={activo ? colors.brand.primary : colors.text.secondary}
-                  weight={activo ? 'duotone' : 'regular'}
-                />
+              onPress={() => onSelect(clave)}
+              style={estilos.segmentoOpcion}>
+              <ThemedView variant={activo ? 'card' : 'base'} style={estilos.segmentoPieza}>
                 <ThemedText
                   variant="caption"
                   weight={activo ? 'semibold' : 'medium'}
+                  numberOfLines={1}
                   style={activo ? { color: colors.brand.primary } : undefined}>
                   {etiqueta}
                 </ThemedText>
@@ -234,7 +280,6 @@ export default function ConsolaGestionScreen() {
           );
         })}
       </View>
-      <View style={estilos.contenido}>{seccionActiva}</View>
     </View>
   );
 }
@@ -247,20 +292,19 @@ const estilos = StyleSheet.create({
   },
   col: { flex: 1 },
   sidebar: {
-    width: 240,
+    width: 252,
     borderRightWidth: 1,
     borderRightColor: colors.border.subtle,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.lg,
   },
-  // Ritmo de la casa (mismo contraste que el Panel): 24 entre grupos,
-  // 8 etiqueta → contenido — no gap plano.
   sidebarCabecera: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.sm,
   },
+  alcanceSidebar: { marginTop: spacing.xs },
   pillRol: {
     alignSelf: 'flex-start',
     borderRadius: radius.pill,
@@ -269,7 +313,6 @@ const estilos = StyleSheet.create({
     flexShrink: 0,
   },
   pillRolTexto: { color: colors.brand.primary },
-  nombreSidebar: { marginTop: spacing.sm },
   nav: { gap: spacing.xs, marginTop: spacing.xl },
   itemNav: {
     flexDirection: 'row',
@@ -291,29 +334,37 @@ const estilos = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   contenido: { flex: 1 },
-  // Móvil: chrome mínimo (~2 filas fijas) y TODO el resto para el contenido.
+
+  /* ── Móvil/tablet: header contextual + segmented ── */
   cabeceraMovil: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.md,
-    paddingHorizontal: spacing.four,
+    paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
+    paddingBottom: spacing.xs,
   },
-  chips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: spacing.four,
+  segmentoWrap: {
+    paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    gap: spacing.two,
   },
-  itemNavMovil: {
+  segmento: {
+    flexDirection: 'row',
+    backgroundColor: colors.bg.sunken ?? colors.bg.surface,
+    borderRadius: radius.pill,
+    padding: spacing.xs,
+    gap: spacing.xs,
+  },
+  segmentoOpcion: { flex: 1 },
+  segmentoPieza: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: spacing.xs,
     minHeight: touchTarget.min,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
     borderRadius: radius.pill,
   },
 });

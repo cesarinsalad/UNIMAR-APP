@@ -8,6 +8,7 @@ export interface AccionesComunicado {
   puedeRechazar: boolean;
   puedePublicar: boolean;
   puedeArchivar: boolean;
+  puedeDesarchivar: boolean;
 }
 
 const NADA: AccionesComunicado = {
@@ -17,6 +18,7 @@ const NADA: AccionesComunicado = {
   puedeRechazar: false,
   puedePublicar: false,
   puedeArchivar: false,
+  puedeDesarchivar: false,
 };
 
 /**
@@ -28,6 +30,7 @@ const NADA: AccionesComunicado = {
  *  - aprobar/publicar: ADMIN (PENDIENTE / BORRADOR directo).
  *  - rechazar: ADMIN, PENDIENTE (con motivo).
  *  - archivar: autor o ADMIN, PUBLICADO.
+ *  - desarchivar: autor o ADMIN, ARCHIVADO (vuelve a BORRADOR determinista).
  */
 export function accionesPermitidas(input: {
   rol: Rol | null;
@@ -50,5 +53,6 @@ export function accionesPermitidas(input: {
     puedeRechazar: esAdmin && estado === 'PENDIENTE',
     puedePublicar: esAdmin && estado === 'BORRADOR',
     puedeArchivar: (esAutor || esAdmin) && estado === 'PUBLICADO',
+    puedeDesarchivar: (esAutor || esAdmin) && estado === 'ARCHIVADO',
   };
 }

@@ -3,7 +3,7 @@ import type { PaginaRemota } from '@/shared/lib/paginar';
 import type { Evento, FiltroEventos, TipoEvento } from '../types';
 
 /**
- * GET /eventos?desde=&hasta=&incluir_oficiales=&limit=&offset=
+ * GET /eventos?desde=&hasta=&incluir_oficiales=&tipo=&q=&limit=&offset=
  * Query snake_case; el rango es obligatorio y el BFF rechaza >90 días.
  * Wire: { items, total } — total del count bajo las mismas claims (RLS).
  */
@@ -13,6 +13,8 @@ export async function listarEventos(filtro: FiltroEventos): Promise<PaginaRemota
       desde: filtro.desde,
       hasta: filtro.hasta,
       incluir_oficiales: filtro.incluirOficiales,
+      tipo: filtro.tipo,
+      q: filtro.q,
       limit: filtro.limit,
       offset: filtro.offset,
     },

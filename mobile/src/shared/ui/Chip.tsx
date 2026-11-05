@@ -70,7 +70,7 @@ const estilos = StyleSheet.create({
   /** Variante compacta de filtros: texto caption, pill del mismo alto mínimo. */
   chipSm: {
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.two,
+    paddingVertical: spacing.sm,
   },
   transicion: {
     transitionProperty: 'transform, background-color',

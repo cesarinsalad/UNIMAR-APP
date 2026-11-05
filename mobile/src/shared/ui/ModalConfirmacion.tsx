@@ -89,18 +89,18 @@ const estilos = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.45)',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.four,
+    padding: spacing.lg,
   },
   tarjeta: {
     width: '100%',
     maxWidth: 480,
-    gap: spacing.two,
+    gap: spacing.sm,
   },
   botones: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: spacing.two,
-    marginTop: spacing.one,
+    gap: spacing.sm,
+    marginTop: spacing.xs,
   },
   tituloDestructivo: {
     color: colors.status.danger,

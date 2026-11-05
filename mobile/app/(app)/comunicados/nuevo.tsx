@@ -407,7 +407,7 @@ export default function FormularioComunicadoScreen() {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={[
             estilos.scroll,
-            { paddingBottom: spacing.four + Math.max(insets.bottom, spacing.four) },
+            { paddingBottom: spacing.lg + Math.max(insets.bottom, spacing.lg) },
           ]}>
           <ContenidoCentrado style={estilos.anchoEditor}>
             <View style={estilos.cabecera}>
@@ -508,34 +508,34 @@ function VistaPreviaComunicado({
 const estilos = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: colors.background.base,
+    backgroundColor: colors.bg.surface,
   },
   flex: { flex: 1 },
   centro: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.six,
+    padding: spacing.xl,
   },
   scroll: {
-    padding: spacing.four,
-    gap: spacing.four,
+    padding: spacing.lg,
+    gap: spacing.lg,
   },
   campo: {
-    gap: spacing.one,
+    gap: spacing.xs,
   },
   bloquePortadaVacia: {
-    gap: spacing.two,
+    gap: spacing.sm,
   },
   audiencias: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.two,
-    marginTop: spacing.one,
+    gap: spacing.sm,
+    marginTop: spacing.xs,
   },
   chip: {
-    paddingHorizontal: spacing.three,
-    paddingVertical: spacing.two,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     borderRadius: radius.pill,
   },
   errorTexto: {
@@ -543,7 +543,7 @@ const estilos = StyleSheet.create({
   },
   filaPortada: {
     flexDirection: 'row',
-    gap: spacing.two,
+    gap: spacing.sm,
   },
   slotPortada: {
     minHeight: 44,
@@ -577,7 +577,7 @@ const estilos = StyleSheet.create({
     alignItems: 'flex-start',
     gap: spacing.xxl,
   },
-  forma: { gap: spacing.four },
+  forma: { gap: spacing.lg },
   formaCol: { flex: 1 },
   tituloPantalla: {
     flex: 1,
@@ -588,19 +588,19 @@ const estilos = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.md,
-    marginBottom: spacing.four,
+    marginBottom: spacing.lg,
   },
   espacioSimetrico: {
     width: 40,
   },
   pestanas: {
     flexDirection: 'row',
-    gap: spacing.two,
+    gap: spacing.sm,
   },
   previewCol: { flex: 1 },
   preview: {
     width: '100%',
-    gap: spacing.three,
+    gap: spacing.md,
   },
   portadaPreview: {
     width: '100%',

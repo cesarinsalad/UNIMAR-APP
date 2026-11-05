@@ -37,6 +37,10 @@ export interface FiltroEventos {
    * a su agenda + INSTITUCIONAL (la tab Agenda). Default 'todos'.
    */
   incluirOficiales?: 'todos' | 'agregados';
+  /** Recorte por naturaleza (consola de gestión; PERSONAL no se pide). */
+  tipo?: TipoEvento;
+  /** Búsqueda textual título O lugar (consola de gestión). */
+  q?: string;
   limit: number;
   offset: number;
 }

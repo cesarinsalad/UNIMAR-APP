@@ -18,13 +18,27 @@ export function chipEstado(estado: EstadoComunicado): string | null {
     case 'BORRADOR':
       return 'Borrador';
     case 'PENDIENTE':
-      return 'Pendiente de aprobación';
+      return 'En revisión';
     case 'ARCHIVADO':
       return 'Archivado';
     case 'PUBLICADO':
       return null;
   }
 }
+
+/**
+ * El "rechazado" de la máquina editorial DERIVADO del wire real: el BFF
+ * no tiene estado RECHAZADO — rechazar devuelve a BORRADOR con motivo.
+ * True solo si el BORRADOR lleva motivoRechazo: en la consola se muestra
+ * con el badge "Devuelto" y entra en su propia cola.
+ */
+export function esDevuelto(comunicado: {
+  estado: EstadoComunicado;
+  motivoRechazo: string | null;
+}): boolean {
+  return comunicado.estado === 'BORRADOR' && comunicado.motivoRechazo !== null;
+}
+
 
 /** Etiquetas de categoría editorial (wire snake, muestra Title Case). */
 const ETIQUETAS_CATEGORIA: Record<string, string> = {

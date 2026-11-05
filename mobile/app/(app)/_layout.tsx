@@ -106,7 +106,7 @@ const estilos = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.6)',
     borderRadius: radius.pill,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.one,
+    paddingVertical: spacing.xs,
   },
   botonGestionTexto: { color: colors.text.onPrimary },
 });

@@ -69,7 +69,7 @@ export default function LoginScreen() {
         <View style={styles.contenedor}>
           <Card elevationKey="lg" paddingH="lg" paddingV="md" style={styles.card}>
             {/* Sección 1: imagen */}
-            <View style={[styles.seccionLogo, {paddingVertical: spacing.xl}]}>
+            <View style={styles.seccionLogo}>
               <Image
                 source={LoginLogo}
                 style={styles.logo}
@@ -78,7 +78,7 @@ export default function LoginScreen() {
             </View>
 
             {/* Sección 2: textos */}
-            <View style={[styles.seccionTextos, {paddingVertical: spacing.md}, {paddingBottom: spacing.xs}, {paddingHorizontal: spacing.lg}]}>
+            <View style={styles.seccionTextos}>
               <ThemedText variant="title" weight="bold" style={styles.titulo}>
                 Bienvenido, unimarista!
               </ThemedText>
@@ -88,7 +88,7 @@ export default function LoginScreen() {
             </View>
 
             {/* Sección 3: campos */}
-            <View style={[styles.seccionCampos, {paddingVertical: spacing.md}, {paddingHorizontal: spacing.lg}]}>
+            <View style={styles.seccionCampos}>
               <TextField
                 label="Correo electrónico"
                 value={email}
@@ -123,7 +123,7 @@ export default function LoginScreen() {
             </View>
 
             {/* Sección 4: acción reset */}
-            <View style={[styles.seccionReset, {paddingBottom: spacing.md}, {paddingHorizontal: spacing.lg}]}>
+            <View style={styles.seccionReset}>
               <Pressable onPress={() => void Linking.openURL(URL_RESET_PASSWORD)} hitSlop={8}>
                 <ThemedText variant="bodySm" weight="regular" style={styles.olvidaste}>
                   ¿Olvidaste tu contraseña?
@@ -132,7 +132,7 @@ export default function LoginScreen() {
             </View>
 
             {/* Sección 5: acción principal */}
-            <View style={[styles.seccionBoton, {paddingBottom: spacing.md}, {paddingHorizontal: spacing.lg}]}>
+            <View style={styles.seccionBoton}>
               {error ? (
                 <View style={styles.errorBox}>
                   <ThemedText variant="bodySm" tone="onPrimary" style={styles.errorTexto}>
@@ -162,19 +162,35 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing.lg,
   },
-  logoWrap: { alignItems: 'center', paddingBottom: spacing.xs },
   logo: { width: 120, height: 106 },
   card: {
     gap: spacing.md,
   },
   seccionLogo: {
     alignItems: 'center',
-    paddingBottom: spacing.xs,
+    paddingVertical: spacing.xl,
   },
-  seccionTextos: { gap: spacing.xs },
-  seccionCampos: { gap: spacing.sm },
-  seccionReset: { alignItems: 'flex-end' },
-  seccionBoton: { gap: spacing.sm },
+  seccionTextos: {
+    gap: spacing.xs,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
+    paddingHorizontal: spacing.lg,
+  },
+  seccionCampos: {
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+  },
+  seccionReset: {
+    alignItems: 'flex-end',
+    paddingBottom: spacing.md,
+    paddingHorizontal: spacing.lg,
+  },
+  seccionBoton: {
+    gap: spacing.sm,
+    paddingBottom: spacing.md,
+    paddingHorizontal: spacing.lg,
+  },
   titulo: { color: colors.brand.primary, textAlign: 'center' },
   subtitulo: { textAlign: 'center' },
   olvidaste: { color: colors.brand.primary },

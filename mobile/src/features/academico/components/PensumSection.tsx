@@ -67,36 +67,36 @@ export function PensumSection({ grupos }: { grupos: GrupoTrimestre[] }) {
 
 const estilos = StyleSheet.create({
   lista: {
-    gap: spacing.four,
+    gap: spacing.lg,
   },
   grupo: {
-    gap: spacing.two,
+    gap: spacing.sm,
   },
   tarjeta: {
-    gap: spacing.one,
+    gap: spacing.xs,
   },
   cabecera: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: spacing.two,
+    gap: spacing.sm,
   },
   badge: {
-    paddingHorizontal: spacing.two,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     borderRadius: radius.pill,
-    backgroundColor: colors.background.sunken,
+    backgroundColor: colors.bg.sunken,
   },
   prereqs: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    gap: spacing.one,
+    gap: spacing.xs,
   },
   chip: {
-    paddingHorizontal: spacing.two,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     borderRadius: radius.pill,
-    backgroundColor: colors.background.elevated,
+    backgroundColor: colors.brand.surfaceBlue,
   },
 });

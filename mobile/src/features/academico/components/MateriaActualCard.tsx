@@ -7,31 +7,6 @@ import { abrevDia, colorNota, diaIsoHoy } from '../helpers';
 import { colorBarra } from './tonos-barra';
 import type { FranjaDTO, MateriaActualDTO } from '../types';
 
-interface TonosCodigo {
-  fondo: string;
-  texto: string;
-}
-
-/**
- * Tono del badge de código, determinístico por el código mismo: la API no
- * manda color, pero el diseño exige variedad estable por materia. Paleta
- * 100% institucional — el accent naranja queda reservado a notificaciones
- * (Regla Naranja Exclusiva de DESIGN.md).
- */
-const PALETA_CODIGO: TonosCodigo[] = [
-  { fondo: colors.brand.surfaceBlue, texto: colors.brand.primary },
-  { fondo: `${colors.status.success}1A`, texto: colors.status.success },
-  { fondo: `${colors.text.secondary}14`, texto: colors.text.secondary },
-];
-
-export function tonalidadesCodigo(codigo: string): TonosCodigo {
-  let hash = 0;
-  for (let i = 0; i < codigo.length; i += 1) {
-    hash = (hash * 31 + codigo.charCodeAt(i)) % PALETA_CODIGO.length;
-  }
-  return PALETA_CODIGO[hash] ?? PALETA_CODIGO[0]!;
-}
-
 /** Color de una nota dada: aprobada en azul corporativo, falta en rojo. */
 export function colorNotaClases(nota: number | null): string {
   switch (colorNota(nota)) {
@@ -40,7 +15,7 @@ export function colorNotaClases(nota: number | null): string {
     case 'danger':
       return colors.status.danger;
     case 'muted':
-      return colors.text.tertiary;
+      return colors.text.secondary;
   }
 }
 

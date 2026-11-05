@@ -22,6 +22,8 @@ export const colors = {
   bg: {
     canvas: '#F8F9FA',
     surface: '#FFFFFF',
+    /** Superficie hundida (Select, GridMes, segmentos activos). */
+    sunken: '#EEEEF1',
   },
   border: {
     subtle: '#E8E8E8',
@@ -30,7 +32,6 @@ export const colors = {
   text: {
     primary: '#413D3C',
     secondary: '#7A7574',
-    tertiary: '#7A7574', // alias legacy: se migrará a `secondary`
     onPrimary: '#FFFFFF',
   },
   accent: {
@@ -42,16 +43,6 @@ export const colors = {
     danger: '#C62828',
   },
   white: '#FFFFFF',
-
-  // Alias legacy (migrar a tokens semánticos, luego eliminar)
-  primary: '#0D4D98',
-  grayLight: '#E8E8E8',
-  grayDark: '#413D3C',
-  background: {
-    base: '#FFFFFF',
-    elevated: '#EBF2FA',
-    sunken: '#EEEEF1',
-  },
 } as const;
 
 /**
@@ -98,6 +89,51 @@ export const PALETA_CALENDARIO_UNIMAR = {
 
 export type TipoEventoCalendario = keyof typeof PALETA_CALENDARIO_UNIMAR;
 
+/**
+ * Paleta semántica de estados de publicación (consola de gestión). Cada
+ * estado trae el texto fuerte, el tinte pálido (bgLight) y el borde, con
+ * contraste AA — el color puro nunca es fondo de texto (regla STYLE.md).
+ * `PENDIENTE` comparte la familia azul-institucional (distinta del ámbar
+ * del borrador para que "en revisión" se lea como paso distinto) y
+ * `DEVUELTO` es el derivado de BORRADOR+motivoRechazo. La variante de
+ * calendario usa PALETA_CALENDARIO_UNIMAR.
+ */
+export const PALETA_ESTADO_PUBLICACION = {
+  PUBLICADO: {
+    nombre: 'Publicado',
+    color: '#065F46', // Verde esmeralda oscuro (status.success de la casa)
+    bgLight: '#D1FAE5',
+    border: '#A7F3D0',
+  },
+  PENDIENTE: {
+    nombre: 'En revisión',
+    color: '#0D4D98', // Azul UNIMAR: en camino, esperando decisión
+    bgLight: '#EEF4FF',
+    border: '#BFDBFE',
+  },
+  BORRADOR: {
+    nombre: 'Borrador',
+    color: '#92400E', // Ámbar oscuro
+    bgLight: '#FEF3C7',
+    border: '#FDE68A',
+  },
+  DEVUELTO: {
+    nombre: 'Devuelto',
+    color: '#991B1B', // Rojo coral oscuro: el rechazo con motivo
+    bgLight: '#FEE2E2',
+    border: '#FECACA',
+  },
+  ARCHIVADO: {
+    nombre: 'Archivado',
+    color: '#475569', // Slate (inactivo, historial)
+    bgLight: '#F1F5F9',
+    border: '#CBD5E1',
+  },
+} as const;
+
+/** Claves visuales de estado de publicación (badge de la consola). */
+export type EstadoPublicacionVisual = keyof typeof PALETA_ESTADO_PUBLICACION;
+
 export const spacing = {
   zero: 0,
   xs: 4,
@@ -106,19 +142,6 @@ export const spacing = {
   lg: 16,
   xl: 24,
   xxl: 32,
-
-  // Alias legacy (migrar a xs/sm/md/lg/xl, luego eliminar)
-  base: 4,
-  half: 2,
-  one: 4,
-  two: 8,
-  three: 12,
-  four: 16,
-  five: 20,
-  six: 24,
-  eight: 32,
-  ten: 48,
-  twelve: 64,
 } as const;
 
 export const radius = {

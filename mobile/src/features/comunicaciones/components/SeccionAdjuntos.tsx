@@ -173,7 +173,7 @@ export function SeccionAdjuntos({ comunicadoId, puedeEditar }: Props) {
 
 const estilos = StyleSheet.create({
   seccion: {
-    gap: spacing.two,
+    gap: spacing.sm,
   },
   cabecera: {
     flexDirection: 'row',
@@ -183,13 +183,13 @@ const estilos = StyleSheet.create({
   fila: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.two,
+    gap: spacing.sm,
   },
   contenidoFila: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.two,
+    gap: spacing.sm,
   },
   textos: {
     flex: 1,
