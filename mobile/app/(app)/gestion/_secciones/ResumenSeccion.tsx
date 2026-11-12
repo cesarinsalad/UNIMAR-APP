@@ -11,6 +11,7 @@ import {
   MegaphoneIcon,
   PencilSimpleIcon,
 } from 'phosphor-react-native';
+import type { LecturaReciente } from '@/features/comunicaciones/api/comunicados.api';
 import { useConteosComunicados } from '@/features/comunicaciones/hooks/useConteosComunicados';
 import { useComunicadosFeed } from '@/features/comunicaciones/hooks/useComunicadosFeed';
 import {
@@ -18,12 +19,14 @@ import {
 } from '@/features/comunicaciones/hooks/estadisticas';
 import { colorBarra, horaRango } from '@/features/calendario/components/TarjetaProximoEvento';
 import { useEventosListado } from '@/features/calendario/hooks/useEventosListado';
+import { useDecanatos } from '@/features/identidad/hooks/useDecanatos';
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import { FORMATO_FECHA_CORTO_CON_DIA, FORMATO_FECHA_MEDIO } from '@/shared/lib/formatos';
 import { aplanarPaginas } from '@/shared/lib/paginar';
 import { useRefrescarQueries } from '@/shared/lib/useRefrescarQueries';
 import { colors, elevation, radius, spacing, useBreakpoint } from '@/shared/ui';
 import {
+  Badge,
   Card,
   EmptyState,
   PressableScale,
@@ -48,11 +51,29 @@ export interface ResumenSeccionProps {
 /** Cantidad de previews por monitor (el mando vigila, no lee historial). */
 const PREVIEWS_POR_MONITOR = 4;
 
+function formatearPorcentaje(valor: number | null | undefined): string {
+  if (valor === null || valor === undefined) return '—';
+  return `${valor.toFixed(1).replace('.', ',')}%`;
+}
+
+/** Etiqueta compacta para la pill de audiencia del monitor. */
+function etiquetaAudienciaCorta(
+  decanatoIds: number[],
+  nombres: ReadonlyMap<number, string>,
+): string {
+  if (decanatoIds.length === 0) return 'Toda la universidad';
+  if (decanatoIds.length > 1) return `${decanatoIds.length} decanatos`;
+  const id = decanatoIds[0];
+  if (id === undefined) return 'Toda la universidad';
+  const nombre = nombres.get(id);
+  return nombre && nombre.length <= 24 ? nombre : `Decanato ${id}`;
+}
+
 /**
  * Vista 1 del módulo de gestión (doc §Vista 1): acciones rápidas arriba,
- * KPIs en cuadrícula (2×2 móvil / fila de 4 en escritorio) y dos monitores
- * espejo con Top 4 + acceso "Ver todos →". El alcance lo decide RLS en el
- * BFF: el COMUNICADOR solo ve lo de su decanato, el ADMIN lo global.
+ * tres KPIs, diagnóstico de alcance con barras y dos monitores espejo con
+ * Top 4 + acceso "Ver todos →". El alcance lo decide RLS en el BFF: el
+ * COMUNICADOR solo ve lo de su decanato, el ADMIN lo global.
  */
 export function ResumenSeccion({
   onIrCola,
@@ -63,8 +84,14 @@ export function ResumenSeccion({
   const insets = useSafeAreaInsets();
   const feed = useComunicadosFeed();
   const { eventos: eventosVentana } = useEventosListado();
-  const { conteos, error: errorConteos } = useConteosComunicados();
+  const { conteos, error: errorConteos, refetch: refetchConteos } = useConteosComunicados();
+  const decanatos = useDecanatos();
   const { refrescando, refrescar } = useRefrescarQueries();
+
+  const nombresDecanatos = useMemo(
+    () => new Map((decanatos.data ?? []).map((d) => [d.id, d.nombre])),
+    [decanatos.data],
+  );
 
   function cifra(estado: EstadoComunicado): string {
     if (conteos) return `${conteos[estado] ?? 0}`;
@@ -92,11 +119,49 @@ export function ResumenSeccion({
   const errorEventos = eventosVentana.isError && !eventosVentana.data;
   const sinConteos = Boolean(errorConteos) && !conteos;
   const hayPendientes = (conteos?.PENDIENTE ?? 0) > 0;
+  const tasaLectura = conteos?.tasaLecturaPromedio30d;
+  const cifraTasa = sinConteos ? '—' : !conteos ? '…' : formatearPorcentaje(tasaLectura);
 
   function detalleKpi(valor: number | undefined, cero: string, positivo: string): string {
     if (sinConteos) return 'No disponible';
     return valor === 0 ? cero : positivo;
   }
+
+  const kpiPendientes = (
+    <KpiCard
+      etiqueta="Por revisar"
+      cifra={cifra('PENDIENTE')}
+      detalle={detalleKpi(conteos?.PENDIENTE, 'Nada pendiente', 'Pendientes de aprobación')}
+      indicadorAcento={hayPendientes}
+      icono={
+        conteos?.PENDIENTE === 0 ? (
+          <CheckCircleIcon size={16} color={colors.status.success} weight="bold" />
+        ) : (
+          <ClipboardTextIcon size={16} color={colors.brand.primary} weight="bold" />
+        )
+      }
+      onPress={() => onIrCola('PENDIENTE')}
+    />
+  );
+
+  const kpiBorradores = (
+    <KpiCard
+      etiqueta="Borradores"
+      cifra={cifra('BORRADOR')}
+      detalle={detalleKpi(conteos?.BORRADOR, 'Nada en redacción', 'En redacción')}
+      icono={<PencilSimpleIcon size={16} color={colors.brand.primary} weight="bold" />}
+      onPress={() => onIrCola('BORRADOR')}
+    />
+  );
+
+  const kpiTasa = (
+    <KpiCard
+      etiqueta="Tasa de lectura"
+      cifra={cifraTasa}
+      detalle="Tasa promedio de lectura en los últimos 30 días"
+      icono={<EyeIcon size={16} color={colors.brand.primary} weight="bold" />}
+    />
+  );
 
   return (
     <ThemedView variant="base" style={estilos.pane}>
@@ -112,11 +177,8 @@ export function ResumenSeccion({
           />
         }>
 
-        {/* ── Cabecera de la vista: título + acciones de ancho contenido ── */}
+        {/* ── Acciones de la vista, sin título redundante con la navegación ── */}
         <View style={estilos.cabeceraResumen}>
-          <ThemedText variant="title" weight="semibold">
-            Resumen
-          </ThemedText>
           <View style={estilos.accionesRapidas}>
             <ThemedButton
               title="Nuevo comunicado"
@@ -136,79 +198,32 @@ export function ResumenSeccion({
           </View>
         </View>
 
-        {/* ── KPIs: dos filas explícitas (2×2 móvil) que en escritorio se
-            colocan lado a lado para formar una fila de 4. Sin flexWrap ni
-            porcentajes: cada celda reparte el ancho de su fila. ── */}
+        {/* ── KPIs: 3 columnas desktop; 2 + tasa a ancho completo en móvil. ── */}
         <View style={[estilos.kpis, esEscritorio && estilos.kpisDesktop]}>
-          <View style={[estilos.kpiFila, esEscritorio && estilos.kpiFilaDesktop]}>
-            <KpiCard
-              etiqueta="Por revisar"
-              cifra={cifra('PENDIENTE')}
-              detalle={detalleKpi(
-                conteos?.PENDIENTE,
-                'Nada pendiente',
-                'Pendientes de aprobación',
-              )}
-              indicadorAcento={hayPendientes}
-              icono={
-                conteos?.PENDIENTE === 0 ? (
-                  <CheckCircleIcon
-                    size={16}
-                    color={colors.status.success}
-                    weight="bold"
-                  />
-                ) : (
-                  <ClipboardTextIcon
-                    size={16}
-                    color={colors.brand.primary}
-                    weight="bold"
-                  />
-                )
-              }
-              onPress={() => onIrCola('PENDIENTE')}
-            />
-            <KpiCard
-              etiqueta="Borradores"
-              cifra={cifra('BORRADOR')}
-              detalle={detalleKpi(conteos?.BORRADOR, 'Nada en redacción', 'En redacción')}
-              icono={
-                <PencilSimpleIcon
-                  size={16}
-                  color={colors.brand.primary}
-                  weight="bold"
-                />
-              }
-              onPress={() => onIrCola('BORRADOR')}
-            />
-          </View>
-          <View style={[estilos.kpiFila, esEscritorio && estilos.kpiFilaDesktop]}>
-            <KpiCard
-              etiqueta="Publicaciones activas"
-              cifra={cifra('PUBLICADO')}
-              detalle={detalleKpi(
-                conteos?.PUBLICADO,
-                'Sin publicaciones visibles',
-                'Visibles en la app',
-              )}
-              icono={<MegaphoneIcon size={16} color={colors.brand.primary} weight="bold" />}
-              onPress={() => onIrCola('PUBLICADO')}
-            />
-            <KpiCard
-              etiqueta="Alcance acumulado"
-              cifra={
-                conteos?.lecturasTotales !== undefined
-                  ? `${conteos.lecturasTotales}`
-                  : errorConteos ? '—' : '…'
-              }
-              detalle={detalleKpi(
-                conteos?.lecturasTotales,
-                'Aún sin lecturas',
-                'Lecturas confirmadas',
-              )}
-              icono={<EyeIcon size={16} color={colors.brand.primary} weight="bold" />}
-            />
-          </View>
+          {esEscritorio ? (
+            <>
+              {kpiPendientes}
+              {kpiBorradores}
+              {kpiTasa}
+            </>
+          ) : (
+            <>
+              <View style={estilos.kpiFila}>
+                {kpiPendientes}
+                {kpiBorradores}
+              </View>
+              <View style={estilos.kpiFila}>{kpiTasa}</View>
+            </>
+          )}
         </View>
+
+        {/* ── Diagnóstico de alcance: barras comparables, sin librerías. ── */}
+        <AlcanceReciente
+          recientes={conteos?.recientes ?? []}
+          cargando={!conteos && !sinConteos}
+          error={sinConteos}
+          onReintentar={refetchConteos}
+        />
 
         {/* ── Monitores espejo: mismo esqueleto, dominios distintos.
             Desktop: lado a lado; móvil: apilados. ── */}
@@ -231,7 +246,12 @@ export function ResumenSeccion({
               />
             ) : comunicados.length > 0 ? (
               comunicados.map((c, indice) => (
-                <PreviewComunicado key={c.id} comunicado={c} conSeparador={indice > 0} />
+                <PreviewComunicado
+                  key={c.id}
+                  comunicado={c}
+                  audiencia={etiquetaAudienciaCorta(c.decanatoIds, nombresDecanatos)}
+                  conSeparador={indice > 0}
+                />
               ))
             ) : (
               <EmptyState
@@ -352,6 +372,118 @@ function KpiCard({
   );
 }
 
+/* ── Alcance reciente (barras comparativas) ─────────────────────────────── */
+
+function AlcanceReciente({
+  recientes,
+  cargando,
+  error,
+  onReintentar,
+}: {
+  recientes: LecturaReciente[];
+  cargando: boolean;
+  error: boolean;
+  onReintentar: () => void;
+}) {
+  return (
+    <Card style={estilos.alcance}>
+      <View style={estilos.alcanceCabecera}>
+        <ThemedText variant="subtitle" weight="semibold">
+          Alcance por comunicado reciente
+        </ThemedText>
+        <ThemedText variant="caption" tone="secondary">
+          Lecturas confirmadas / estudiantes objetivo en la app
+        </ThemedText>
+      </View>
+
+      {cargando ? (
+        <SkeletonGroup label="Cargando alcance por comunicado" style={estilos.alcanceEsqueleto}>
+          {[0, 1, 2, 3].map((fila) => (
+            <View key={fila} style={estilos.alcanceEsqueletoFila}>
+              <Skeleton style={estilos.alcanceEsqueletoTitulo} />
+              <View style={estilos.alcanceEsqueletoBarra}>
+                <Skeleton style={estilos.alcanceEsqueletoFill} />
+              </View>
+            </View>
+          ))}
+        </SkeletonGroup>
+      ) : error ? (
+        <View style={estilos.alcanceError}>
+          <TextoError>No se pudo cargar el alcance de los comunicados.</TextoError>
+          <ThemedButton
+            title="Reintentar"
+            variant="secondary"
+            size="sm"
+            onPress={onReintentar}
+          />
+        </View>
+      ) : recientes.length === 0 ? (
+        <ThemedText variant="bodySm" tone="secondary">
+          Aún no hay publicaciones en los últimos 30 días.
+        </ThemedText>
+      ) : (
+        <View style={estilos.alcanceFilas}>
+          {recientes.map((item, indice) => (
+            <FilaAlcance
+              key={item.id}
+              item={item}
+              conSeparador={indice > 0}
+            />
+          ))}
+        </View>
+      )}
+    </Card>
+  );
+}
+
+function FilaAlcance({
+  item,
+  conSeparador,
+}: {
+  item: LecturaReciente;
+  conSeparador: boolean;
+}) {
+  const porcentaje = item.tasa ?? 0;
+  const porcentajeTexto = formatearPorcentaje(item.tasa);
+  const etiqueta =
+    item.audiencia > 0
+      ? `${item.titulo}: ${item.lecturas} de ${item.audiencia} estudiantes, ${porcentajeTexto} de lectura`
+      : `${item.titulo}: sin audiencia objetivo`;
+
+  return (
+    <View
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel={etiqueta}
+      accessibilityValue={{ min: 0, max: 100, now: Math.round(porcentaje) }}
+      style={[estilos.alcanceFila, conSeparador && estilos.alcanceFilaSeparada]}>
+      <View style={estilos.alcanceFilaCabecera}>
+        <ThemedText
+          variant="bodySm"
+          weight="semibold"
+          numberOfLines={1}
+          style={estilos.alcanceTitulo}>
+          {item.titulo}
+        </ThemedText>
+        <ThemedText variant="caption" tone="secondary" style={estilos.alcanceMeta}>
+          {`${item.lecturas} / ${item.audiencia} estudiantes`}
+        </ThemedText>
+        <ThemedText variant="caption" weight="semibold" style={estilos.alcancePct}>
+          {porcentajeTexto}
+        </ThemedText>
+      </View>
+      <View style={estilos.alcanceBarraTrack}>
+        <View
+          style={[
+            estilos.alcanceBarraFill,
+            { width: `${Math.max(0, Math.min(100, porcentaje))}%` },
+          ]}
+        />
+      </View>
+    </View>
+  );
+}
+
 /* ── Monitor espejo (tarjeta + título + contenido + pie) ────────────────── */
 
 function MonitorContainer({
@@ -416,9 +548,11 @@ function PieGestionar({ label, onPress }: { label: string; onPress: () => void }
 
 function PreviewComunicado({
   comunicado,
+  audiencia,
   conSeparador = false,
 }: {
   comunicado: Comunicado;
+  audiencia: string;
   conSeparador?: boolean;
 }) {
   const usuario = useSesionStore((s) => s.usuario);
@@ -432,7 +566,7 @@ function PreviewComunicado({
   return (
     <PressableScale
       accessibilityRole="button"
-      accessibilityLabel={`Comunicado: ${comunicado.titulo}`}
+      accessibilityLabel={`Comunicado: ${comunicado.titulo}. Audiencia: ${audiencia}`}
       onPress={() => router.push(`/comunicados/${comunicado.id}` as never)}
       style={[estilos.fila, conSeparador && estilos.filaSeparada]}>
       <View style={[estilos.barra, { backgroundColor: colors.brand.primary }]} />
@@ -441,6 +575,7 @@ function PreviewComunicado({
           {comunicado.titulo}
         </ThemedText>
         <View style={estilos.filaMeta}>
+          <Badge label={audiencia} />
           <ThemedText variant="caption" tone="secondary" numberOfLines={1} style={estilos.meta}>
             {FORMATO_FECHA_MEDIO.format(new Date(comunicado.publicadoAt ?? comunicado.updatedAt))}
           </ThemedText>
@@ -516,7 +651,7 @@ const estilos = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     gap: spacing.md,
   },
   accionesRapidas: {
@@ -536,7 +671,6 @@ const estilos = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.md,
   },
-  kpiFilaDesktop: { flex: 1 },
   kpiCelda: {
     flex: 1,
     minWidth: 0,
@@ -574,6 +708,62 @@ const estilos = StyleSheet.create({
     gap: spacing.sm,
   },
   kpiDetalle: { flex: 1 },
+  /* ── Alcance reciente ── */
+  alcance: { gap: spacing.lg },
+  alcanceCabecera: { gap: spacing.xs },
+  alcanceFilas: { gap: spacing.md },
+  alcanceFila: { gap: spacing.sm },
+  alcanceFilaSeparada: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border.subtle,
+    paddingTop: spacing.md,
+  },
+  alcanceFilaCabecera: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  alcanceTitulo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  alcanceMeta: { flexShrink: 0 },
+  alcancePct: {
+    minWidth: 44,
+    textAlign: 'right',
+    color: colors.brand.primary,
+    fontVariant: ['tabular-nums'],
+  },
+  alcanceBarraTrack: {
+    height: 8,
+    borderRadius: radius.pill,
+    backgroundColor: colors.brand.surfaceBlue,
+    overflow: 'hidden',
+  },
+  alcanceBarraFill: {
+    height: '100%',
+    borderRadius: radius.pill,
+    backgroundColor: colors.brand.primary,
+  },
+  alcanceError: {
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  alcanceEsqueleto: { gap: spacing.md },
+  alcanceEsqueletoFila: { gap: spacing.sm },
+  alcanceEsqueletoTitulo: { width: '55%' },
+  alcanceEsqueletoBarra: {
+    height: 8,
+    borderRadius: radius.pill,
+    backgroundColor: colors.bg.sunken,
+    overflow: 'hidden',
+  },
+  alcanceEsqueletoFill: {
+    width: '55%',
+    height: 8,
+    borderRadius: radius.pill,
+  },
 
   /* ── Monitores ── */
   monitores: { gap: spacing.lg },
@@ -599,7 +789,12 @@ const estilos = StyleSheet.create({
   },
   barra: { width: 3, borderRadius: 2 },
   filaCuerpo: { flex: 1, gap: 2 },
-  filaMeta: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  filaMeta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   meta: { flexShrink: 1 },
   stat: {
     flexDirection: 'row',

@@ -34,13 +34,24 @@ export async function listarComunicados(
   return data;
 }
 
+/** Fila del gráfico de alcance por comunicado reciente. */
+export interface LecturaReciente {
+  id: string;
+  titulo: string;
+  lecturas: number;
+  audiencia: number;
+  /** Porcentaje 0–100; null si no hay audiencia objetivo. */
+  tasa: number | null;
+}
+
 /**
- * Resumen del Resumen de gestión (RLS): conteos por estado + alcance
- * acumulado de lecturas. `lecturasTotales` puede faltar si el BFF aún no
- * tiene el deploy — la UI degrada a `?? 0`.
+ * Resumen del Panel de gestión: conteos por estado + tasa de lectura efectiva
+ * de los últimos 30 días y hasta 4 publicados recientes para el gráfico.
  */
 export type ConteosComunicados = Record<EstadoComunicado, number> & {
-  lecturasTotales?: number;
+  tasaLecturaPromedio30d: number | null;
+  publicacionesAnalizadas: number;
+  recientes: LecturaReciente[];
 };
 
 export async function conteosComunicados(): Promise<ConteosComunicados> {

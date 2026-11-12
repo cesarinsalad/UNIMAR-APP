@@ -17,11 +17,17 @@ export function useConteosComunicados(): {
   conteos: ConteosComunicados | undefined;
   cargando: boolean;
   error: unknown;
+  refetch: () => void;
 } {
   const query = useQuery({
     queryKey: CLAVES_COMUNICADOS.conteos,
     queryFn: conteosComunicados,
     retry: false,
   });
-  return { conteos: query.data, cargando: query.isPending, error: query.error };
+  return {
+    conteos: query.data,
+    cargando: query.isPending,
+    error: query.error,
+    refetch: () => void query.refetch(),
+  };
 }
