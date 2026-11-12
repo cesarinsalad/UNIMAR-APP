@@ -49,6 +49,19 @@ export interface Comunicado {
   lecturasCount?: number;
 }
 
+/**
+ * Agregado seguro para el dashboard: lecturas y audiencia objetivo de un
+ * comunicado. Lo calcula la función SQL `alcance_comunicados`, que replica
+ * el alcance de `puedeVerEstadisticas` sin exponer lectores individuales.
+ */
+export interface AlcanceComunicado {
+  id: string;
+  titulo: string;
+  publicadoAt: Date;
+  lecturas: number;
+  audiencia: number;
+}
+
 /** Input para crear un comunicado (viene validado por Zod en la capa HTTP). */
 export interface CrearComunicadoInput {
   titulo: string;

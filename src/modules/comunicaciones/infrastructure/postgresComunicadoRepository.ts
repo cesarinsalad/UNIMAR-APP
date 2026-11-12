@@ -1,7 +1,7 @@
 import type { DbTx } from '../../../shared/kernel/db';
 import { FiltroListadoComunicados } from '../domain/ports';
 import type { IComunicadoRepository } from '../domain/ports';
-import type { Comunicado, Estado } from '../domain/comunicado';
+import type { AlcanceComunicado, Comunicado, Estado } from '../domain/comunicado';
 import { ESTADOS } from '../domain/comunicado';
 
 interface ComunicadoRow {
@@ -342,13 +342,24 @@ export class PostgresComunicadoRepository implements IComunicadoRepository {
     return result.rows[0]?.n ?? 0;
   }
 
-  async contarLecturasTotales(tx: DbTx): Promise<number> {
-    // La suma vive en un JOIN: RLS de `comunicados` acota a los visibles y
-    // la de `comunicado_lecturas` a las lecturas legibles según el rol.
-    const result = await tx.query<{ n: number }>(
-      'SELECT count(*)::int AS n FROM comunicado_lecturas l JOIN comunicados c ON c.id = l.comunicado_id',
-    );
-    return result.rows[0]?.n ?? 0;
+  async listarAlcanceComunicados(tx: DbTx, dias: number): Promise<AlcanceComunicado[]> {
+    // Agregados bajo una función SECURITY DEFINER: valida claims y alcance
+    // por rol sin exponer las filas de `comunicado_lecturas`.
+    const result = await tx.query<{
+      comunicado_id: string;
+      titulo: string;
+      publicado_at: Date;
+      lecturas: number;
+      audiencia: number;
+    }>('SELECT * FROM public.alcance_comunicados($1)', [dias]);
+
+    return result.rows.map((row) => ({
+      id: row.comunicado_id,
+      titulo: row.titulo,
+      publicadoAt: row.publicado_at,
+      lecturas: row.lecturas,
+      audiencia: row.audiencia,
+    }));
   }
 
   async asignarPortada(

@@ -150,7 +150,7 @@ enviarlo en el header `Authorization` de los demás requests.
 |--------|------|-----|-------------|
 | POST | `/comunicados` | COMUNICADOR | Crear (body: `titulo`, `cuerpo` [Markdown], `decanato_ids`[], `programado_para`?, `expira_at`?) |
 | GET | `/comunicados?estado=&categoria=&q=&limit=&offset=` | todos | Listar visibles. **Wire: `{ items, total }`** — el total viene del count bajo las mismas claims (RLS), paginación con fin exacto. `q` busca por título **o cuerpo** (ILIKE, máx 100 chars). `limit` 1-100 (default 20). |
-| GET | `/comunicados/conteos` | COMUNICADOR | Conteos por estado bajo RLS — `{ BORRADOR, PENDIENTE, PUBLICADO, ARCHIVADO }` (números del Panel de Gestión, no cotas "N+"). |
+| GET | `/comunicados/conteos` | COMUNICADOR | Resumen del Panel bajo RLS — `{ BORRADOR, PENDIENTE, PUBLICADO, ARCHIVADO, tasaLecturaPromedio30d, publicacionesAnalizadas, recientes[] }`. La tasa y los `recientes` agregan publicados de los últimos 30 días; la función SQL aplica el alcance del rol sin exponer lectores individuales. |
 | GET | `/comunicados/:id` | todos | Detalle (registra lectura si no eres autor) |
 | PATCH | `/comunicados/:id` | autor/ADMIN | Editar (solo BORRADOR/PUBLICADO) |
 | POST | `/comunicados/:id/solicitar-revision` | autor | BORRADOR → PENDIENTE |

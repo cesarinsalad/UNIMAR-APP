@@ -1,6 +1,6 @@
 import type { DbTx } from '../../../shared/kernel/db';
 import type { Adjunto, CrearAdjuntoInput } from './adjunto';
-import type { Comunicado, Estado } from './comunicado';
+import type { AlcanceComunicado, Comunicado, Estado } from './comunicado';
 
 /**
  * Filtros compartidos por `listar` y `contar` (el total y los items nunca
@@ -59,13 +59,12 @@ export interface IComunicadoRepository {
   contarPorEstado(tx: DbTx): Promise<Record<Estado, number>>;
 
   /**
-   * Sumatoria de lecturas confirmadas de los comunicados VISIBLES para las
-   * claims actuales (join contra `comunicados` bajo RLS + RLS de la propia
-   * `comunicado_lecturas`). KPI "Alcance acumulado" del Resumen. Quirk
-   * conocido: un COMUNICADOR no-autor ve 0 por la RLS de lecturas, igual
-   * que `contarLecturas`/`GET /:id/estadisticas`.
+   * Agregados de lectura/audiencia de los publicados en los últimos
+   * `dias`, calculados por la función SECURITY DEFINER
+   * `alcance_comunicados`. La función aplica el alcance por rol sin exponer
+   * `usuario_id` y devuelve una fila por comunicado.
    */
-  contarLecturasTotales(tx: DbTx): Promise<number>;
+  listarAlcanceComunicados(tx: DbTx, dias: number): Promise<AlcanceComunicado[]>;
 
   actualizar(
     tx: DbTx,

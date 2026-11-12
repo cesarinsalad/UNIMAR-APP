@@ -11,7 +11,7 @@ import type { UnitOfWork } from '../../../shared/kernel/unitOfWork';
 import type { Claims } from '../../../shared/security/jwt';
 import { BadRequestError, ForbiddenError, NotFoundError } from '../../../shared/errors';
 import type { IComunicadoRepository } from '../domain/ports';
-import type { Comunicado } from '../domain/comunicado';
+import type { AlcanceComunicado, Comunicado } from '../domain/comunicado';
 import { CrearComunicado } from './crearComunicado';
 import { EditarComunicado } from './editarComunicado';
 import { SolicitarRevision } from './solicitarRevision';
@@ -74,7 +74,10 @@ interface RepoCall {
   args: unknown[];
 }
 
-function makeRepo(initial: Comunicado | null = null): { repo: IComunicadoRepository; calls: RepoCall[] } {
+function makeRepo(
+  initial: Comunicado | null = null,
+  alcance: AlcanceComunicado[] = [],
+): { repo: IComunicadoRepository; calls: RepoCall[] } {
   const calls: RepoCall[] = [];
   let store: Comunicado | null = initial;
   const repo: IComunicadoRepository = {
@@ -126,9 +129,9 @@ function makeRepo(initial: Comunicado | null = null): { repo: IComunicadoReposit
       calls.push({ method: 'contarLecturas', args: [id] });
       return 0;
     },
-    contarLecturasTotales: async (_tx) => {
-      calls.push({ method: 'contarLecturasTotales', args: [] });
-      return 0;
+    listarAlcanceComunicados: async (_tx, dias) => {
+      calls.push({ method: 'listarAlcanceComunicados', args: [dias] });
+      return alcance;
     },
     asignarPortada: async (tx, id, imagenPath) => {
       calls.push({ method: 'asignarPortada', args: [id, imagenPath] });
@@ -563,14 +566,61 @@ describe('ListarComunicados', () => {
 });
 
 describe('ConteosComunicados', () => {
-  it('devuelve un conteo por estado + lecturasTotales del alcance', async () => {
+  it('devuelve conteos por estado y un resumen vacío de alcance', async () => {
     const { repo, calls } = makeRepo(makeComunicado({ estado: 'BORRADOR' }));
     const uc = new ConteosComunicados(repo, makeUnitOfWork());
     const conteos = await uc.ejecutar(makeComComunicador());
     expect(conteos.BORRADOR).toBe(1);
     expect(conteos.PENDIENTE).toBe(0);
-    expect(conteos.lecturasTotales).toBe(0);
+    expect(conteos.tasaLecturaPromedio30d).toBeNull();
+    expect(conteos.publicacionesAnalizadas).toBe(0);
+    expect(conteos.recientes).toEqual([]);
     expect(calls.some((c) => c.method === 'contarPorEstado')).toBe(true);
-    expect(calls.some((c) => c.method === 'contarLecturasTotales')).toBe(true);
+    expect(
+      calls.some(
+        (c) => c.method === 'listarAlcanceComunicados' && c.args[0] === 30,
+      ),
+    ).toBe(true);
+  });
+
+  it('calcula la tasa promedio, excluye audiencia cero y ordena recientes', async () => {
+    const alcance: AlcanceComunicado[] = [
+      {
+        id: 'a',
+        titulo: 'A',
+        publicadoAt: new Date('2026-11-10T12:00:00Z'),
+        lecturas: 42,
+        audiencia: 60,
+      },
+      {
+        id: 'b',
+        titulo: 'B',
+        publicadoAt: new Date('2026-11-11T12:00:00Z'),
+        lecturas: 3,
+        audiencia: 0,
+      },
+      {
+        id: 'c',
+        titulo: 'C',
+        publicadoAt: new Date('2026-11-12T12:00:00Z'),
+        lecturas: 5,
+        audiencia: 10,
+      },
+    ];
+    const { repo } = makeRepo(null, alcance);
+    const uc = new ConteosComunicados(repo, makeUnitOfWork());
+
+    const conteos = await uc.ejecutar(makeComComunicador());
+
+    // (70 + 50) / 2: la publicación con audiencia 0 no entra al promedio.
+    expect(conteos.tasaLecturaPromedio30d).toBe(60);
+    expect(conteos.publicacionesAnalizadas).toBe(2);
+    expect(conteos.recientes.map((r) => r.id)).toEqual(['c', 'b', 'a']);
+    expect(conteos.recientes[0]).toMatchObject({
+      lecturas: 5,
+      audiencia: 10,
+      tasa: 50,
+    });
+    expect(conteos.recientes[1]?.tasa).toBeNull();
   });
 });
