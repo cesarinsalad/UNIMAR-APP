@@ -132,7 +132,7 @@ export default function ConsolaGestionScreen() {
             <ThemedText variant="title" weight="semibold">
               Gestión
             </ThemedText>
-            <ThemedView variant="sunken" style={estilos.pillRol}>
+            <ThemedView variant="elevated" style={estilos.pillRol}>
               <ThemedText variant="caption" weight="semibold" style={estilos.pillRolTexto}>
                 {etiquetaRol(usuario?.rol)}
               </ThemedText>
@@ -148,7 +148,7 @@ export default function ConsolaGestionScreen() {
                   accessibilityRole="tab"
                   accessibilityState={{ selected: activo }}
                   onPress={() => setSeccion(clave)}>
-                  <ThemedView variant={activo ? 'sunken' : 'base'} style={estilos.itemNav}>
+                  <ThemedView variant={activo ? 'elevated' : 'base'} style={estilos.itemNav}>
                     <Icono
                       size={20}
                       color={activo ? colors.brand.primary : colors.text.secondary}
@@ -227,7 +227,7 @@ export default function ConsolaGestionScreen() {
               style={estilos.cabeceraAlcance}>
               {permisos.esAdmin ? 'Alcance institucional' : 'Alcance de tu decanato'}
             </ThemedText>
-            <ThemedView variant="sunken" style={estilos.pillRol}>
+            <ThemedView variant="elevated" style={estilos.pillRol}>
               <ThemedText variant="caption" weight="semibold" style={estilos.pillRolTexto}>
                 {etiquetaRol(usuario?.rol)}
               </ThemedText>

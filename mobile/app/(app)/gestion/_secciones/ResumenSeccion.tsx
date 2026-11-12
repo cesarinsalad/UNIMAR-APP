@@ -186,6 +186,7 @@ export function ResumenSeccion({
               size="sm"
               icon={<MegaphoneIcon size={16} color={colors.text.onPrimary} weight="bold" />}
               onPress={() => router.push('/comunicados/nuevo' as never)}
+              style={estilos.accionComunicado}
             />
             <ThemedButton
               title="Nuevo evento"
@@ -658,6 +659,10 @@ const estilos = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
+  },
+  accionComunicado: {
+    borderWidth: 0,
+    ...elevation.md,
   },
   accionEvento: {
     backgroundColor: colors.bg.surface,
