@@ -17,6 +17,20 @@ INSERT INTO usuarios (cedula, nombre, email, rol_id, decanato_id) VALUES
   ('30065516', 'César García', 'cgarcia.5516@unimar.edu.ve',
      (SELECT id FROM roles WHERE nombre = 'ESTUDIANTE'), 5);
 
+-- Población demo para que el dashboard de gestión tenga denominadores de
+-- audiencia reales (el login real hace upsert de estudiantes desde la API
+-- universitaria; estos son solo datos de desarrollo). 12 por decanato.
+INSERT INTO usuarios (cedula, nombre, email, rol_id, decanato_id)
+SELECT
+  (900000 + d.id * 100 + n)::text,
+  format('Estudiante Demo %s · %s', n, d.nombre),
+  format('demo.%s.%s@unimar.edu.ve', d.id, n),
+  (SELECT id FROM roles WHERE nombre = 'ESTUDIANTE'),
+  d.id
+FROM decanatos d
+CROSS JOIN generate_series(1, 12) AS n
+ON CONFLICT (cedula) DO NOTHING;
+
 -- Comunicados sembrados ya PUBLICADOS (la aprobación ocurre fuera del seed:
 -- los INSERT directos no disparan el bus de eventos ni push). Audiencia:
 -- 0 filas en comunicado_audiencias = GLOBAL (toda la universidad).
@@ -155,3 +169,62 @@ INSERT INTO eventos (titulo, descripcion, tipo, usuario_id, inicio_at, fin_at, d
    'Día no laborable con motivo de la efeméride institucional (vigilado por Decanato de Asuntos Estudiantiles).',
    'FERIADO', (SELECT id FROM usuarios WHERE cedula = '20123456'),
    now() + interval '75 day', NULL, true, NULL);
+
+-- Lecturas demo para el diagnóstico de alcance del dashboard.
+-- La audiencia objetivo se calcula sobre los estudiantes registrados:
+-- 61 en total (60 demo + César) y 13 en el decanato 5.
+INSERT INTO comunicado_lecturas (comunicado_id, usuario_id)
+SELECT c.id, u.id
+FROM comunicados c
+JOIN usuarios u ON u.rol_id = (SELECT id FROM roles WHERE nombre = 'ESTUDIANTE')
+WHERE c.titulo = 'Recital «EPIC: The Musical»'
+ORDER BY u.cedula
+LIMIT 42
+ON CONFLICT (comunicado_id, usuario_id) DO NOTHING;
+
+INSERT INTO comunicado_lecturas (comunicado_id, usuario_id)
+SELECT c.id, u.id
+FROM comunicados c
+JOIN usuarios u
+  ON u.rol_id = (SELECT id FROM roles WHERE nombre = 'ESTUDIANTE')
+ AND u.decanato_id = 5
+WHERE c.titulo = 'Programa de Formación «Piensa como INGENIERO: Más allá del Código»'
+ORDER BY u.cedula
+LIMIT 9
+ON CONFLICT (comunicado_id, usuario_id) DO NOTHING;
+
+INSERT INTO comunicado_lecturas (comunicado_id, usuario_id)
+SELECT c.id, u.id
+FROM comunicados c
+JOIN usuarios u ON u.rol_id = (SELECT id FROM roles WHERE nombre = 'ESTUDIANTE')
+WHERE c.titulo = 'Foro «Alianza por la Educación»'
+ORDER BY u.cedula
+LIMIT 20
+ON CONFLICT (comunicado_id, usuario_id) DO NOTHING;
+
+INSERT INTO comunicado_lecturas (comunicado_id, usuario_id)
+SELECT c.id, u.id
+FROM comunicados c
+JOIN usuarios u ON u.rol_id = (SELECT id FROM roles WHERE nombre = 'ESTUDIANTE')
+WHERE c.titulo = 'Del estado docente a la sociedad educadora: Alianza por la Educación'
+ORDER BY u.cedula
+LIMIT 31
+ON CONFLICT (comunicado_id, usuario_id) DO NOTHING;
+
+INSERT INTO comunicado_lecturas (comunicado_id, usuario_id)
+SELECT c.id, u.id
+FROM comunicados c
+JOIN usuarios u ON u.rol_id = (SELECT id FROM roles WHERE nombre = 'ESTUDIANTE')
+WHERE c.titulo = 'Jornada de salud mental laboral: «Cuidando a quienes mueven la universidad»'
+ORDER BY u.cedula
+LIMIT 18
+ON CONFLICT (comunicado_id, usuario_id) DO NOTHING;
+
+INSERT INTO comunicado_lecturas (comunicado_id, usuario_id)
+SELECT c.id, u.id
+FROM comunicados c
+JOIN usuarios u ON u.rol_id = (SELECT id FROM roles WHERE nombre = 'ESTUDIANTE')
+WHERE c.titulo = 'UNIMAR y Consecomercio firman alianza estratégica regional'
+ORDER BY u.cedula
+LIMIT 25
+ON CONFLICT (comunicado_id, usuario_id) DO NOTHING;
