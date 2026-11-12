@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
 import { colors, elevation, radius, spacing, typography } from './theme';
@@ -11,6 +12,8 @@ export interface ThemedButtonProps {
   onPress: () => void;
   variant?: Variant;
   size?: Size;
+  /** Icono decorativo a la izquierda; el llamador controla su color. */
+  icon?: ReactNode;
   loading?: boolean;
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
@@ -21,6 +24,7 @@ export function ThemedButton({
   onPress,
   variant = 'primary',
   size = 'md',
+  icon,
   loading = false,
   disabled = false,
   style,
@@ -37,6 +41,7 @@ export function ThemedButton({
         styles.base,
         sizeStyles.container,
         variantStyles.container,
+        icon ? styles.conIcono : null,
         pressed && !isDisabled && styles.pressed,
         isDisabled && styles.disabled,
         style,
@@ -44,12 +49,15 @@ export function ThemedButton({
       {loading ? (
         <ActivityIndicator color={variantStyles.labelColor} />
       ) : (
-        <ThemedText
-          variant={size === 'lg' ? 'bodyLg' : 'body'}
-          weight="semibold"
-          style={{ color: variantStyles.labelColor }}>
-          {title}
-        </ThemedText>
+        <>
+          {icon}
+          <ThemedText
+            variant={size === 'lg' ? 'bodyLg' : 'body'}
+            weight="semibold"
+            style={{ color: variantStyles.labelColor }}>
+            {title}
+          </ThemedText>
+        </>
       )}
     </Pressable>
   );
@@ -114,6 +122,10 @@ const styles = StyleSheet.create({
     borderRadius: radius.button,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  conIcono: {
+    flexDirection: 'row',
+    gap: spacing.sm,
   },
   pressed: {
     opacity: 0.85,

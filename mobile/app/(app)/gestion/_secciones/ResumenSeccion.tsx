@@ -1,18 +1,15 @@
 import { useMemo } from 'react';
-import {
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   CalendarPlusIcon,
   CaretRightIcon,
+  CheckCircleIcon,
+  ClipboardTextIcon,
   EyeIcon,
   MegaphoneIcon,
+  PencilSimpleIcon,
 } from 'phosphor-react-native';
 import { useConteosComunicados } from '@/features/comunicaciones/hooks/useConteosComunicados';
 import { useComunicadosFeed } from '@/features/comunicaciones/hooks/useComunicadosFeed';
@@ -25,14 +22,17 @@ import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import { FORMATO_FECHA_CORTO_CON_DIA, FORMATO_FECHA_MEDIO } from '@/shared/lib/formatos';
 import { aplanarPaginas } from '@/shared/lib/paginar';
 import { useRefrescarQueries } from '@/shared/lib/useRefrescarQueries';
-import { colors, spacing, useBreakpoint } from '@/shared/ui';
+import { colors, elevation, radius, spacing, useBreakpoint } from '@/shared/ui';
 import {
+  Card,
   EmptyState,
   PressableScale,
-  SkeletonCard,
+  Skeleton,
+  SkeletonGroup,
   ThemedButton,
   ThemedText,
   ThemedView,
+  TextoError,
 } from '@/shared/ui';
 import type { Comunicado, EstadoComunicado } from '@/features/comunicaciones/types';
 import type { Evento } from '@/features/calendario/types';
@@ -50,10 +50,9 @@ const PREVIEWS_POR_MONITOR = 4;
 
 /**
  * Vista 1 del módulo de gestión (doc §Vista 1): acciones rápidas arriba,
- * KPIs en cuadrícula (2×2 móvil / fila de 4 en escritorio), tarjeta del
- * próximo evento oficial y dos monitores espejo con Top 4 + acceso "Ver
- * todos →". El alcance lo decide RLS en el BFF: el COMUNICADOR solo ve lo
- * de su decanato, el ADMIN lo global.
+ * KPIs en cuadrícula (2×2 móvil / fila de 4 en escritorio) y dos monitores
+ * espejo con Top 4 + acceso "Ver todos →". El alcance lo decide RLS en el
+ * BFF: el COMUNICADOR solo ve lo de su decanato, el ADMIN lo global.
  */
 export function ResumenSeccion({
   onIrCola,
@@ -85,11 +84,19 @@ export function ResumenSeccion({
       .filter((e) => new Date(e.inicioAt).getTime() >= ahora);
   }, [eventosVentana.data]);
 
-  const proximoEvento = eventos[0];
-  const activasEventos = eventos.length;
-
   const cargandoComunicados = feed.isPending;
   const cargandoEventos = eventosVentana.isPending;
+  // Un refetch fallido con datos previos no debe borrar la información
+  // disponible; el error de carga completa sí reemplaza el estado vacío.
+  const errorComunicados = feed.isError && !feed.data;
+  const errorEventos = eventosVentana.isError && !eventosVentana.data;
+  const sinConteos = Boolean(errorConteos) && !conteos;
+  const hayPendientes = (conteos?.PENDIENTE ?? 0) > 0;
+
+  function detalleKpi(valor: number | undefined, cero: string, positivo: string): string {
+    if (sinConteos) return 'No disponible';
+    return valor === 0 ? cero : positivo;
+  }
 
   return (
     <ThemedView variant="base" style={estilos.pane}>
@@ -105,74 +112,127 @@ export function ResumenSeccion({
           />
         }>
 
-        {/* ── Acciones rápidas (doc: botones destacados de acceso) ── */}
-        <View style={estilos.accionesRapidas}>
-          <ThemedButton
-            title="+ Nuevo comunicado"
-            variant="primary"
-            size="sm"
-            onPress={() => router.push('/comunicados/nuevo' as never)}
-            style={estilos.accionPrincipal}
-          />
-          <ThemedButton
-            title="+ Nuevo evento"
-            variant="secondary"
-            size="sm"
-            onPress={onNuevoEvento}
-            style={estilos.accionPrincipal}
-          />
+        {/* ── Cabecera de la vista: título + acciones de ancho contenido ── */}
+        <View style={estilos.cabeceraResumen}>
+          <ThemedText variant="title" weight="semibold">
+            Resumen
+          </ThemedText>
+          <View style={estilos.accionesRapidas}>
+            <ThemedButton
+              title="Nuevo comunicado"
+              variant="primary"
+              size="sm"
+              icon={<MegaphoneIcon size={16} color={colors.text.onPrimary} weight="bold" />}
+              onPress={() => router.push('/comunicados/nuevo' as never)}
+            />
+            <ThemedButton
+              title="Nuevo evento"
+              variant="tonal"
+              size="sm"
+              icon={<CalendarPlusIcon size={16} color={colors.brand.primary} weight="bold" />}
+              onPress={onNuevoEvento}
+              style={estilos.accionEvento}
+            />
+          </View>
         </View>
 
-        {/* ── KPIs: UNA cuadrícula 2×2 móvil / fila de 4 desktop ── */}
+        {/* ── KPIs: dos filas explícitas (2×2 móvil) que en escritorio se
+            colocan lado a lado para formar una fila de 4. Sin flexWrap ni
+            porcentajes: cada celda reparte el ancho de su fila. ── */}
         <View style={[estilos.kpis, esEscritorio && estilos.kpisDesktop]}>
-          <KpiCard
-            etiqueta="Por revisar"
-            cifra={cifra('PENDIENTE')}
-            escritorio={esEscritorio}
-            onPress={() => onIrCola('PENDIENTE')}
-          />
-          <KpiCard
-            etiqueta="Borradores"
-            cifra={cifra('BORRADOR')}
-            escritorio={esEscritorio}
-            onPress={() => onIrCola('BORRADOR')}
-          />
-          <KpiCard
-            etiqueta="Publicaciones activas"
-            cifra={conteos?.PUBLICADO !== undefined ? `${conteos.PUBLICADO}` : '…'}
-            detalle={activasEventos > 0 ? `y ${activasEventos} eventos próximos` : undefined}
-            escritorio={esEscritorio}
-            onPress={() => onIrCola('PUBLICADO')}
-          />
-          <KpiCard
-            etiqueta="Alcance acumulado"
-            cifra={
-              conteos?.lecturasTotales !== undefined
-                ? `${conteos.lecturasTotales}`
-                : errorConteos ? '—' : '…'
-            }
-            detalle="lecturas confirmadas"
-            icono={<EyeIcon size={14} color={colors.brand.primary} weight="bold" />}
-            escritorio={esEscritorio}
-            onPress={() => onIrCola('PUBLICADO')}
-          />
+          <View style={[estilos.kpiFila, esEscritorio && estilos.kpiFilaDesktop]}>
+            <KpiCard
+              etiqueta="Por revisar"
+              cifra={cifra('PENDIENTE')}
+              detalle={detalleKpi(
+                conteos?.PENDIENTE,
+                'Nada pendiente',
+                'Pendientes de aprobación',
+              )}
+              indicadorAcento={hayPendientes}
+              icono={
+                conteos?.PENDIENTE === 0 ? (
+                  <CheckCircleIcon
+                    size={16}
+                    color={colors.status.success}
+                    weight="bold"
+                  />
+                ) : (
+                  <ClipboardTextIcon
+                    size={16}
+                    color={colors.brand.primary}
+                    weight="bold"
+                  />
+                )
+              }
+              onPress={() => onIrCola('PENDIENTE')}
+            />
+            <KpiCard
+              etiqueta="Borradores"
+              cifra={cifra('BORRADOR')}
+              detalle={detalleKpi(conteos?.BORRADOR, 'Nada en redacción', 'En redacción')}
+              icono={
+                <PencilSimpleIcon
+                  size={16}
+                  color={colors.brand.primary}
+                  weight="bold"
+                />
+              }
+              onPress={() => onIrCola('BORRADOR')}
+            />
+          </View>
+          <View style={[estilos.kpiFila, esEscritorio && estilos.kpiFilaDesktop]}>
+            <KpiCard
+              etiqueta="Publicaciones activas"
+              cifra={cifra('PUBLICADO')}
+              detalle={detalleKpi(
+                conteos?.PUBLICADO,
+                'Sin publicaciones visibles',
+                'Visibles en la app',
+              )}
+              icono={<MegaphoneIcon size={16} color={colors.brand.primary} weight="bold" />}
+              onPress={() => onIrCola('PUBLICADO')}
+            />
+            <KpiCard
+              etiqueta="Alcance acumulado"
+              cifra={
+                conteos?.lecturasTotales !== undefined
+                  ? `${conteos.lecturasTotales}`
+                  : errorConteos ? '—' : '…'
+              }
+              detalle={detalleKpi(
+                conteos?.lecturasTotales,
+                'Aún sin lecturas',
+                'Lecturas confirmadas',
+              )}
+              icono={<EyeIcon size={16} color={colors.brand.primary} weight="bold" />}
+            />
+          </View>
         </View>
-
-        {/* ── Próximo evento oficial (KPI del doc: fecha + título) ── */}
-        <ProximoEvento evento={proximoEvento} cargando={cargandoEventos} onIrEventos={onIrEventos} />
 
         {/* ── Monitores espejo: mismo esqueleto, dominios distintos.
             Desktop: lado a lado; móvil: apilados. ── */}
         <View style={[estilos.monitores, esEscritorio && estilos.monitoresDesktop]}>
           <MonitorContainer
             eyebrow="Últimos comunicados"
-            IconoCrear={MegaphoneIcon}
-            onCrear={() => router.push('/comunicados/nuevo' as never)}
-            monitorEstilo={esEscritorio ? estilos.monitorEscritorio : undefined}>
+            monitorEstilo={esEscritorio ? estilos.monitorEscritorio : undefined}
+            pie={
+              <PieGestionar
+                label="Ver todos los comunicados"
+                onPress={() => onIrCola('PUBLICADO')}
+              />
+            }>
             {cargandoComunicados ? (
-              <ListadoSkeleton />
+              <ListadoSkeleton label="Cargando comunicados" />
+            ) : errorComunicados ? (
+              <ErrorMonitor
+                mensaje="No se pudieron cargar los comunicados."
+                onReintentar={() => void feed.refetch()}
+              />
             ) : comunicados.length > 0 ? (
-              comunicados.map((c) => <PreviewComunicado key={c.id} comunicado={c} />)
+              comunicados.map((c, indice) => (
+                <PreviewComunicado key={c.id} comunicado={c} conSeparador={indice > 0} />
+              ))
             ) : (
               <EmptyState
                 title="Sin comunicados publicados"
@@ -180,23 +240,25 @@ export function ResumenSeccion({
                 style={estilos.vacioMonitor}
               />
             )}
-            <PieGestionar
-              label="Ver todos los comunicados"
-              onPress={() => onIrCola('PUBLICADO')}
-            />
           </MonitorContainer>
 
           <MonitorContainer
-            eyebrow="Últimos eventos"
-            IconoCrear={CalendarPlusIcon}
-            onCrear={onNuevoEvento}
-            monitorEstilo={esEscritorio ? estilos.monitorEscritorio : undefined}>
+            eyebrow="Próximos eventos"
+            monitorEstilo={esEscritorio ? estilos.monitorEscritorio : undefined}
+            pie={<PieGestionar label="Ver todos los eventos" onPress={onIrEventos} />}>
             {cargandoEventos ? (
-              <ListadoSkeleton />
+              <ListadoSkeleton label="Cargando eventos" />
+            ) : errorEventos ? (
+              <ErrorMonitor
+                mensaje="No se pudieron cargar los eventos."
+                onReintentar={() => void eventosVentana.refetch()}
+              />
             ) : eventos.length > 0 ? (
               eventos
                 .slice(0, PREVIEWS_POR_MONITOR)
-                .map((evento) => <PreviewEvento key={evento.id} evento={evento} />)
+                .map((evento, indice) => (
+                  <PreviewEvento key={evento.id} evento={evento} conSeparador={indice > 0} />
+                ))
             ) : (
               <EmptyState
                 title="Sin eventos próximos"
@@ -204,7 +266,6 @@ export function ResumenSeccion({
                 style={estilos.vacioMonitor}
               />
             )}
-            <PieGestionar label="Ver todos los eventos" onPress={onIrEventos} />
           </MonitorContainer>
         </View>
       </ScrollView>
@@ -219,126 +280,119 @@ function KpiCard({
   cifra,
   detalle,
   icono,
-  escritorio,
+  indicadorAcento = false,
   onPress,
 }: {
   etiqueta: string;
   cifra: string;
   detalle?: string;
   icono?: React.ReactNode;
-  escritorio?: boolean;
-  onPress: () => void;
+  /** Punto naranja de atención; nunca se aplica al texto (STYLE.md §1.3). */
+  indicadorAcento?: boolean;
+  /** Sin destino exacto, el KPI es informativo (no se anuncia como botón). */
+  onPress?: () => void;
 }) {
-  return (
-    // La RETÍCULA (flex/minWidth) vive en el wrapper, hijo directo del
-    // contenedor wrap: los porcentajes se resuelven contra un ancestro ya
-    // dimensionado. En la ThemedView interior el % era circular (Yoga lo
-    // resolvía raro en device — anomalía reportada por la auditoría).
-    <PressableScale
-      accessibilityRole="button"
-      accessibilityLabel={`${etiqueta}: ${cifra}`}
-      onPress={onPress}
-      style={[estilos.kpiCelda, escritorio && estilos.kpiCeldaDesktop]}>
-      <ThemedView variant="card" style={estilos.kpi}>
-        <View style={estilos.kpiPieCabe}>
-          <ThemedText variant="headline" weight="bold" style={estilos.kpiCifra}>
-            {cifra}
-          </ThemedText>
-          {icono}
-        </View>
-        <ThemedText variant="caption" tone="secondary" numberOfLines={1}>
+  const etiquetaAccesible = `${etiqueta}: ${cifra}${detalle ? `, ${detalle}` : ''}`;
+  const contenido = (
+    <Card paddingV="md" style={estilos.kpi}>
+      <View style={estilos.kpiCabecera}>
+        <ThemedText
+          variant="body"
+          weight="semibold"
+          numberOfLines={2}
+          style={estilos.kpiEtiqueta}>
           {etiqueta}
         </ThemedText>
-        {detalle ? (
-          <ThemedText variant="caption" tone="tertiary" numberOfLines={1} style={estilos.kpiDetalle}>
+        {icono}
+      </View>
+      <View style={estilos.kpiCifraFila}>
+        <ThemedText variant="headline" weight="bold" style={estilos.kpiCifra}>
+          {cifra}
+        </ThemedText>
+        {indicadorAcento ? (
+          <View
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={estilos.kpiPuntoAcento}
+          />
+        ) : null}
+      </View>
+      {detalle ? (
+        <View style={estilos.kpiDetalleFila}>
+          <ThemedText
+            variant="caption"
+            tone="secondary"
+            numberOfLines={2}
+            style={estilos.kpiDetalle}>
             {detalle}
           </ThemedText>
-        ) : null}
-      </ThemedView>
-    </PressableScale>
-  );
-}
-
-/** Tarjeta del próximo evento: fecha+cifra KPI y título; animated tap. */
-function ProximoEvento({
-  evento,
-  cargando,
-  onIrEventos,
-}: {
-  evento: Evento | undefined;
-  cargando: boolean;
-  onIrEventos: () => void;
-}) {
-  const contenido =
-    cargando ? (
-      <SkeletonCard largo={1} />
-    ) : !evento ? (
-      <ThemedText variant="bodySm" tone="secondary">
-        Sin eventos oficiales programados. Crea el próximo con «+ Nuevo evento».
-      </ThemedText>
-    ) : (
-      <View style={estilos.proxContenido}>
-        <View style={[estilos.barra, { backgroundColor: colorBarra(evento) }]} />
-        <View style={estilos.proxTexto}>
-          <ThemedText variant="caption" tone="secondary">
-            {`Próximo evento · ${FORMATO_FECHA_CORTO_CON_DIA.format(new Date(evento.inicioAt))} · ${
-              evento.diaCompleto ? 'Todo el día' : horaRango(evento)
-            }`}
-          </ThemedText>
-          <ThemedText variant="body" weight="semibold" numberOfLines={1}>
-            {evento.titulo}
-          </ThemedText>
+          {onPress ? (
+            <CaretRightIcon size={14} color={colors.brand.primary} weight="bold" />
+          ) : null}
         </View>
-        <CaretRightIcon size={14} color={colors.brand.primary} weight="bold" />
-      </View>
-    );
+      ) : null}
+    </Card>
+  );
+
   return (
-    <PressableScale
-      accessibilityRole="button"
-      accessibilityLabel="Ir a eventos"
-      onPress={onIrEventos}>
-      <ThemedView variant="card" style={estilos.prox}>
-        {contenido}
-      </ThemedView>
-    </PressableScale>
+    // La celda reparte el ancho de su fila con `flex: 1`; sin porcentajes
+    // anidados ni flexWrap, que colapsaban las tarjetas en escritorio.
+    <View style={estilos.kpiCelda}>
+      {onPress ? (
+        <PressableScale
+          accessibilityRole="button"
+          accessibilityLabel={etiquetaAccesible}
+          onPress={onPress}>
+          {contenido}
+        </PressableScale>
+      ) : (
+        <View accessible accessibilityLabel={etiquetaAccesible}>{contenido}</View>
+      )}
+    </View>
   );
 }
 
-/* ── Monitor espejo (tarjeta + eyebrow + Crear + contenido + pie) ────────── */
+/* ── Monitor espejo (tarjeta + título + contenido + pie) ────────────────── */
 
 function MonitorContainer({
   eyebrow,
-  IconoCrear,
-  onCrear,
   monitorEstilo,
+  pie,
   children,
 }: {
   eyebrow: string;
-  IconoCrear: typeof MegaphoneIcon;
-  onCrear: () => void;
-  monitorEstilo?: object;
+  monitorEstilo?: { flex?: number };
+  pie: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <ThemedView variant="card" style={[estilos.monitor, monitorEstilo]}>
-      <View style={estilos.monitorCabecera}>
-        <ThemedText variant="caption" style={estilos.eyebrow}>
-          {eyebrow}
-        </ThemedText>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={eyebrow.replace('Últimos ', 'Crear ')}
-          hitSlop={spacing.sm}
-          onPress={onCrear}
-          style={({ pressed }) => [estilos.accionCrear, pressed && { opacity: 0.7 }]}>
-          <IconoCrear size={14} color={colors.brand.primary} weight="bold" />
-          <ThemedText variant="caption" weight="semibold" style={estilos.accionCrearTexto}>
-            Crear
-          </ThemedText>
-        </Pressable>
-      </View>
-      {children}
-    </ThemedView>
+    <Card style={[estilos.monitor, monitorEstilo]}>
+      <ThemedText variant="body" weight="semibold" style={estilos.eyebrow}>
+        {eyebrow}
+      </ThemedText>
+      <View style={estilos.monitorCuerpo}>{children}</View>
+      {pie}
+    </Card>
+  );
+}
+
+function ErrorMonitor({
+  mensaje,
+  onReintentar,
+}: {
+  mensaje: string;
+  onReintentar: () => void;
+}) {
+  return (
+    <View style={estilos.errorMonitor}>
+      <TextoError>{mensaje}</TextoError>
+      <ThemedButton
+        title="Reintentar"
+        variant="secondary"
+        size="sm"
+        onPress={onReintentar}
+      />
+    </View>
   );
 }
 
@@ -360,7 +414,13 @@ function PieGestionar({ label, onPress }: { label: string; onPress: () => void }
 
 /* ── Previews con stat integrada (lecturas del wire, sin llamadas por-ítem) ── */
 
-function PreviewComunicado({ comunicado }: { comunicado: Comunicado }) {
+function PreviewComunicado({
+  comunicado,
+  conSeparador = false,
+}: {
+  comunicado: Comunicado;
+  conSeparador?: boolean;
+}) {
   const usuario = useSesionStore((s) => s.usuario);
   const permiso = puedeVerEstadisticas(
     usuario?.rol ?? null,
@@ -374,7 +434,7 @@ function PreviewComunicado({ comunicado }: { comunicado: Comunicado }) {
       accessibilityRole="button"
       accessibilityLabel={`Comunicado: ${comunicado.titulo}`}
       onPress={() => router.push(`/comunicados/${comunicado.id}` as never)}
-      style={estilos.fila}>
+      style={[estilos.fila, conSeparador && estilos.filaSeparada]}>
       <View style={[estilos.barra, { backgroundColor: colors.brand.primary }]} />
       <View style={estilos.filaCuerpo}>
         <ThemedText variant="bodySm" weight="semibold" numberOfLines={2}>
@@ -398,13 +458,19 @@ function PreviewComunicado({ comunicado }: { comunicado: Comunicado }) {
   );
 }
 
-function PreviewEvento({ evento }: { evento: Evento }) {
+function PreviewEvento({
+  evento,
+  conSeparador = false,
+}: {
+  evento: Evento;
+  conSeparador?: boolean;
+}) {
   return (
     <PressableScale
       accessibilityRole="button"
       accessibilityLabel={`Evento: ${evento.titulo}`}
       onPress={() => router.push(`/eventos/${evento.id}` as never)}
-      style={estilos.fila}>
+      style={[estilos.fila, conSeparador && estilos.filaSeparada]}>
       <View style={[estilos.barra, { backgroundColor: colorBarra(evento) }]} />
       <View style={estilos.filaCuerpo}>
         <ThemedText variant="bodySm" weight="semibold" numberOfLines={2}>
@@ -423,13 +489,21 @@ function PreviewEvento({ evento }: { evento: Evento }) {
 }
 
 /** Esqueleto estructural del listado de un monitor. */
-function ListadoSkeleton() {
+function ListadoSkeleton({ label }: { label: string }) {
   return (
-    <View style={estilos.esqueleto}>
-      {[0, 1, 2, 3].map((f) => (
-        <SkeletonCard key={f} largo={2} />
+    <SkeletonGroup label={label} style={estilos.esqueleto}>
+      {[0, 1, 2, 3].map((fila) => (
+        <View
+          key={fila}
+          style={[estilos.esqueletoFila, fila > 0 && estilos.esqueletoFilaSeparada]}>
+          <Skeleton redondo style={estilos.esqueletoBarra} />
+          <View style={estilos.esqueletoCuerpo}>
+            <Skeleton style={estilos.esqueletoTitulo} />
+            <Skeleton style={estilos.esqueletoMeta} />
+          </View>
+        </View>
       ))}
-    </View>
+    </SkeletonGroup>
   );
 }
 
@@ -437,85 +511,91 @@ const estilos = StyleSheet.create({
   pane: { flex: 1, backgroundColor: colors.bg.canvas },
   scroll: { padding: spacing.lg, gap: spacing.lg },
 
-  /* ── Acciones rápidas ── */
+  /* ── Cabecera de la vista ── */
+  cabeceraResumen: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
   accionesRapidas: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.md,
+    gap: spacing.sm,
   },
-  accionPrincipal: { flex: 1, minWidth: 180 },
+  accionEvento: {
+    backgroundColor: colors.bg.surface,
+    ...elevation.sm,
+  },
 
   /* ── KPIs ── */
-  kpis: {
+  kpis: { gap: spacing.md },
+  kpisDesktop: { flexDirection: 'row' },
+  kpiFila: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: spacing.md,
   },
-  kpisDesktop: { flexWrap: 'nowrap' },
-  // Retícula del wrapper (hijo del contenedor wrap): el % se resuelve
-  // contra el ancho real del contenedor, nunca contra sí mismo.
+  kpiFilaDesktop: { flex: 1 },
   kpiCelda: {
     flex: 1,
-    minWidth: '45%',
-    flexGrow: 1,
+    minWidth: 0,
   },
-  kpiCeldaDesktop: { minWidth: 0, flexGrow: 0 },
   kpi: {
-    padding: spacing.lg,
-    gap: 2,
+    flexGrow: 1,
+    gap: spacing.xs,
   },
-  kpiPieCabe: {
+  kpiCabecera: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.xs,
+  },
+  kpiEtiqueta: {
+    flex: 1,
+  },
+  kpiCifraFila: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: spacing.sm,
   },
   kpiCifra: {
     color: colors.brand.primary,
     fontVariant: ['tabular-nums'],
   },
-  kpiDetalle: { flexShrink: 1 },
-
-  /* ── Próximo evento ── */
-  prox: { padding: spacing.lg },
-  proxContenido: {
+  kpiPuntoAcento: {
+    width: 8,
+    height: 8,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accent.urgent,
+  },
+  kpiDetalleFila: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
-    minHeight: 44,
+    gap: spacing.sm,
   },
-  proxTexto: { flex: 1, gap: 2 },
+  kpiDetalle: { flex: 1 },
 
   /* ── Monitores ── */
   monitores: { gap: spacing.lg },
   monitoresDesktop: { flexDirection: 'row' },
-  monitorEscritorio: { flex: 1 },
-  monitor: { padding: spacing.lg, gap: spacing.md },
-  monitorCabecera: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-  },
+  monitorEscritorio: { flex: 1, minWidth: 0 },
+  monitor: { gap: spacing.md },
+  monitorCuerpo: { flex: 1, gap: spacing.md },
   eyebrow: {
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    color: colors.text.secondary,
+    letterSpacing: 0.2,
+    color: colors.text.primary,
   },
-  accionCrear: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    minHeight: 44,
-    minWidth: 44,
-    justifyContent: 'center',
-  },
-  accionCrearTexto: { color: colors.brand.primary },
 
   /* ── Filas de preview ── */
   fila: {
     flexDirection: 'row',
     gap: spacing.md,
     minHeight: 44,
+  },
+  filaSeparada: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border.subtle,
+    paddingTop: spacing.md,
   },
   barra: { width: 3, borderRadius: 2 },
   filaCuerpo: { flex: 1, gap: 2 },
@@ -537,6 +617,30 @@ const estilos = StyleSheet.create({
     gap: spacing.xs,
   },
   pieTexto: { color: colors.brand.primary },
-  vacioMonitor: { paddingVertical: spacing.sm },
+  vacioMonitor: {
+    minHeight: 120,
+    paddingVertical: spacing.md,
+    justifyContent: 'center',
+  },
+  errorMonitor: {
+    minHeight: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
+  },
   esqueleto: { gap: spacing.md },
+  esqueletoFila: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    minHeight: 44,
+  },
+  esqueletoFilaSeparada: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border.subtle,
+    paddingTop: spacing.md,
+  },
+  esqueletoBarra: { width: 3, height: 32 },
+  esqueletoCuerpo: { flex: 1, gap: spacing.sm },
+  esqueletoTitulo: { width: '72%', height: 18 },
+  esqueletoMeta: { width: '45%', height: 14 },
 });

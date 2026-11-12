@@ -14,12 +14,24 @@ import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import { colors, radius, spacing, touchTarget } from '@/shared/ui';
 import { BotonCircular, ThemedText, ThemedView, useBreakpoint } from '@/shared/ui';
 import { useDecanatos } from '@/features/identidad/hooks/useDecanatos';
+import type { Rol } from '@/features/identidad/types';
 import type { EstadoComunicado } from '@/features/comunicaciones/types';
 import { ResumenSeccion } from './_secciones/ResumenSeccion';
 import { ComunicadosSeccion, type EstadoCola } from './_secciones/ComunicadosSeccion';
 import { EventosSeccion, type ModoEventos } from './_secciones/EventosSeccion';
 
 type Seccion = 'resumen' | 'comunicados' | 'eventos';
+
+/** Roles del wire → etiquetas presentables (Sentence Case, STYLE.md §2). */
+const ETIQUETAS_ROL: Record<Rol, string> = {
+  ESTUDIANTE: 'Estudiante',
+  COMUNICADOR: 'Comunicador',
+  ADMIN: 'Administrador',
+};
+
+function etiquetaRol(rol: Rol | undefined): string {
+  return rol ? ETIQUETAS_ROL[rol] : '';
+}
 
 /** Nav de la consola; hrefs/fila únicos, sin navegadores anidados. */
 const NAV: { clave: Seccion; etiqueta: string; icono: typeof SquaresFourIcon }[] = [
@@ -122,7 +134,7 @@ export default function ConsolaGestionScreen() {
             </ThemedText>
             <ThemedView variant="sunken" style={estilos.pillRol}>
               <ThemedText variant="caption" weight="semibold" style={estilos.pillRolTexto}>
-                {usuario?.rol ?? ''}
+                {etiquetaRol(usuario?.rol)}
               </ThemedText>
             </ThemedView>
           </View>
@@ -203,19 +215,25 @@ export default function ConsolaGestionScreen() {
         <BotonCircular label="Volver a la app" onPress={volverALaApp}>
           <ArrowLeftIcon size={20} color={colors.brand.primary} weight="bold" />
         </BotonCircular>
-        <View style={{ flexShrink: 1, gap: 2 }}>
+        <View style={estilos.cabeceraTexto}>
           <ThemedText variant="headline" weight="semibold" numberOfLines={2}>
             {permisos.esAdmin ? 'Consola Central de Gestión' : 'Gestión Decanal'}
           </ThemedText>
-          <ThemedText variant="caption" tone="secondary" numberOfLines={1}>
-            {permisos.esAdmin ? 'UNIMAR · alcance institucional' : 'Alcance de tu decanato'}
-          </ThemedText>
+          <View style={estilos.cabeceraMeta}>
+            <ThemedText
+              variant="caption"
+              tone="secondary"
+              numberOfLines={1}
+              style={estilos.cabeceraAlcance}>
+              {permisos.esAdmin ? 'Alcance institucional' : 'Alcance de tu decanato'}
+            </ThemedText>
+            <ThemedView variant="sunken" style={estilos.pillRol}>
+              <ThemedText variant="caption" weight="semibold" style={estilos.pillRolTexto}>
+                {etiquetaRol(usuario?.rol)}
+              </ThemedText>
+            </ThemedView>
+          </View>
         </View>
-        <ThemedView variant="sunken" style={estilos.pillRol}>
-          <ThemedText variant="caption" weight="semibold" style={estilos.pillRolTexto}>
-            {usuario?.rol ?? ''}
-          </ThemedText>
-        </ThemedView>
       </View>
 
       {/* Segmented control fijo bajo el header (tabulaciones táctiles). */}
@@ -345,6 +363,18 @@ const estilos = StyleSheet.create({
     paddingTop: spacing.md,
     paddingBottom: spacing.xs,
   },
+  cabeceraTexto: {
+    flex: 1,
+    minWidth: 0,
+    gap: spacing.xs,
+  },
+  cabeceraMeta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  cabeceraAlcance: { flexShrink: 1 },
   segmentoWrap: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,

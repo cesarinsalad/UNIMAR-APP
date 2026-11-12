@@ -11,6 +11,7 @@ import {
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
+  CalendarPlusIcon,
   MagnifyingGlassIcon,
   MapPinIcon,
   PencilSimpleIcon,
@@ -32,7 +33,7 @@ import { aplanarPaginas } from '@/shared/lib/paginar';
 import { FORMATO_FECHA_CORTO_CON_DIA } from '@/shared/lib/formatos';
 import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
 import { ApiError } from '@/shared/api/axios';
-import { colors, radius, spacing } from '@/shared/ui';
+import { colors, elevation, radius, spacing } from '@/shared/ui';
 import {
   Chip,
   EmptyState,
@@ -41,6 +42,7 @@ import {
   MenuAcciones,
   ModalConfirmacion,
   SkeletonCard,
+  SkeletonGroup,
   TextoError,
   ThemedButton,
   ThemedText,
@@ -280,10 +282,12 @@ export function EventosSeccion({ modo, onModo }: EventosSeccionProps) {
           ) : null}
         </View>
         <ThemedButton
-          title="+ Nuevo evento"
-          variant="secondary"
+          title="Nuevo evento"
+          variant="tonal"
           size="sm"
+          icon={<CalendarPlusIcon size={16} color={colors.brand.primary} weight="bold" />}
           onPress={() => onModo({ vista: 'crear' })}
+          style={estilos.accionEvento}
         />
       </View>
 
@@ -403,8 +407,12 @@ function FilaTabla({
   const paleta = paletaEvento(evento);
   return (
     <View>
-      <Pressable accessibilityRole="button" onPress={onAbrir}>
-        <ThemedView variant="card" style={[estilos.filaTabla, borrando && estilos.enVuelo]}>
+      <ThemedView variant="card" style={[estilos.filaTabla, borrando && estilos.enVuelo]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Abrir evento: ${evento.titulo}`}
+          onPress={onAbrir}
+          style={estilos.filaContenido}>
           <View style={[estilos.barra, { backgroundColor: colorBarra(evento) }]} />
           <View style={estilos.colTitulo}>
             <ThemedText variant="bodySm" weight="semibold" numberOfLines={2}>
@@ -430,13 +438,13 @@ function FilaTabla({
           <ThemedText variant="caption" tone="secondary" style={{ width: 130 }} numberOfLines={1}>
             {evento.tipo === 'OFICIAL' ? etiquetaAudiencia(evento.decanatoIds) : '—'}
           </ThemedText>
-          <View style={{ width: 48, alignItems: 'flex-end' }}>
-            {!borrando ? (
-              <MenuAcciones acciones={acciones} onElegir={onElegir} />
-            ) : null}
-          </View>
-        </ThemedView>
-      </Pressable>
+        </Pressable>
+        <View style={estilos.celdaMenu}>
+          {!borrando ? (
+            <MenuAcciones acciones={acciones} onElegir={onElegir} />
+          ) : null}
+        </View>
+      </ThemedView>
     </View>
   );
 }
@@ -537,11 +545,13 @@ function PuntosTres() {
 /** Cargando marcado por estructura (~cards), no texto plano. */
 function EsqueletoEventos({ esDesktop }: { esDesktop: boolean }) {
   return (
-    <View style={esDesktop ? estilos.contenidoTabla : estilos.contenido}>
+    <SkeletonGroup
+      label="Cargando lista de eventos"
+      style={esDesktop ? estilos.contenidoTabla : estilos.contenido}>
       {(esDesktop ? [0, 1, 2, 3, 4] : [0, 1, 2]).map((f) => (
         <SkeletonCard key={f} />
       ))}
-    </View>
+    </SkeletonGroup>
   );
 }
 
@@ -556,6 +566,10 @@ const estilos = StyleSheet.create({
     gap: spacing.md,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
+  },
+  accionEvento: {
+    backgroundColor: colors.bg.surface,
+    ...elevation.sm,
   },
   campoBusqueda: {
     flex: 1,
@@ -597,6 +611,17 @@ const estilos = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
     padding: spacing.lg,
+  },
+  filaContenido: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  celdaMenu: {
+    width: 48,
+    alignItems: 'flex-end',
   },
   barra: {
     width: 3,

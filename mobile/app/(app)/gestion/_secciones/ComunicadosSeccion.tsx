@@ -52,6 +52,7 @@ import {
   HojaMenuAcciones,
   MenuAcciones,
   SkeletonCard,
+  SkeletonGroup,
   Select,
   TextoError,
   ThemedButton,
@@ -525,8 +526,12 @@ function FilaCola({
 }) {
   return (
     <View>
-      <Pressable accessibilityRole="button" onPress={onAbrir}>
-        <ThemedView variant="card" style={[estilos.filaTabla, enVuelo && estilos.filaEnVuelo]}>
+      <ThemedView variant="card" style={[estilos.filaTabla, enVuelo && estilos.filaEnVuelo]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Abrir comunicado: ${comunicado.titulo}`}
+          onPress={onAbrir}
+          style={estilos.filaContenido}>
           {/* Publicación: título + badge estado + motivo devuelto */}
           <View style={{ flex: COLUMNAS[0]?.flex ?? 2, gap: 2 }}>
             <ThemedText variant="bodySm" weight="semibold" numberOfLines={2}>
@@ -549,13 +554,16 @@ function FilaCola({
             {FORMATO_FECHA_MEDIO.format(new Date(comunicado.updatedAt))}
           </ThemedText>
           <ContadorLecturas comunicado={comunicado} />
-          <View style={{ width: 48, alignItems: 'flex-end' }}>
-            <MenuAcciones acciones={acciones} onElegir={(clave) => {
+        </Pressable>
+        <View style={estilos.celdaMenu}>
+          <MenuAcciones
+            acciones={acciones}
+            onElegir={(clave) => {
               if (!ocupado) onElegir(clave);
-            }} />
-          </View>
-        </ThemedView>
-      </Pressable>
+            }}
+          />
+        </View>
+      </ThemedView>
       {error ? <TextoError>{error}</TextoError> : null}
     </View>
   );
@@ -646,11 +654,13 @@ function PuntosTres() {
 /** Cargando marcado por estructura (~cards listado), no texto plano. */
 function EsqueletoCola({ esDesktop }: { esDesktop: boolean }) {
   return (
-    <View style={esDesktop ? estilos.contenidoTabla : estilos.contenido}>
+    <SkeletonGroup
+      label="Cargando cola de comunicados"
+      style={esDesktop ? estilos.contenidoTabla : estilos.contenido}>
       {(esDesktop ? [0, 1, 2, 3, 4, 5] : [0, 1, 2]).map((f) => (
         <SkeletonCard key={f} largo={esDesktop ? 3 : 2} />
       ))}
-    </View>
+    </SkeletonGroup>
   );
 }
 
@@ -743,6 +753,17 @@ const estilos = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
     padding: spacing.lg,
+  },
+  filaContenido: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  celdaMenu: {
+    width: 48,
+    alignItems: 'flex-end',
   },
   filaEnVuelo: { opacity: 0.55 },
   motivo: { color: colors.status.danger },
