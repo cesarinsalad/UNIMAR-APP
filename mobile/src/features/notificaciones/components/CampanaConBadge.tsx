@@ -42,14 +42,18 @@ export function CampanaConBadge({
       style={compacto ? estilos.zonaCompacta : estilos.zona}>
       <BellIcon size={tamano} color={color} weight={peso} />
       {total > 0 ? (
-        <View style={compacto ? estilos.pillCompacta : estilos.pill}>
-          <ThemedText
-            variant="caption"
-            weight="bold"
-            style={estilos.cifraBadge}>
-            {formatearBadge(total)}
-          </ThemedText>
-        </View>
+        compacto ? (
+          <View style={estilos.puntoCompacto} />
+        ) : (
+          <View style={estilos.pill}>
+            <ThemedText
+              variant="caption"
+              weight="bold"
+              style={estilos.cifraBadge}>
+              {formatearBadge(total)}
+            </ThemedText>
+          </View>
+        )
       ) : null}
     </Pressable>
   );
@@ -83,11 +87,17 @@ const estilos = StyleSheet.create({
   pill: {
     ...pillBase,
   },
-  /** Ancla el badge a la esquina del icono compacto (zona 44px, icono 20). */
-  pillCompacta: {
-    ...pillBase,
-    top: 8,
-    right: 9,
+  /** Punto discreto sobre el azul de la barra; el conteo vive en a11y. */
+  puntoCompacto: {
+    position: 'absolute',
+    top: 9,
+    right: 10,
+    width: 8,
+    height: 8,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accent.urgent,
+    borderWidth: 1.5,
+    borderColor: colors.brand.primary,
   },
   cifraBadge: {
     color: colors.text.onPrimary,
