@@ -80,7 +80,9 @@ export function ResumenSeccion({
   onIrEventos,
   onNuevoEvento,
 }: ResumenSeccionProps) {
-  const esEscritorio = useBreakpoint() === 'escritorio';
+  const breakpoint = useBreakpoint();
+  const esEscritorio = breakpoint === 'escritorio';
+  const esMovil = breakpoint === 'movil';
   const insets = useSafeAreaInsets();
   const feed = useComunicadosFeed();
   const { eventos: eventosVentana } = useEventosListado();
@@ -179,14 +181,14 @@ export function ResumenSeccion({
 
         {/* ── Acciones de la vista, sin título redundante con la navegación ── */}
         <View style={estilos.cabeceraResumen}>
-          <View style={estilos.accionesRapidas}>
+          <View style={[estilos.accionesRapidas, esMovil && estilos.accionesRapidasMovil]}>
             <ThemedButton
               title="Nuevo comunicado"
               variant="primary"
               size="sm"
               icon={<MegaphoneIcon size={16} color={colors.text.onPrimary} weight="bold" />}
               onPress={() => router.push('/comunicados/nuevo' as never)}
-              style={estilos.accionComunicado}
+              style={[estilos.accionComunicado, esMovil && estilos.accionAnchoCompleto]}
             />
             <ThemedButton
               title="Nuevo evento"
@@ -194,7 +196,7 @@ export function ResumenSeccion({
               size="sm"
               icon={<CalendarPlusIcon size={16} color={colors.brand.primary} weight="bold" />}
               onPress={onNuevoEvento}
-              style={estilos.accionEvento}
+              style={[estilos.accionEvento, esMovil && estilos.accionAnchoCompleto]}
             />
           </View>
         </View>
@@ -660,6 +662,12 @@ const estilos = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
+  accionesRapidasMovil: {
+    width: '100%',
+    flexDirection: 'column',
+    alignItems: 'stretch',
+  },
+  accionAnchoCompleto: { width: '100%' },
   accionComunicado: {
     borderWidth: 0,
     ...elevation.md,
