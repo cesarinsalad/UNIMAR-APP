@@ -207,40 +207,26 @@ export default function ConsolaGestionScreen() {
 
   return (
     <View style={estilos.col}>
-      {/* Header contextual (doc §Vista 1): título por rol + alcance. El back
-          circular da salida en el teléfono (en escritorio lo da el sidebar
-          "Volver a la app"); sin él, iOS no ofrecía gesto de vuelta — el
-          headerShown: false elimina el gesto nativo. */}
-      <View style={estilos.cabeceraMovil}>
-        <BotonCircular label="Volver a la app" onPress={volverALaApp}>
-          <ArrowLeftIcon size={20} color={colors.brand.primary} weight="bold" />
-        </BotonCircular>
-        <View style={estilos.cabeceraTexto}>
-          <ThemedText variant="headline" weight="semibold" numberOfLines={2}>
-            {permisos.esAdmin ? 'Consola Central de Gestión' : 'Gestión Decanal'}
-          </ThemedText>
-          <View style={estilos.cabeceraMeta}>
-            <ThemedText
-              variant="caption"
-              tone="secondary"
-              numberOfLines={1}
-              style={estilos.cabeceraAlcance}>
+      {/* Tope móvil: una sola superficie blanca (espejo del sidebar de
+          escritorio) para header + navegación, separada del canvas. El back
+          circular da salida en el teléfono; en escritorio lo da el sidebar. */}
+      <View style={estilos.cabeceraCap}>
+        <View style={estilos.cabeceraMovil}>
+          <BotonCircular label="Volver a la app" onPress={volverALaApp}>
+            <ArrowLeftIcon size={20} color={colors.brand.primary} weight="bold" />
+          </BotonCircular>
+          <View style={estilos.cabeceraTexto}>
+            <ThemedText variant="title" weight="semibold" numberOfLines={2}>
+              {permisos.esAdmin ? 'Consola Central de Gestión' : 'Gestión Decanal'}
+            </ThemedText>
+            <ThemedText variant="caption" tone="secondary" numberOfLines={1}>
               {permisos.esAdmin ? 'Alcance institucional' : 'Alcance de tu decanato'}
             </ThemedText>
-            <ThemedView variant="elevated" style={estilos.pillRol}>
-              <ThemedText variant="caption" weight="semibold" style={estilos.pillRolTexto}>
-                {etiquetaRol(usuario?.rol)}
-              </ThemedText>
-            </ThemedView>
           </View>
         </View>
-      </View>
 
-      {/* Segmented control fijo bajo el header (tabulaciones táctiles). */}
-      <SegmentoNavegacion
-        seccion={seccion}
-        onSelect={setSeccion}
-      />
+        <SegmentoNavegacion seccion={seccion} onSelect={setSeccion} />
+      </View>
       <View style={estilos.contenido}>{seccionActiva}</View>
     </View>
   );
@@ -285,11 +271,12 @@ function SegmentoNavegacion({
               accessibilityState={{ selected: activo }}
               onPress={() => onSelect(clave)}
               style={estilos.segmentoOpcion}>
-              <ThemedView variant={activo ? 'card' : 'base'} style={estilos.segmentoPieza}>
+              <ThemedView variant={activo ? 'elevated' : 'base'} style={estilos.segmentoPieza}>
                 <ThemedText
                   variant="caption"
                   weight={activo ? 'semibold' : 'medium'}
                   numberOfLines={1}
+                  maxFontSizeMultiplier={1.2}
                   style={activo ? { color: colors.brand.primary } : undefined}>
                   {etiqueta}
                 </ThemedText>
@@ -353,47 +340,44 @@ const estilos = StyleSheet.create({
   },
   contenido: { flex: 1 },
 
-  /* ── Móvil/tablet: header contextual + segmented ── */
+  /* ── Móvil/tablet: tope blanco + header + segmented ── */
+  cabeceraCap: {
+    backgroundColor: colors.bg.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border.subtle,
+  },
   cabeceraMovil: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     gap: spacing.md,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
-    paddingBottom: spacing.xs,
+    paddingBottom: spacing.sm,
   },
   cabeceraTexto: {
     flex: 1,
     minWidth: 0,
-    gap: spacing.xs,
+    gap: 2,
   },
-  cabeceraMeta: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  cabeceraAlcance: { flexShrink: 1 },
   segmentoWrap: {
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    paddingBottom: spacing.md,
   },
   segmento: {
     flexDirection: 'row',
-    backgroundColor: colors.bg.sunken ?? colors.bg.surface,
+    backgroundColor: colors.bg.surface,
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
     borderRadius: radius.pill,
     padding: spacing.xs,
     gap: spacing.xs,
   },
   segmentoOpcion: { flex: 1 },
   segmentoPieza: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.xs,
     minHeight: touchTarget.min,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.xs,
     paddingVertical: spacing.xs,
     borderRadius: radius.pill,
   },
