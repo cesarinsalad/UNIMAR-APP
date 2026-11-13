@@ -8,6 +8,10 @@ describe('rutaPermitidaStaffWeb', () => {
     expect(rutaPermitidaStaffWeb('/gestion/comunicados')).toBe(true);
   });
 
+  it('la bandeja de notificaciones pasa para staff', () => {
+    expect(rutaPermitidaStaffWeb('/notificaciones')).toBe(true);
+  });
+
   it('el flujo editorial pasa: editores y detalles por uuid', () => {
     expect(rutaPermitidaStaffWeb('/comunicados/nuevo')).toBe(true);
     expect(rutaPermitidaStaffWeb('/comunicados/nuevo?id=abc')).toBe(true);
@@ -25,7 +29,6 @@ describe('rutaPermitidaStaffWeb', () => {
     expect(rutaPermitidaStaffWeb('/comunicados/listado')).toBe(false);
     expect(rutaPermitidaStaffWeb('/eventos/listado')).toBe(false);
     expect(rutaPermitidaStaffWeb('/')).toBe(false);
-    expect(rutaPermitidaStaffWeb('/notificaciones')).toBe(false);
     expect(rutaPermitidaStaffWeb('/academico/pensum')).toBe(false);
     expect(rutaPermitidaStaffWeb('/')).toBe(false);
   });
@@ -54,15 +57,15 @@ describe('evaluarAccesoWeb', () => {
     expect(evaluarAccesoWeb('/gestion', 'ESTUDIANTE')).toBe('bloquear');
   });
 
-  it('staff: fuera de gestión → irGestion (also desde /)', () => {
+  it('staff: fuera de gestión/notificaciones → irGestion (también desde /)', () => {
     expect(evaluarAccesoWeb('/', 'ADMIN')).toBe('irGestion');
-    expect(evaluarAccesoWeb('/notificaciones', 'COMUNICADOR')).toBe('irGestion');
     expect(evaluarAccesoWeb('/academico/pensum', 'ADMIN')).toBe('irGestion');
   });
 
-  it('staff: consola y flujo editorial pasan', () => {
+  it('staff: consola, flujo editorial y notificaciones pasan', () => {
     expect(evaluarAccesoWeb('/gestion', 'COMUNICADOR')).toBe('pasar');
     expect(evaluarAccesoWeb('/gestion?seccion=eventos', 'ADMIN')).toBe('pasar');
+    expect(evaluarAccesoWeb('/notificaciones', 'COMUNICADOR')).toBe('pasar');
     expect(evaluarAccesoWeb('/comunicados/nuevo', 'COMUNICADOR')).toBe('pasar');
     expect(
       evaluarAccesoWeb(

@@ -13,17 +13,19 @@ export type ResultadoAccesoWeb = 'pasar' | 'irGestion' | 'bloquear';
  *   con su guard de token; la compuerta no duplica esa decisión.
  * - ESTUDIANTE autenticado en web: bloquear → pantalla "UNIMARapp es
  *   para tu teléfono" (no se muestra el feed/tabs desde el navegador).
- * - Staff (COMUNICADOR/ADMIN): solo la consola y su flujo editorial pasan;
- *   cualquier otra ruta (incluida `/`) → volver a la consola.
+ * - Staff (COMUNICADOR/ADMIN): la consola, su flujo editorial y la bandeja
+ *   de notificaciones pasan; cualquier otra ruta (incluida `/`) → volver a
+ *   la consola.
  */
 /** Las rutas que el staff puede abrir en navegador: la consola de
- * Gestión (y sus deep-links ?seccion/?estado) + el flujo editorial
- * (editores `nuevo` y detalles por uuid). El resto (feed, agenda, tabs,
- * `mis`, notificaciones, académico) rebota a la consola. */
+ * Gestión (y sus deep-links ?seccion/?estado), el flujo editorial
+ * (editores `nuevo` y detalles por uuid) y la bandeja de notificaciones.
+ * El resto (feed, agenda, tabs, `mis`, académico) rebota a la consola. */
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function rutaPermitidaStaffWeb(pathname: string): boolean {
   if (pathname.startsWith('/gestion')) return true;
+  if (pathname.startsWith('/notificaciones')) return true;
   if (pathname.startsWith('/comunicados/nuevo') || pathname.startsWith('/eventos/nuevo')) {
     return true;
   }
