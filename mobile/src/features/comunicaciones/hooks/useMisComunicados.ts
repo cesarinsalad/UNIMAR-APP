@@ -7,11 +7,10 @@ import { PAGE_SIZE_COMUNICADOS } from './useComunicadosFeed';
 import type { EstadoComunicado } from '../types';
 
 /**
- * Listado de gestión por estado o "todos" (null = sin recorte de estado:
- * la RLS entrega todo el universo visible del rol). La RLS decide el
- * alcance: un ADMIN ve la cola GLOBAL del estado pedido (acá vive la cola
- * "Por revisar"); un COMUNICADOR solo los propios; un ESTUDIANTE obtiene
- * lista vacía para BORRADOR/PENDIENTE.
+ * Listado de gestión por estado o "todos" (null = sin recorte de estado).
+ * `gestion=true` activa el alcance editorial en el BFF: un ADMIN ve la
+ * cola global (acá vive "Por revisar"); un COMUNICADOR solo los autores
+ * de su decanato; un ESTUDIANTE obtiene lista vacía para BORRADOR/PENDIENTE.
  *
  * `filtro.q` (búsqueda server-side: título O cuerpo), `filtro.categoria` y
  * `filtro.decanatoId` (recorte del ADMIN) entran en la queryKey, así cada
@@ -35,6 +34,7 @@ export function useMisComunicados(
         q: filtro.q || undefined,
         categoria: filtro.categoria || undefined,
         decanatoId: filtro.decanatoId,
+        gestion: true,
         limit: PAGE_SIZE_COMUNICADOS,
         offset: pageParam as number,
       }),

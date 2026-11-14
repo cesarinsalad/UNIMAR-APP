@@ -9,6 +9,8 @@ export interface FiltroComunicados {
   q?: string;
   /** Alcance de un decanato (selector del ADMIN en gestión). */
   decanatoId?: number;
+  /** Cola de gestión: COMUNICADOR solo ve autores de su decanato. */
+  gestion?: boolean;
   limit: number;
   offset: number;
 }
@@ -27,6 +29,7 @@ export async function listarComunicados(
       categoria: filtro.categoria,
       q: filtro.q,
       decanato_id: filtro.decanatoId,
+      gestion: filtro.gestion ? 'true' : undefined,
       limit: filtro.limit,
       offset: filtro.offset,
     },

@@ -101,6 +101,7 @@ export function comunicadosRoutes(deps: ComunicadosRoutesDeps): Router {
         categoria: query.categoria,
         q: query.q,
         decanatoId: query.decanato_id,
+        gestion: query.gestion,
         limit: query.limit,
         offset: query.offset,
       });

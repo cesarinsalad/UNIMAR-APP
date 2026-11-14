@@ -110,6 +110,21 @@ function construirWhere(filtro: FiltroComunicados): {
        ))`,
     );
   }
+  if (filtro.gestion) {
+    params.push(filtro.gestion.autorId);
+    const autorParam = params.length;
+    if (filtro.gestion.decanatoId !== null) {
+      params.push(filtro.gestion.decanatoId);
+      where.push(
+        `(c.autor_id = $${autorParam}
+          OR c.autor_id IN (
+            SELECT u.id FROM usuarios u WHERE u.decanato_id = $${params.length}
+          ))`,
+      );
+    } else {
+      where.push(`c.autor_id = $${autorParam}`);
+    }
+  }
 
   return { whereSql: where.length > 0 ? `WHERE ${where.join(' AND ')}` : '', params };
 }

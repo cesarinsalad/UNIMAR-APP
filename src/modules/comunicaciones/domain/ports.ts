@@ -17,6 +17,12 @@ export interface FiltroListadoComunicados {
    * en la consola de gestión; RLS ya recorta el universe visible antes.
    */
   decanatoId?: number;
+  /**
+   * Alcance de gestión de un COMUNICADOR: solo comunicados creados por
+   * usuarios de su decanato (o por él mismo si no tiene decanato).
+   * El feed público no lo envía.
+   */
+  gestion?: { autorId: string; decanatoId: number | null };
 }
 
 /**

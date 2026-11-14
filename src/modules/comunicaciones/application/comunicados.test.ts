@@ -563,6 +563,27 @@ describe('ListarComunicados', () => {
     expect((listar!.args[0] as { decanatoId?: number }).decanatoId).toBe(3);
     expect((contar!.args[0] as { decanatoId?: number }).decanatoId).toBe(3);
   });
+
+  it('gestion=true acota al COMUNICADOR a su decanato y no toca al ADMIN', async () => {
+    const { repo, calls } = makeRepo();
+    const uc = new ListarComunicados(repo, makeUnitOfWork());
+
+    await uc.ejecutar(makeComComunicador('uuid-c', 5), {
+      gestion: true,
+      limit: 10,
+      offset: 0,
+    });
+    const listar = calls.find((c) => c.method === 'listar');
+    expect((listar!.args[0] as { gestion?: { autorId: string; decanatoId: number | null } }).gestion)
+      .toEqual({ autorId: 'uuid-c', decanatoId: 5 });
+
+    calls.length = 0;
+    await uc.ejecutar(makeAdminClaims(), { gestion: true, limit: 10, offset: 0 });
+    const listarAdmin = calls.find((c) => c.method === 'listar');
+    expect(
+      (listarAdmin!.args[0] as { gestion?: { autorId: string; decanatoId: number | null } }).gestion,
+    ).toBeUndefined();
+  });
 });
 
 describe('ConteosComunicados', () => {

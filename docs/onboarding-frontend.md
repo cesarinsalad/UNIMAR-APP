@@ -149,7 +149,7 @@ enviarlo en el header `Authorization` de los demás requests.
 | Método | Ruta | Rol | Descripción |
 |--------|------|-----|-------------|
 | POST | `/comunicados` | COMUNICADOR | Crear (body: `titulo`, `cuerpo` [Markdown], `decanato_ids`[], `programado_para`?, `expira_at`?) |
-| GET | `/comunicados?estado=&categoria=&q=&limit=&offset=` | todos | Listar visibles. **Wire: `{ items, total }`** — el total viene del count bajo las mismas claims (RLS), paginación con fin exacto. `q` busca por título **o cuerpo** (ILIKE, máx 100 chars). `limit` 1-100 (default 20). |
+| GET | `/comunicados?estado=&categoria=&q=&decanato_id=&gestion=&limit=&offset=` | todos | Listar visibles. **Wire: `{ items, total }`** — el total viene del count bajo las mismas claims (RLS), paginación con fin exacto. `q` busca por título **o cuerpo** (ILIKE, máx 100 chars). `gestion=true` acota al COMUNICADOR a autores de su decanato; el ADMIN conserva la cola global. `limit` 1-100 (default 20). |
 | GET | `/comunicados/conteos` | COMUNICADOR | Resumen del Panel bajo RLS — `{ BORRADOR, PENDIENTE, PUBLICADO, ARCHIVADO, tasaLecturaPromedio30d, publicacionesAnalizadas, recientes[] }`. La tasa y los `recientes` agregan publicados de los últimos 30 días; la función SQL aplica el alcance del rol sin exponer lectores individuales. |
 | GET | `/comunicados/:id` | todos | Detalle (registra lectura si no eres autor) |
 | PATCH | `/comunicados/:id` | autor/ADMIN | Editar (solo BORRADOR/PUBLICADO) |

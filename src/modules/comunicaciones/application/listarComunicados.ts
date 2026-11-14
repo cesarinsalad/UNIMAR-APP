@@ -35,14 +35,25 @@ export class ListarComunicados {
       q?: string;
       /** Alcance de un decanato (el ADMIN recorta en la consola de gestión). */
       decanatoId?: number;
+      /** Cola de gestión: para COMUNICADOR, autores de su decanato. */
+      gestion?: boolean;
       limit: number;
       offset: number;
     },
   ): Promise<PaginaComunicados> {
+    const { gestion, ...resto } = filtro;
+    const filtroRepo = {
+      ...resto,
+      gestion:
+        gestion && claims.role === 'COMUNICADOR'
+          ? { autorId: claims.sub, decanatoId: claims.decanato_id }
+          : undefined,
+    };
+
     return this.uow.runAs(claims, async (tx) => {
       const [items, total] = await Promise.all([
-        this.repo.listar(tx, filtro),
-        this.repo.contar(tx, filtro),
+        this.repo.listar(tx, filtroRepo),
+        this.repo.contar(tx, filtroRepo),
       ]);
       return { items, total };
     });

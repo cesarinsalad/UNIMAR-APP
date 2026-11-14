@@ -60,6 +60,8 @@ export const listarComunicadosQuerySchema = z.object({
   q: z.string().trim().min(1, 'La búsqueda no puede quedar vacía').max(100, 'Máximo 100 caracteres').optional(),
   /** Alcance de un decanato (selector del ADMIN en la consola de gestión). */
   decanato_id: z.coerce.number().int().positive('ID de decanato inválido').optional(),
+  /** Cola de gestión: un COMUNICADOR solo ve autores de su decanato. */
+  gestion: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   offset: z.coerce.number().int().min(0).default(0),
 });
