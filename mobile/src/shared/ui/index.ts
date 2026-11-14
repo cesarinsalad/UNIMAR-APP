@@ -47,4 +47,4 @@ export {
 export type { Breakpoint } from './useBreakpoint';
 export { BadgeEstado, type BadgeEstadoProps } from './BadgeEstado';
 export { TablaDatos, Celda, estiloColumna, type TablaDatosProps, type ColumnaTabla } from './TablaDatos';
-export { MenuAcciones, HojaMenuAcciones, type MenuAccionesProps, type AccionGestionItem, type PesoIcono } from './MenuAcciones';
+export { MenuAcciones, HojaMenuAcciones, CeldaConMenu, ContextoMenuAbierto, type MenuAccionesProps, type AccionGestionItem, type PesoIcono } from './MenuAcciones';

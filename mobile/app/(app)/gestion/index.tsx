@@ -82,10 +82,13 @@ export default function ConsolaGestionScreen() {
   const [seccion, setSeccion] = useState<Seccion>(
     seccionParam ? seccionDeParam(String(seccionParam)) : 'resumen',
   );
+  // Sin ?estado= válido se aterriza en "Todos" (''): la consola del staff
+  // no debe abrir sesgada a Borradores. Los KPIs del Resumen siguen
+  // eligiendo su estado explícitamente con irCola.
   const [estadoCola, setEstadoCola] = useState<EstadoCola>(
     (ESTADOS_VALIDOS as string[]).includes(estadoParam ?? '')
       ? (estadoParam as EstadoComunicado)
-      : 'BORRADOR',
+      : '',
   );
   // Modo de la sección de eventos: lista, creación o edición inline (el
   // formulario propio de la consola vive dentro del shell, sin navegar).
@@ -98,6 +101,17 @@ export default function ConsolaGestionScreen() {
   function irCola(estado: EstadoComunicado) {
     setEstadoCola(estado);
     setSeccion('comunicados');
+  }
+
+  /**
+   * Nav de secciones: entrar a Comunicados desde otra sección aterriza en
+   * "Todos" — el chip activo no se arrastra de la visita anterior. Dentro
+   * de Comunicados, tocar la tab no borra el filtro que el usuario eligió;
+   * los KPIs del Resumen fijan su estado por irCola.
+   */
+  function irSeccion(destino: Seccion) {
+    if (destino === 'comunicados' && seccion !== 'comunicados') setEstadoCola('');
+    setSeccion(destino);
   }
 
   function irEventos() {
@@ -147,7 +161,7 @@ export default function ConsolaGestionScreen() {
                   key={clave}
                   accessibilityRole="tab"
                   accessibilityState={{ selected: activo }}
-                  onPress={() => setSeccion(clave)}>
+                  onPress={() => irSeccion(clave)}>
                   <ThemedView variant={activo ? 'elevated' : 'base'} style={estilos.itemNav}>
                     <Icono
                       size={20}
@@ -217,15 +231,12 @@ export default function ConsolaGestionScreen() {
           </BotonCircular>
           <View style={estilos.cabeceraTexto}>
             <ThemedText variant="title" weight="semibold" numberOfLines={2}>
-              {permisos.esAdmin ? 'Consola Central de Gestión' : 'Gestión Decanal'}
-            </ThemedText>
-            <ThemedText variant="caption" tone="secondary" numberOfLines={1}>
-              {permisos.esAdmin ? 'Alcance institucional' : 'Alcance de tu decanato'}
+              Gestión
             </ThemedText>
           </View>
         </View>
 
-        <SegmentoNavegacion seccion={seccion} onSelect={setSeccion} />
+        <SegmentoNavegacion seccion={seccion} onSelect={irSeccion} />
       </View>
       <View style={estilos.contenido}>{seccionActiva}</View>
     </View>

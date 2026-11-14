@@ -37,6 +37,7 @@ export function HojaInferior({ abierto, onCerrar, children }: HojaInferiorProps)
           <ScrollView
             style={estilos.scroll}
             contentContainerStyle={estilos.contenido}
+            keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}>
             {children?.({ cerrar: onCerrar })}
           </ScrollView>

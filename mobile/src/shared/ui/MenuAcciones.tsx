@@ -1,5 +1,13 @@
-import { useState, type ComponentType } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { createContext, useContext, useState, type ComponentType, type ReactNode } from 'react';
+import {
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+  type LayoutChangeEvent,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import type { IconWeight } from 'phosphor-react-native';
 
 import { colors, radius, spacing, touchTarget } from './theme';
@@ -24,6 +32,13 @@ export interface MenuAccionesProps {
   acciones: AccionGestionItem[];
   /** Acción elegida. El caller ejecuta y gestiona su propio vuelo/errores. */
   onElegir: (clave: string) => void;
+  /**
+   * Modo controlado (opcional): la sección dueña necesita saber QUÉ fila
+   * tiene el menú abierto para elevar esa celda del listado (ver
+   * `ContextoMenuAbierto`); sin estos props el menú es dueño de su estado.
+   */
+  abierto?: boolean;
+  onAbiertoChange?: (abierto: boolean) => void;
 }
 
 /**
@@ -70,10 +85,25 @@ export function HojaMenuAcciones({
  * matriz de permisos ANTES (ocultar es la UX del sistema; el servidor
  * tiene la última palabra).
  */
-export function MenuAcciones({ acciones, onElegir }: MenuAccionesProps) {
+export function MenuAcciones({
+  acciones,
+  onElegir,
+  abierto: abiertoControl,
+  onAbiertoChange,
+}: MenuAccionesProps) {
   const esDesktop = useEsDesktop();
-  const [abierto, setAbierto] = useState(false);
-  const cerrar = () => setAbierto(false);
+  const [abiertoInterno, setAbiertoInterno] = useState(false);
+  const abierto = abiertoControl ?? abiertoInterno;
+
+  function abrir() {
+    setAbiertoInterno(true);
+    onAbiertoChange?.(true);
+  }
+
+  function cerrar() {
+    setAbiertoInterno(false);
+    onAbiertoChange?.(false);
+  }
 
   function elegir(clave: string) {
     cerrar();
@@ -90,7 +120,7 @@ export function MenuAcciones({ acciones, onElegir }: MenuAccionesProps) {
         accessibilityRole="button"
         accessibilityLabel="Más acciones"
         hitSlop={spacing.sm}
-        onPress={() => setAbierto(true)}>
+        onPress={abrir}>
         <View style={styles.boton}>
           <MenuIcono />
         </View>
@@ -115,6 +145,46 @@ export function MenuAcciones({ acciones, onElegir }: MenuAccionesProps) {
           {() => <View style={styles.hojaContenido}>{listaAcciones}</View>}
         </HojaInferior>
       )}
+    </View>
+  );
+}
+
+/**
+ * Apilamiento web (RN-web): cada View pinta con `position: relative;
+ * z-index: 0`, o sea que CADA celda de un listado es su propio stacking
+ * context y el dropdown del `⋮` — por más zIndex propio — nunca sale del
+ * de su fila: las filas siguientes (mismo z-index 0, después en el DOM)
+ * pintan encima y tapan el menú. El antídoto es elevar la CELDA cuyo
+ * menú está abierto: las secciones guardan qué fila lo tiene (estado
+ * propio), lo publican por este contexto y montan `CeldaConMenu` como
+ * `CellRendererComponent` del FlatList, que aplica el desempate a la
+ * celda misma (el nivel donde las filas son hermanas).
+ */
+export const ContextoMenuAbierto = createContext<string | null>(null);
+
+export interface CeldaConMenuProps {
+  /** El item de la celda (solo importa su `id`). */
+  item?: { id: string };
+  style?: StyleProp<ViewStyle>;
+  children?: ReactNode;
+  /** Los handlers se reenvían tal cual el CellRenderer del FlatList los
+   *  necesita (medición de celda, resaltado de separadores). */
+  onLayout?: (e: LayoutChangeEvent) => void;
+  /** Tipo espejo del CellRendererProps del VirtualizedList (su FocusEvent
+   *  resuelve al global del DOM por la ambigüedad de los export * de RN). */
+  onFocusCapture?: (e: FocusEvent) => void;
+}
+
+/** Wrapper de `CellRendererComponent` que sube la celda con el menú
+ *  abierto por encima de sus hermanas. En web lo pinta el orden del DOM
+ *  si nadie desempata; en nativo el zIndex de la celda desempata igual,
+ *  así el dropdown es seguro también en tablet. */
+export function CeldaConMenu({ item, style, children, ...resto }: CeldaConMenuProps) {
+  const idAbierto = useContext(ContextoMenuAbierto);
+  const enCima = item !== undefined && idAbierto === item.id;
+  return (
+    <View style={[style, enCima && styles.celdaEnCima]} {...resto}>
+      {children}
     </View>
   );
 }
@@ -163,7 +233,16 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
   },
   cortinaWeb: {
-    position: 'absolute' as const,
+    // Web: `fixed` (honrado por RN-web aunque RN no lo tipa) saca la
+    // cortina del containing block de la celda — cada View es relative
+    // en web, así el absolute la encerraba en los 48px del botón y el
+    // click-fuera nunca cerraba. En nativo el absolute basta.
+    ...Platform.select({
+      // RN no tipa `fixed` (el runtime web sí lo honra): el cast doble lo
+      // declara para TS sin tocar el valor que llega al DOM.
+      web: { position: 'fixed' } as unknown as { position: 'absolute' },
+      default: { position: 'absolute' },
+    }),
     top: 0,
     left: 0,
     right: 0,
@@ -179,6 +258,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     zIndex: 11,
   },
+  /** Desempate de la celda con menú abierto (ver ContextoMenuAbierto):
+   *  cualquier positivo supera al z-index 0 base de sus hermanas. */
+  celdaEnCima: { zIndex: 20 },
   hojaContenido: { gap: spacing.xs },
   gotasWrap: {
     flexDirection: 'row',

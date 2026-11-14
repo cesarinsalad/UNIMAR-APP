@@ -117,7 +117,10 @@ export function Celda({
 }
 
 export function estiloColumna({ flex, width, align }: ColumnaTabla): ViewStyle {
-  const base: ViewStyle = { justifyContent: align === 'right' ? 'flex-end' : 'flex-start' };
+  // La celda es un flex en COLUMNA: el eje horizontal es `alignItems`;
+  // `justifyContent` ahí movería el eje vertical y el `align: 'right'`
+  // no alinearía el texto (dejaba el rótulo pegado a la izquierda).
+  const base: ViewStyle = { alignItems: align === 'right' ? 'flex-end' : 'flex-start' };
   // `width` GANA sobre flex (dato corto: fecha, badge): evita que el flex
   // comprima la columna en pantallas tablet angostas.
   if (width !== undefined) {

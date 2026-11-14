@@ -352,6 +352,7 @@ export default function FormularioEventoScreen() {
               }))}
               onChange={setRecordatorio}
               placeholder="Sin alerta"
+              titulo="Alerta de recordatorio"
             />
           </Campo>
 

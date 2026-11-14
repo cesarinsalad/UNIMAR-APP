@@ -33,9 +33,11 @@ import { aplanarPaginas } from '@/shared/lib/paginar';
 import { FORMATO_FECHA_CORTO_CON_DIA } from '@/shared/lib/formatos';
 import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
 import { ApiError } from '@/shared/api/axios';
-import { colors, elevation, radius, spacing } from '@/shared/ui';
+import { colors, elevation, fontFamily, radius, spacing } from '@/shared/ui';
 import {
+  CeldaConMenu,
   Chip,
+  ContextoMenuAbierto,
   EmptyState,
   EstadoCentrado,
   HojaMenuAcciones,
@@ -150,6 +152,9 @@ export function EventosSeccion({ modo, onModo }: EventosSeccionProps) {
   const [erroresFila, setErroresFila] = useState<{ [id: string]: string }>({});
   const [porBorrar, setPorBorrar] = useState<Evento | null>(null);
   const [porAcciones, setPorAcciones] = useState<Evento | null>(null);
+  /** Fila con el `⋮` abierto (desktop): la celda se eleva por contexto
+   *  para que el dropdown pinte encima de sus hermanas en web. */
+  const [menuAbiertoId, setMenuAbiertoId] = useState<string | null>(null);
 
   function limpiarErrorFila(id: string) {
     setErroresFila((prev) => {
@@ -224,6 +229,8 @@ export function EventosSeccion({ modo, onModo }: EventosSeccionProps) {
           evento={item}
           borrando={borrando}
           acciones={accionesPara(item)}
+          menuAbierto={menuAbiertoId === item.id}
+          onMenuAbierto={(abierto) => setMenuAbiertoId(abierto ? item.id : null)}
           onAbrir={() => verDetalle(item)}
           onElegir={(clave) => elegirAccion(clave, item)}
         />
@@ -317,45 +324,48 @@ export function EventosSeccion({ modo, onModo }: EventosSeccionProps) {
           />
         </EstadoCentrado>
       ) : (
-        <FlatList
-          data={gestionables}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={[
-            esDesktop ? estilos.contenidoTabla : estilos.contenido,
-            { paddingBottom: insets.bottom + spacing.xxl },
-          ]}
-          ListEmptyComponent={
-            conFiltros ? (
-              <EmptyState
-                title="Sin eventos con ese filtro"
-                message="Ajusta la búsqueda o el filtro de categoría."
+        <ContextoMenuAbierto.Provider value={menuAbiertoId}>
+          <FlatList
+            data={gestionables}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            CellRendererComponent={CeldaConMenu}
+            contentContainerStyle={[
+              esDesktop ? estilos.contenidoTabla : estilos.contenido,
+              { paddingBottom: insets.bottom + spacing.xxl },
+            ]}
+            ListEmptyComponent={
+              conFiltros ? (
+                <EmptyState
+                  title="Sin eventos con ese filtro"
+                  message="Ajusta la búsqueda o el filtro de categoría."
+                />
+              ) : (
+                <EmptyState
+                  title="Sin eventos oficiales"
+                  message="No hay oficiales ni institucionales que gestionar en los próximos 90 días. Los eventos personales se crean desde la app."
+                />
+              )
+            }
+            ListFooterComponent={
+              porVentana.isFetchingNextPage ? (
+                <ThemedText variant="caption" tone="tertiary" style={estilos.footer}>
+                  Cargando más eventos...
+                </ThemedText>
+              ) : null
+            }
+            onEndReached={paginar}
+            onEndReachedThreshold={0.35}
+            refreshControl={
+              <RefreshControl
+                refreshing={porVentana.isRefetching}
+                onRefresh={() => void porVentana.refetch()}
+                colors={[colors.brand.primary]}
+                tintColor={colors.brand.primary}
               />
-            ) : (
-              <EmptyState
-                title="Sin eventos oficiales"
-                message="No hay oficiales ni institucionales que gestionar en los próximos 90 días. Los eventos personales se crean desde la app."
-              />
-            )
-          }
-          ListFooterComponent={
-            porVentana.isFetchingNextPage ? (
-              <ThemedText variant="caption" tone="tertiary" style={estilos.footer}>
-                Cargando más eventos...
-              </ThemedText>
-            ) : null
-          }
-          onEndReached={paginar}
-          onEndReachedThreshold={0.35}
-          refreshControl={
-            <RefreshControl
-              refreshing={porVentana.isRefetching}
-              onRefresh={() => void porVentana.refetch()}
-              colors={[colors.brand.primary]}
-              tintColor={colors.brand.primary}
-            />
-          }
-        />
+            }
+          />
+        </ContextoMenuAbierto.Provider>
       )}
 
       {/* Hoja de acciones única (móvil). */}
@@ -395,12 +405,17 @@ function FilaTabla({
   evento,
   borrando,
   acciones,
+  menuAbierto,
+  onMenuAbierto,
   onAbrir,
   onElegir,
 }: {
   evento: Evento;
   borrando: boolean;
   acciones: AccionGestionItem[];
+  /** El estado del `⋮` lo dueña la sección (eleva la celda abierta). */
+  menuAbierto: boolean;
+  onMenuAbierto: (abierto: boolean) => void;
   onAbrir: () => void;
   onElegir: (clave: string) => void;
 }) {
@@ -441,7 +456,12 @@ function FilaTabla({
         </Pressable>
         <View style={estilos.celdaMenu}>
           {!borrando ? (
-            <MenuAcciones acciones={acciones} onElegir={onElegir} />
+            <MenuAcciones
+              acciones={acciones}
+              abierto={menuAbierto}
+              onAbiertoChange={onMenuAbierto}
+              onElegir={onElegir}
+            />
           ) : null}
         </View>
       </ThemedView>
@@ -585,8 +605,9 @@ const estilos = StyleSheet.create({
   },
   inputBusqueda: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 14,
     color: colors.text.primary,
+    fontFamily: fontFamily.regular,
     paddingVertical: 0,
   },
   filaTipos: {

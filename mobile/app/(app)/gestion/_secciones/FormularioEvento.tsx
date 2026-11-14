@@ -374,6 +374,7 @@ export function FormularioEvento({
               }))}
               onChange={setRecordatorio}
               placeholder="Sin alerta"
+              titulo="Alerta de recordatorio"
             />
           </View>
         </Fila>

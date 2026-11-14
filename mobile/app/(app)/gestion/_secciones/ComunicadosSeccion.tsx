@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
   Pressable,
@@ -39,15 +39,15 @@ import { accionesPermitidas } from '@/features/comunicaciones/hooks/accionesPerm
 import { usePermisos } from '@/features/identidad/hooks/usePermisos';
 import { useDecanatos } from '@/features/identidad/hooks/useDecanatos';
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
-import { etiquetaAudiencia } from '@/shared/lib/etiquetas';
 import { ApiError } from '@/shared/api/axios';
 import { aplanarPaginas } from '@/shared/lib/paginar';
 import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
 import { FORMATO_FECHA_MEDIO } from '@/shared/lib/formatos';
-import { colors, radius, spacing } from '@/shared/ui';
+import { colors, fontFamily, radius, spacing } from '@/shared/ui';
 import {
   BadgeEstado,
-  Chip,
+  CeldaConMenu,
+  ContextoMenuAbierto,
   EstadoCentrado,
   HojaMenuAcciones,
   MenuAcciones,
@@ -89,12 +89,23 @@ const CATEGORIAS_COLA: { valor: string; etiqueta: string }[] = [
 
 const COLUMNAS: ColumnaTabla[] = [
   { titulo: 'Publicación', flex: 2.2 },
+  { titulo: 'Estado', width: 118 },
   { titulo: 'Autor', flex: 1 },
   { titulo: 'Dirigido a', flex: 1 },
   { titulo: 'Fecha', width: 100 },
   { titulo: 'Lecturas', width: 104, align: 'right' },
   { titulo: '', width: 48, align: 'right' },
 ];
+
+function etiquetaAudienciaComunicado(
+  decanatoIds: number[],
+  nombres: ReadonlyMap<number, string>,
+): string {
+  if (decanatoIds.length === 0) return 'Toda la universidad';
+  return decanatoIds
+    .map((id) => nombres.get(id) ?? `Decanato ${id}`)
+    .join(', ');
+}
 
 export interface ComunicadosSeccionProps {
   /** El estado lo dueña la consola (deep-link ?estado=). */
@@ -117,6 +128,10 @@ export function ComunicadosSeccion({ estado, onEstado }: ComunicadosSeccionProps
   const permisos = usePermisos();
   const usuario = useSesionStore((s) => s.usuario);
   const decanatos = useDecanatos();
+  const nombresDecanatos = useMemo(
+    () => new Map((decanatos.data ?? []).map((d) => [d.id, d.nombre])),
+    [decanatos.data],
+  );
 
   const [textoBusqueda, setTextoBusqueda] = useState('');
   const busqueda = useDebouncedValue(textoBusqueda.trim());
@@ -139,6 +154,7 @@ export function ComunicadosSeccion({ estado, onEstado }: ComunicadosSeccionProps
   // Total exacto del BFF (count bajo RLS); para la cola derivada la cuenta
   // la da el filtro cliente (cotas de páginas cargadas, honesto).
   const totalCola = soloDevueltos ? comunicados.length : totalDeCola(query);
+  const etiquetaTotal = totalCola === 1 ? '1 comunicado' : `${totalCola} comunicados`;
 
   // UNA transición compuesta para las 6 acciones (el detalle usa el mismo
   // patrón): optimistic removal por id + invalidate del prefijo al éxito.
@@ -150,6 +166,9 @@ export function ComunicadosSeccion({ estado, onEstado }: ComunicadosSeccionProps
   const [porRechazar, setPorRechazar] = useState<Comunicado | null>(null);
   const [errorRechazo, setErrorRechazo] = useState<string | null>(null);
   const [porAcciones, setPorAcciones] = useState<Comunicado | null>(null);
+  /** Fila con el `⋮` abierto (desktop): la celda se eleva por contexto
+   *  para que el dropdown pinte encima de sus hermanas en web. */
+  const [menuAbiertoId, setMenuAbiertoId] = useState<string | null>(null);
 
   const ocupado = transicion.isPending;
 
@@ -242,14 +261,18 @@ export function ComunicadosSeccion({ estado, onEstado }: ComunicadosSeccionProps
   }
 
   function renderItem({ item }: ListRenderItemInfo<Comunicado>) {
+    const audiencia = etiquetaAudienciaComunicado(item.decanatoIds, nombresDecanatos);
     if (esDesktop) {
       return (
         <FilaCola
           comunicado={item}
+          audiencia={audiencia}
           acciones={accionesPara(item)}
           ocupado={ocupado}
           enVuelo={filaEnVuelo === item.id}
           error={erroresFila[item.id]}
+          menuAbierto={menuAbiertoId === item.id}
+          onMenuAbierto={(abierto) => setMenuAbiertoId(abierto ? item.id : null)}
           onAbrir={() => router.navigate(`/comunicados/${item.id}` as never)}
           onElegir={(clave) => elegirAccion(clave, item)}
         />
@@ -258,6 +281,7 @@ export function ComunicadosSeccion({ estado, onEstado }: ComunicadosSeccionProps
     return (
       <TarjetaCola
         comunicado={item}
+        audiencia={audiencia}
         onAbrir={() => router.navigate(`/comunicados/${item.id}` as never)}
         onMenu={() => setPorAcciones(item)}
       />
@@ -266,32 +290,7 @@ export function ComunicadosSeccion({ estado, onEstado }: ComunicadosSeccionProps
 
   return (
     <ThemedView variant="base" style={estilos.container}>
-      {/* Chips de estado + "N en la cola" compartiendo fila fija. */}
-      <View style={estilos.chips}>
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={CHIPS}
-          keyExtractor={(chip) => chip.clave}
-          renderItem={({ item: chip }) => (
-            <Chip
-              key={chip.clave}
-              etiqueta={chip.etiqueta}
-              activa={estado === chip.clave}
-              onPress={() => onEstado(chip.clave)}
-              size="sm"
-            />
-          )}
-          contentContainerStyle={estilos.chipsFila}
-        />
-        {!query.isPending && !query.isError ? (
-          <ThemedText variant="caption" tone="secondary" style={estilos.totalCola}>
-            {`${totalCola} comunicados`}
-          </ThemedText>
-        ) : null}
-      </View>
-
-      {/* Búsqueda server-side (título O cuerpo) + decanato (solo ADMIN). */}
+      {/* Búsqueda server-side (título O cuerpo). */}
       <View style={estilos.filtros}>
         <View style={estilos.campoBusqueda}>
           <MagnifyingGlassIcon size={18} color={colors.text.secondary} />
@@ -318,31 +317,51 @@ export function ComunicadosSeccion({ estado, onEstado }: ComunicadosSeccionProps
           ) : null}
         </View>
       </View>
+
+      {/* Los tres filtros son dropdowns: estado, categoría y decanato (solo
+          ADMIN — al comunicador su RLS ya le acota el alcance). El contador
+          de la cola cierra la fila, alineado a la derecha. */}
       <View style={estilos.filaFiltrosAbajo}>
+        <View style={[estilos.selectEstado, !esDesktop && estilos.selectMovil]}>
+          <Select<EstadoCola>
+            valor={estado}
+            opciones={CHIPS.map((chip) => ({ valor: chip.clave, etiqueta: chip.etiqueta }))}
+            onChange={onEstado}
+            placeholder="Estado"
+            valorPlaceholder=""
+            titulo="Estado de la publicación"
+          />
+        </View>
+        <View style={[estilos.selectCategoria, !esDesktop && estilos.selectMovil]}>
+          <Select<string>
+            valor={categoria}
+            opciones={CATEGORIAS_COLA.map((c) => ({ valor: c.valor, etiqueta: c.etiqueta }))}
+            onChange={setCategoria}
+            placeholder="Categoría"
+            valorPlaceholder=""
+            titulo="Categoría"
+          />
+        </View>
         {permisos.esAdmin ? (
           <View style={estilos.selectDecanato}>
             <Select<number | null>
               valor={decanatoFiltro}
               opciones={[
-                { valor: null, etiqueta: 'Todos los decanatos' },
+                { valor: null, etiqueta: 'Todos' },
                 ...(decanatos.data ?? []).map((d) => ({ valor: d.id, etiqueta: d.nombre })),
               ]}
               onChange={setDecanatoFiltro}
-              placeholder="Todos los decanatos"
+              placeholder="Decanato"
+              valorPlaceholder={null}
+              titulo="Decanato"
             />
           </View>
         ) : null}
-        <View style={estilos.chipsCategoria}>
-          {CATEGORIAS_COLA.map((chip) => (
-            <Chip
-              key={chip.valor}
-              etiqueta={chip.etiqueta}
-              activa={categoria === chip.valor}
-              onPress={() => setCategoria(chip.valor)}
-              size="sm"
-            />
-          ))}
-        </View>
+        {!query.isPending && !query.isError ? (
+          <ThemedText variant="caption" tone="secondary" style={estilos.totalCola}>
+            {etiquetaTotal}
+          </ThemedText>
+        ) : null}
       </View>
 
       {query.isPending ? (
@@ -353,74 +372,77 @@ export function ComunicadosSeccion({ estado, onEstado }: ComunicadosSeccionProps
           <ThemedButton title="Reintentar" variant="secondary" size="sm" onPress={() => void query.refetch()} />
         </EstadoCentrado>
       ) : (
-        <FlatList
-          // Desktop También FlatList (la paginación y el esqueleto SON la
-          // misma receta): la "tabla" la compone el ListHeader.
-          data={comunicados}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={[
-            esDesktop ? estilos.contenidoTabla : estilos.contenido,
-            { paddingBottom: insets.bottom + spacing.xxl },
-          ]}
-          ListHeaderComponent={esDesktop ? (comunicados.length > 0 ? <CabeceraTabla /> : null) : null}
-          ListEmptyComponent={
-            textoBusqueda || categoria || (decanatoFiltro !== null && permisos.esAdmin) ? (
-              <EstadoCentrado>
-                <ThemedText variant="bodyLg" weight="semibold">
-                  Sin resultados
-                </ThemedText>
-                <ThemedText tone="secondary">
-                  Ajusta la búsqueda o los filtros.
-                </ThemedText>
-              </EstadoCentrado>
-            ) : soloDevueltos ? (
-              <EstadoCentrado>
-                <ThemedText variant="bodyLg" weight="semibold">
-                  Nada devuelto
-                </ThemedText>
-                <ThemedText tone="secondary">
-                  No hay comunicados con observaciones pendientes.
-                </ThemedText>
-              </EstadoCentrado>
-            ) : (
-              <EstadoCentrado>
-                <ThemedText variant="bodyLg" weight="semibold">
-                  Nada aquí
-                </ThemedText>
-                <ThemedText tone="secondary">
-                  No hay comunicados en este estado.
-                </ThemedText>
-                <ThemedButton
-                  title="Crear comunicado"
-                  size="sm"
-                  onPress={() => router.push('/comunicados/nuevo' as never)}
-                />
-              </EstadoCentrado>
-            )
-          }
-          ListFooterComponent={
-            query.isFetchingNextPage ? (
-              <ThemedText variant="caption" tone="tertiary" style={estilos.footer}>
-                Cargando más...
-              </ThemedText>
-            ) : null
-          }
-          onEndReached={() => {
-            if (query.hasNextPage && !query.isFetchingNextPage) {
-              void query.fetchNextPage();
+        <ContextoMenuAbierto.Provider value={menuAbiertoId}>
+          <FlatList
+            // Desktop También FlatList (la paginación y el esqueleto SON la
+            // misma receta): la "tabla" la compone el ListHeader.
+            data={comunicados}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            CellRendererComponent={CeldaConMenu}
+            contentContainerStyle={[
+              esDesktop ? estilos.contenidoTabla : estilos.contenido,
+              { paddingBottom: insets.bottom + spacing.xxl },
+            ]}
+            ListHeaderComponent={esDesktop ? (comunicados.length > 0 ? <CabeceraTabla /> : null) : null}
+            ListEmptyComponent={
+              textoBusqueda || categoria || (decanatoFiltro !== null && permisos.esAdmin) ? (
+                <EstadoCentrado>
+                  <ThemedText variant="bodyLg" weight="semibold">
+                    Sin resultados
+                  </ThemedText>
+                  <ThemedText tone="secondary">
+                    Ajusta la búsqueda o los filtros.
+                  </ThemedText>
+                </EstadoCentrado>
+              ) : soloDevueltos ? (
+                <EstadoCentrado>
+                  <ThemedText variant="bodyLg" weight="semibold">
+                    Nada devuelto
+                  </ThemedText>
+                  <ThemedText tone="secondary">
+                    No hay comunicados con observaciones pendientes.
+                  </ThemedText>
+                </EstadoCentrado>
+              ) : (
+                <EstadoCentrado>
+                  <ThemedText variant="bodyLg" weight="semibold">
+                    Nada aquí
+                  </ThemedText>
+                  <ThemedText tone="secondary">
+                    No hay comunicados en este estado.
+                  </ThemedText>
+                  <ThemedButton
+                    title="Crear comunicado"
+                    size="sm"
+                    onPress={() => router.push('/comunicados/nuevo' as never)}
+                  />
+                </EstadoCentrado>
+              )
             }
-          }}
-          onEndReachedThreshold={0.35}
-          refreshControl={
-            <RefreshControl
-              refreshing={query.isRefetching}
-              onRefresh={() => void query.refetch()}
-              colors={[colors.brand.primary]}
-              tintColor={colors.brand.primary}
-            />
-          }
-        />
+            ListFooterComponent={
+              query.isFetchingNextPage ? (
+                <ThemedText variant="caption" tone="tertiary" style={estilos.footer}>
+                  Cargando más...
+                </ThemedText>
+              ) : null
+            }
+            onEndReached={() => {
+              if (query.hasNextPage && !query.isFetchingNextPage) {
+                void query.fetchNextPage();
+              }
+            }}
+            onEndReachedThreshold={0.35}
+            refreshControl={
+              <RefreshControl
+                refreshing={query.isRefetching}
+                onRefresh={() => void query.refetch()}
+                colors={[colors.brand.primary]}
+                tintColor={colors.brand.primary}
+              />
+            }
+          />
+        </ContextoMenuAbierto.Provider>
       )}
 
       {/* Hoja de acciones ÚNICA (móvil): una instancia, filas eligen. */}
@@ -486,22 +508,37 @@ async function ejecutarTransicion(
 
 /* ── Tabla de escritorio ───────────────────────────────────────────────────── */
 
+/**
+ * Cabecera de la tabla: replica el layout de `FilaCola` — los datos viven
+ * en un bloque `flex: 1` y la celda de 48 del `⋮` es hermana suya. Si se
+ * pintaran las 7 columnas planas, los flex se repartirían también el
+ * hueco del menú (48 + gap) y todo lo posterior a las flexibles quedaría
+ * corrido a la izquierda: "Lecturas" dejaba de caer sobre el ojo.
+ */
 function CabeceraTabla() {
+  const columnasDatos = COLUMNAS.slice(0, -1);
+  const columnaMenu = COLUMNAS[COLUMNAS.length - 1];
   return (
     <View style={estilos.cabeceraTabla}>
-      {COLUMNAS.map((c, indice) => (
-        <View
-          key={c.titulo || `col-${indice}`}
-          style={{
-            width: c.width,
-            flex: c.width === undefined ? c.flex : undefined,
-            justifyContent: c.align === 'right' ? 'flex-end' : 'flex-start',
-          }}>
-          <ThemedText variant="caption" tone="tertiary">
-            {c.titulo}
-          </ThemedText>
-        </View>
-      ))}
+      <View style={estilos.cabeceraDatos}>
+        {columnasDatos.map((c, indice) => (
+          <View
+            key={c.titulo || `col-${indice}`}
+            style={{
+              width: c.width,
+              flex: c.width === undefined ? c.flex : undefined,
+              // Eje horizontal (la columna es flex en columna): `align`
+              // mueve los hijos, NO `justifyContent` (que en columna es
+              // vertical y dejaba "Lecturas" pegada a la izquierda).
+              alignItems: c.align === 'right' ? 'flex-end' : 'flex-start',
+            }}>
+            <ThemedText variant="caption" tone="tertiary">
+              {c.titulo}
+            </ThemedText>
+          </View>
+        ))}
+      </View>
+      <View style={{ width: columnaMenu?.width ?? 48 }} />
     </View>
   );
 }
@@ -509,18 +546,25 @@ function CabeceraTabla() {
 /** Fila tabla desktop: columnas + menú `⋮` limpio a la derecha. */
 function FilaCola({
   comunicado,
+  audiencia,
   acciones,
   ocupado,
   enVuelo,
   error,
+  menuAbierto,
+  onMenuAbierto,
   onAbrir,
   onElegir,
 }: {
   comunicado: Comunicado;
+  audiencia: string;
   acciones: AccionGestionItem[];
   ocupado: boolean;
   enVuelo: boolean;
   error?: string;
+  /** El estado del `⋮` lo dueña la sección (eleva la celda abierta). */
+  menuAbierto: boolean;
+  onMenuAbierto: (abierto: boolean) => void;
   onAbrir: () => void;
   onElegir: (clave: string) => void;
 }) {
@@ -532,23 +576,26 @@ function FilaCola({
           accessibilityLabel={`Abrir comunicado: ${comunicado.titulo}`}
           onPress={onAbrir}
           style={estilos.filaContenido}>
-          {/* Publicación: título + badge estado + motivo devuelto */}
+          {/* Publicación: título + motivo devuelto; el estado va en su
+              columna propia (más escaneable que bajo el título). */}
           <View style={{ flex: COLUMNAS[0]?.flex ?? 2, gap: 2 }}>
             <ThemedText variant="bodySm" weight="semibold" numberOfLines={2}>
               {comunicado.titulo}
             </ThemedText>
-            <BadgeEstado estado={estadoVisual(comunicado)} />
             {esDevuelto(comunicado) ? (
               <ThemedText variant="caption" numberOfLines={1} style={estilos.motivo}>
                 Devuelto: {comunicado.motivoRechazo}
               </ThemedText>
             ) : null}
           </View>
+          <View style={{ width: COLUMNAS[1]?.width ?? 118 }}>
+            <BadgeEstado estado={estadoVisual(comunicado)} />
+          </View>
           <ThemedText variant="caption" tone="secondary" style={{ flex: 1 }} numberOfLines={1}>
             {comunicado.autorNombre}
           </ThemedText>
           <ThemedText variant="caption" tone="secondary" style={{ flex: 1 }} numberOfLines={1}>
-            {etiquetaAudiencia(comunicado.decanatoIds)}
+            {audiencia}
           </ThemedText>
           <ThemedText variant="caption" tone="tertiary" style={{ width: 100 }} numberOfLines={1}>
             {FORMATO_FECHA_MEDIO.format(new Date(comunicado.updatedAt))}
@@ -558,6 +605,8 @@ function FilaCola({
         <View style={estilos.celdaMenu}>
           <MenuAcciones
             acciones={acciones}
+            abierto={menuAbierto}
+            onAbiertoChange={onMenuAbierto}
             onElegir={(clave) => {
               if (!ocupado) onElegir(clave);
             }}
@@ -572,13 +621,20 @@ function FilaCola({
 /** Contador de lecturas del doc: se dibuja con el EyeIcon de Phosphor,
  *  el lenguaje de iconos única de la app (el glifo 👁 del doc quedaba como
  *  emoji en el dispositivo). */
-export function ContadorLecturas({ comunicado }: { comunicado: Comunicado }) {
+export function ContadorLecturas({
+  comunicado,
+  compacto = false,
+}: {
+  comunicado: Comunicado;
+  /** Sin ancho fijo; libera espacio en el pie de la tarjeta móvil. */
+  compacto?: boolean;
+}) {
   const usuario = useSesionStore((s) => s.usuario);
   const visible =
     usuario?.rol === 'ADMIN' || comunicado.autorId === usuario?.id;
-  if (!visible) return <View style={{ width: 104 }} />;
+  if (!visible) return compacto ? null : <View style={{ width: 104 }} />;
   return (
-    <View style={estilos.contadorLecturas}>
+    <View style={compacto ? estilos.contadorCompacto : estilos.contadorLecturas}>
       <EyeIcon size={12} color={colors.brand.primary} weight="bold" />
       <ThemedText variant="caption" weight="semibold" style={estilos.contadorTexto}>
         {comunicado.lecturasCount ?? 0}
@@ -597,15 +653,17 @@ function estadoVisual(c: Comunicado): 'PUBLICADO' | 'PENDIENTE' | 'DEVUELTO' | '
 
 function TarjetaCola({
   comunicado,
+  audiencia,
   onAbrir,
   onMenu,
 }: {
   comunicado: Comunicado;
+  audiencia: string;
   onAbrir: () => void;
   onMenu: () => void;
 }) {
   return (
-    <ThemedView variant="card" style={{ gap: spacing.md }}>
+    <ThemedView variant="card" style={estilos.tarjeta}>
       <View style={estilos.tarjetaCabe}>
         <BadgeEstado estado={estadoVisual(comunicado)} />
         <Pressable
@@ -629,12 +687,12 @@ function TarjetaCola({
         </View>
       </Pressable>
       <View style={estilos.tarjetaPie}>
-        <ThemedText variant="caption" tone="secondary" numberOfLines={1} style={{ flexShrink: 1 }}>
-          {`${etiquetaAudiencia(comunicado.decanatoIds)} · ${FORMATO_FECHA_MEDIO.format(
+        <ThemedText variant="caption" tone="secondary" numberOfLines={2} style={{ flexShrink: 1 }}>
+          {`${audiencia} · ${FORMATO_FECHA_MEDIO.format(
             new Date(comunicado.updatedAt),
           )}`}
         </ThemedText>
-        <ContadorLecturas comunicado={comunicado} />
+        <ContadorLecturas comunicado={comunicado} compacto />
       </View>
     </ThemedView>
   );
@@ -672,6 +730,11 @@ const estilos = StyleSheet.create({
     justifyContent: 'flex-end',
     gap: spacing.xs,
   },
+  contadorCompacto: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
   contadorTexto: {
     color: colors.brand.primary,
     fontVariant: ['tabular-nums'],
@@ -680,13 +743,6 @@ const estilos = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg.canvas,
   },
-  chips: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-  },
-  chipsFila: { gap: spacing.sm },
   totalCola: {
     fontVariant: ['tabular-nums'],
     marginLeft: 'auto',
@@ -709,8 +765,9 @@ const estilos = StyleSheet.create({
   },
   inputBusqueda: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 14,
     color: colors.text.primary,
+    fontFamily: fontFamily.regular,
     paddingVertical: 0,
   },
   botonLimpiar: { padding: spacing.sm },
@@ -721,13 +778,19 @@ const estilos = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
+    // Aire entre la barra de filtros y la tabla (el contenido del FlatList
+    // aporta su propio paddingTop encima).
+    paddingBottom: spacing.sm,
   },
   selectDecanato: { minWidth: 220, maxWidth: 320, flexShrink: 1 },
-  chipsCategoria: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
+  selectEstado: { minWidth: 170, maxWidth: 220, flexShrink: 1 },
+  selectCategoria: { minWidth: 160, maxWidth: 220, flexShrink: 1 },
+  /** Estado + Categoría comparten fila en móvil; el 48% fuerza el wrap de Decanato. */
+  selectMovil: {
+    flexBasis: '48%',
+    flexGrow: 1,
     flexShrink: 1,
+    minWidth: 0,
   },
   contenido: {
     padding: spacing.lg,
@@ -737,6 +800,7 @@ const estilos = StyleSheet.create({
   contenidoTabla: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xs,
+    gap: spacing.sm,
     flexGrow: 1,
   },
   cabeceraTabla: {
@@ -748,11 +812,22 @@ const estilos = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
   },
+  /** Bloque de datos de la cabecera: mismo rol que `filaContenido` en la
+   *  fila (flex: 1 + gap md entre columnas). */
+  cabeceraDatos: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
   filaTabla: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
   },
   filaContenido: {
     flex: 1,
@@ -767,6 +842,11 @@ const estilos = StyleSheet.create({
   },
   filaEnVuelo: { opacity: 0.55 },
   motivo: { color: colors.status.danger },
+  tarjeta: {
+    gap: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
+  },
   tarjetaCabe: {
     flexDirection: 'row',
     alignItems: 'center',
