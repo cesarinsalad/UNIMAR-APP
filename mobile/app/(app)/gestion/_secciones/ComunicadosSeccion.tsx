@@ -58,6 +58,7 @@ import {
   ThemedButton,
   ThemedText,
   ThemedView,
+  sinAnilloNativo,
   type AccionGestionItem,
   type ColumnaTabla,
   useEsDesktop,
@@ -769,6 +770,7 @@ const estilos = StyleSheet.create({
     color: colors.text.primary,
     fontFamily: fontFamily.regular,
     paddingVertical: 0,
+    ...sinAnilloNativo,
   },
   botonLimpiar: { padding: spacing.sm },
   filaFiltrosAbajo: {

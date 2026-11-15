@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 import { CaretDownIcon, MagnifyingGlassIcon, XIcon } from 'phosphor-react-native';
 
-import { colors, fontFamily, radius, spacing } from './theme';
+import { colors, fontFamily, radius, sinAnilloNativo, spacing } from './theme';
 import { HojaInferior } from './HojaInferior';
 import { ThemedText } from './ThemedText';
 
@@ -195,6 +195,7 @@ const estilos = StyleSheet.create({
     fontFamily: fontFamily.regular,
     paddingVertical: spacing.sm,
     fontSize: 14,
+    ...sinAnilloNativo,
   },
   grid: {
     flexDirection: 'row',

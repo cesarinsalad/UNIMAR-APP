@@ -251,6 +251,14 @@ export const highlight = {
 
 export const touchTarget = { min: 44 } as const;
 
+/**
+ * Apaga el focus ring nativo del `<input>` en web. Ojo: `outlineWidth: 0`
+ * SOLO no basta — Chrome dibuja igual el anillo de `outline-style: auto`;
+ * con `solid + width 0` no pinta nada. Se usa en los inputs de la app para
+ * que enfocar no cambie el aspecto del campo (petición de diseño).
+ */
+export const sinAnilloNativo = { outlineWidth: 0, outlineStyle: 'solid' } as const;
+
 export const layout = {
   bottomTabInset: 72,
   maxContentWidth: 800,

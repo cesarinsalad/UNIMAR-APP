@@ -11,6 +11,7 @@ export {
   layout,
   PALETA_CALENDARIO_UNIMAR,
   PALETA_ESTADO_PUBLICACION,
+  sinAnilloNativo,
 } from './theme';
 export type { Theme, TipoEventoCalendario, EstadoPublicacionVisual } from './theme';
 export { ThemedText, type ThemedTextVariant } from './ThemedText';

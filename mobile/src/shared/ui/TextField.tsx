@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, TextInput, View, type TextInputProps, type ViewStyle } from 'react-native';
 
-import { colors, fontFamily, radius, spacing } from './theme';
+import { colors, fontFamily, radius, sinAnilloNativo, spacing } from './theme';
 import { ThemedText } from './ThemedText';
 
 export interface TextFieldProps extends Omit<TextInputProps, 'numberOfLines'> {
@@ -84,6 +84,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     minHeight: 44,
+    // Sin anillo nativo: enfocar un campo no cambia su aspecto en web.
+    ...sinAnilloNativo,
   },
   inputConRight: { paddingRight: spacing.lg + 24 + spacing.xs },
   right: {

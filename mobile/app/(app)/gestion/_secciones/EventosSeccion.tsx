@@ -49,6 +49,7 @@ import {
   ThemedButton,
   ThemedText,
   ThemedView,
+  sinAnilloNativo,
   type AccionGestionItem,
   useEsDesktop,
 } from '@/shared/ui';
@@ -609,6 +610,7 @@ const estilos = StyleSheet.create({
     color: colors.text.primary,
     fontFamily: fontFamily.regular,
     paddingVertical: 0,
+    ...sinAnilloNativo,
   },
   filaTipos: {
     flexDirection: 'row',
