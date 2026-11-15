@@ -11,6 +11,7 @@ import { useFonts } from 'expo-font';
 import { evaluarAccesoWeb } from '@/shared/lib/accesoWeb';
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import { VistaSoloMovil } from '@/shared/ui/VistaSoloMovil';
+import { ProveedorTeclado } from '@/shared/ui/ProveedorTeclado';
 import { colors } from '@/shared/ui';
 import SplashLogo from '../assets/images/unimar/logo-vertical-blanco.png';
 import { queryClient } from '@/shared/api/queryClient';
@@ -90,6 +91,10 @@ export default function RootLayout() {
   // todos los renders — abajo del return crasheaba con React #310 ("Rendered
   // more hooks than during the previous render") en cuanto hidrataba.
   const puerta = usarPuertaWeb();
+  const rutaActual = usePathname();
+  // El editor de comunicados oculta la chapa azul y usa una cabecera clara.
+  const editorEnfocado =
+    Platform.OS !== 'web' && rutaActual === '/comunicados/nuevo';
 
   if (!hidratado || !fuenteCargada) {
     // Réplica del splash nativo (Expo Go no permite boot splash custom):
@@ -102,27 +107,29 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={styles.root}>
-      <SafeAreaProvider>
-        <QueryClientProvider client={queryClient}>
-          <StatusBar style="light" />
-          {puerta === 'soloMovil' ? (
-            <VistaSoloMovil />
-          ) : puerta === 'irGestion' ? (
-            <Redirect href="/gestion" />
-          ) : (
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: colors.bg.canvas },
-              }}>
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen name="(app)" />
-            </Stack>
-          )}
-        </QueryClientProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <ProveedorTeclado>
+      <GestureHandlerRootView style={styles.root}>
+        <SafeAreaProvider>
+          <QueryClientProvider client={queryClient}>
+            <StatusBar style={editorEnfocado ? 'dark' : 'light'} />
+            {puerta === 'soloMovil' ? (
+              <VistaSoloMovil />
+            ) : puerta === 'irGestion' ? (
+              <Redirect href="/gestion" />
+            ) : (
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  contentStyle: { backgroundColor: colors.bg.canvas },
+                }}>
+                <Stack.Screen name="(auth)" />
+                <Stack.Screen name="(app)" />
+              </Stack>
+            )}
+          </QueryClientProvider>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    </ProveedorTeclado>
   );
 }
 

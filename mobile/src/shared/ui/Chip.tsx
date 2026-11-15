@@ -19,20 +19,29 @@ export function Chip({
   onPress,
   style,
   size = 'md',
+  disabled = false,
+  role = 'tab',
 }: {
   etiqueta: string;
   activa: boolean;
   onPress?: () => void;
   style?: object;
   size?: 'sm' | 'md';
+  disabled?: boolean;
+  role?: 'tab' | 'checkbox' | 'button';
 }) {
   const [presionada, setPresionada] = useState(false);
   const reducido = useReducedMotion();
 
   return (
     <Pressable
-      accessibilityRole="tab"
-      accessibilityState={{ selected: activa }}
+      accessibilityRole={role}
+      accessibilityState={{
+        selected: role === 'tab' ? activa : undefined,
+        checked: role === 'checkbox' ? activa : undefined,
+        disabled,
+      }}
+      disabled={disabled}
       onPress={onPress}
       pressRetentionOffset={16}
       onPressIn={() => setPresionada(true)}
@@ -43,7 +52,8 @@ export function Chip({
           size === 'sm' && estilos.chipSm,
           !reducido && estilos.transicion,
           activa ? estilos.activa : estilos.inactiva,
-          presionada && (reducido ? estilos.presionReducida : estilos.presionada),
+          disabled && estilos.deshabilitada,
+          presionada && !disabled && (reducido ? estilos.presionReducida : estilos.presionada),
           style,
         ]}>
         <ThemedText
@@ -81,4 +91,5 @@ const estilos = StyleSheet.create({
   inactiva: { backgroundColor: colors.bg.surface },
   presionada: { transform: [{ scale: 0.97 }] },
   presionReducida: { opacity: 0.85 },
+  deshabilitada: { opacity: 0.5 },
 });

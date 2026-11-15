@@ -1,123 +1,116 @@
-import { act, create } from 'react-test-renderer';
 import { createRef } from 'react';
-import type { ReactTestInstance } from 'react-test-renderer';
+import { act, create } from 'react-test-renderer';
 
 import type { EnrichedMarkdownTextInputInstance } from 'react-native-enriched-markdown';
-import { ThemedButton } from '@/shared/ui/ThemedButton';
 import { EditorCuerpoEnriquecido } from './EditorCuerpoEnriquecido';
 
-// Los íconos SVG no aplican en el entorno de test.
-jest.mock('phosphor-react-native', () => {
-  const Nulo = () => null;
-  return {
-    TextBIcon: Nulo,
-    TextItalicIcon: Nulo,
-    TextUnderlineIcon: Nulo,
-    TextHTwoIcon: Nulo,
-    ListBulletsIcon: Nulo,
-    ListNumbersIcon: Nulo,
-    LinkSimpleIcon: Nulo,
-  };
+const mockEditorMethods = {
+  focus: jest.fn(),
+  blur: jest.fn(),
+  measure: jest.fn(),
+  measureInWindow: jest.fn(),
+  measureLayout: jest.fn(),
+  setValue: jest.fn(),
+  setSelection: jest.fn(),
+  toggleBold: jest.fn(),
+  toggleItalic: jest.fn(),
+  toggleUnderline: jest.fn(),
+  toggleStrikethrough: jest.fn(),
+  toggleSpoiler: jest.fn(),
+  toggleHeading: jest.fn(),
+  toggleUnorderedList: jest.fn(),
+  toggleOrderedList: jest.fn(),
+  indentList: jest.fn(),
+  outdentList: jest.fn(),
+  setLink: jest.fn(),
+  insertLink: jest.fn(),
+  insertText: jest.fn(),
+  insertMention: jest.fn(),
+  startMention: jest.fn(),
+  removeLink: jest.fn(),
+  copyToClipboard: jest.fn(),
+  getMarkdown: jest.fn().mockResolvedValue(''),
+  getCaretRect: jest.fn().mockResolvedValue({ x: 0, y: 0, width: 0, height: 0 }),
+};
+
+jest.mock('react-native-enriched-markdown', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const React = require('react');
+  const EnrichedMarkdownTextInput = React.forwardRef(
+    (props: Record<string, unknown>, ref: unknown) => {
+      React.useImperativeHandle(ref, () => mockEditorMethods);
+      return React.createElement('EnrichedMarkdownTextInput', props);
+    },
+  );
+  return { EnrichedMarkdownTextInput };
 });
 
-function montar(props: {
-  valorInicial?: string;
-  onChangeMarkdown?: (markdown: string) => void;
-}) {
-  const ref = createRef<EnrichedMarkdownTextInputInstance>();
-  let arbol!: ReturnType<typeof create>;
-  act(() => {
-    arbol = create(
-      <EditorCuerpoEnriquecido
-        ref={ref}
-        valorInicial={props.valorInicial ?? ''}
-        onChangeMarkdown={props.onChangeMarkdown ?? (() => {})}
-      />,
-    );
-  });
-  return { ref, arbol };
-}
-
-/** Los botones de la barra son Pressable con accessibilityLabel/Role. */
-function boton(arbol: { root: ReactTestInstance }, etiqueta: string) {
-  return arbol.root.findByProps({
-    accessibilityRole: 'button',
-    accessibilityLabel: etiqueta,
-  });
-}
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockEditorMethods.getMarkdown.mockResolvedValue('');
+});
 
 describe('EditorCuerpoEnriquecido', () => {
-  it('emite markdown cuando el usuario teclea (onChangeMarkdown)', () => {
+  it('emite el Markdown al escribir y expone la API imperativa', () => {
     const cambios: string[] = [];
-    const { arbol } = montar({
-      valorInicial: 'Hola',
-      onChangeMarkdown: (md) => cambios.push(md),
+    const ref = createRef<EnrichedMarkdownTextInputInstance>();
+    let arbol!: ReturnType<typeof create>;
+    act(() => {
+      arbol = create(
+        <EditorCuerpoEnriquecido
+          ref={ref}
+          valorInicial="Hola"
+          onChangeMarkdown={(md) => cambios.push(md)}
+        />,
+      );
     });
-    const input = arbol.root.findByProps({ value: 'Hola' });
-    act(() => input.props.onChangeText('Hola mundo'));
+
+    const input = arbol.root.findByProps({ defaultValue: 'Hola' });
+    act(() => input.props.onChangeMarkdown('Hola mundo'));
     expect(cambios).toEqual(['Hola mundo']);
+
+    act(() => ref.current?.toggleBold());
+    expect(mockEditorMethods.toggleBold).toHaveBeenCalled();
+    act(() => arbol.unmount());
   });
 
-  it('la barra acciona el ref imperativo (toggleBold)', () => {
-    const { ref, arbol } = montar({ valorInicial: '' });
-    act(() => boton(arbol, 'Negrita').props.onPress());
-    expect(ref.current?.toggleBold).toHaveBeenCalled();
-  });
-
-  it('título H2 y listas accionan los métodos de bloque del ref', () => {
-    const { ref, arbol } = montar({ valorInicial: '' });
-    act(() => boton(arbol, 'Título de sección').props.onPress());
-    act(() => boton(arbol, 'Lista con viñetas').props.onPress());
-    act(() => boton(arbol, 'Lista numerada').props.onPress());
-    expect(ref.current?.toggleHeading).toHaveBeenCalledWith(2);
-    expect(ref.current?.toggleUnorderedList).toHaveBeenCalled();
-    expect(ref.current?.toggleOrderedList).toHaveBeenCalled();
-  });
-
-  it('sin selección inserta el enlace con insertLink(texto, url)', () => {
-    const { ref, arbol } = montar({ valorInicial: '' });
-    // Abre el panel (sin selección: onChangeSelection nunca disparó).
-    act(() => boton(arbol, 'Enlace').props.onPress());
-    const urlInput = arbol.root.findByProps({
-      placeholder: 'https://unimar.edu.ve/…',
+  it('aplica snapshots externos de undo/redo con setValue', () => {
+    let arbol!: ReturnType<typeof create>;
+    act(() => {
+      arbol = create(
+        <EditorCuerpoEnriquecido
+          valorInicial=""
+          onChangeMarkdown={() => {}}
+          revision={0}
+        />,
+      );
     });
-    const textoInput = arbol.root.findByProps({
-      placeholder: 'Texto del enlace',
+    act(() => {
+      arbol.update(
+        <EditorCuerpoEnriquecido
+          valorInicial=""
+          valorExterno="**Texto**"
+          seleccionExterna={{ start: 2, end: 7 }}
+          revision={1}
+          onChangeMarkdown={() => {}}
+        />,
+      );
     });
-    act(() => urlInput.props.onChangeText('https://unimar.edu.ve/admisiones'));
-    act(() => textoInput.props.onChangeText('Admisiones'));
-    const aplicar = arbol.root.findAllByType(ThemedButton).find(
-      (b) => b.props.title === 'Aplicar',
-    ) as ReactTestInstance;
-    act(() => aplicar.props.onPress());
-    expect(ref.current?.insertLink).toHaveBeenCalledWith(
-      'Admisiones',
-      'https://unimar.edu.ve/admisiones',
-    );
+    expect(mockEditorMethods.setValue).toHaveBeenCalledWith('**Texto**');
+    act(() => arbol.unmount());
   });
 
-  it('cancelar cierra el panel de enlace sin accionar el ref', () => {
-    const { ref, arbol } = montar({ valorInicial: '' });
-    act(() => boton(arbol, 'Enlace').props.onPress());
-    const cancelar = arbol.root.findAllByType(ThemedButton).find(
-      (b) => b.props.title === 'Cancelar',
-    ) as ReactTestInstance;
-    act(() => cancelar.props.onPress());
-    expect(() =>
-      arbol.root.findByProps({ placeholder: 'https://unimar.edu.ve/…' }),
-    ).toThrow();
-    expect(ref.current?.insertLink).not.toHaveBeenCalled();
-    expect(ref.current?.setLink).not.toHaveBeenCalled();
-  });
-
-  it('el contador refleja la longitud del markdown en vivo', () => {
-    const { arbol } = montar({ valorInicial: 'Hola' });
-    const input = arbol.root.findByProps({ value: 'Hola' });
-    act(() => input.props.onChangeText('Contenido del comunicado'));
-    // 24 caracteres → contador en vivo del cabezal (más de un nodo
-    // host lo replica; basta la presencia).
-    expect(
-      arbol.root.findAllByProps({ children: '24/5000' }).length,
-    ).toBeGreaterThan(0);
+  it('desactiva formatos sin paridad con el lector', () => {
+    let arbol!: ReturnType<typeof create>;
+    act(() => {
+      arbol = create(
+        <EditorCuerpoEnriquecido valorInicial="" onChangeMarkdown={() => {}} />,
+      );
+    });
+    const input = arbol.root.findByProps({ defaultValue: '' });
+    expect(input.props.formatMenuConfig.underline.enabled).toBe(false);
+    expect(input.props.formatMenuConfig.spoiler.enabled).toBe(false);
+    expect(input.props.selectionMenuConfig.format.label).toBe('Formato');
+    act(() => arbol.unmount());
   });
 });

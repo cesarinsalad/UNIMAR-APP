@@ -10,10 +10,11 @@ import { obtenerComunicado } from '../api/comunicados.api';
  * staleTime 60s: navegar de ida y vuelta no repite el GET en 1 minuto, lo
  * que reduce peticiones sin sacrificar la frescura que demanda un feed.
  */
-export function useComunicadoDetalle(id: string) {
+export function useComunicadoDetalle(id: string, enabled = true) {
   return useQuery({
     queryKey: ['comunicados', 'detalle', id],
     queryFn: () => obtenerComunicado(id),
+    enabled: enabled && id.length > 0,
     staleTime: 60 * 1000,
   });
 }

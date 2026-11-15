@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Redirect, Stack, router, usePathname } from 'expo-router';
 
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
@@ -23,6 +23,10 @@ export default function AppLayout() {
   const enGestion = pathname.startsWith('/gestion');
   const enEditorStaff =
     pathname.startsWith('/comunicados/nuevo') || pathname.startsWith('/eventos/nuevo');
+  // El asistente de comunicados es un modo de concentración: su propia
+  // cabecera sustituye la chapa institucional y aporta el inset superior.
+  const enEditorComunicado =
+    Platform.OS !== 'web' && pathname === '/comunicados/nuevo';
 
   useEffect(() => {
     // Este layout solo está montado si hay sesión, así que al consumir la
@@ -42,36 +46,38 @@ export default function AppLayout() {
     <>
       <RegistrarDispositivoBoot />
       <View style={estilos.col}>
-        <BarraInstitucional
-          action={
-            <View style={estilos.accionesBarra}>
-            {/* Gestión (COMUNICADOR/ADMIN): la puerta de la consola de
-                staff. Se oculta dentro de la propia consola y de los
-                editores (redundante). */}
-            {permisos.puedeCrearComunicado && !enGestion && !enEditorStaff ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Panel de gestión"
-                  onPress={() => router.push('/gestion' as never)}>
-                  <View style={estilos.botonGestion}>
-                    <ThemedText
-                      variant="caption"
-                      weight="semibold"
-                      style={estilos.botonGestionTexto}>
-                      Gestión
-                    </ThemedText>
-                  </View>
-                </Pressable>
-              ) : null}
-              <CampanaConBadge
-                total={totalNoLeidas.data?.total ?? 0}
-                tono="azul"
-                compacto
-                tamano={20}
-              />
-            </View>
-          }
-        />
+        {enEditorComunicado ? null : (
+          <BarraInstitucional
+            action={
+              <View style={estilos.accionesBarra}>
+              {/* Gestión (COMUNICADOR/ADMIN): la puerta de la consola de
+                  staff. Se oculta dentro de la propia consola y de los
+                  editores (redundante). */}
+              {permisos.puedeCrearComunicado && !enGestion && !enEditorStaff ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Panel de gestión"
+                    onPress={() => router.push('/gestion' as never)}>
+                    <View style={estilos.botonGestion}>
+                      <ThemedText
+                        variant="caption"
+                        weight="semibold"
+                        style={estilos.botonGestionTexto}>
+                        Gestión
+                      </ThemedText>
+                    </View>
+                  </Pressable>
+                ) : null}
+                <CampanaConBadge
+                  total={totalNoLeidas.data?.total ?? 0}
+                  tono="azul"
+                  compacto
+                  tamano={20}
+                />
+              </View>
+            }
+          />
+        )}
         <Stack
           screenOptions={{ headerShown: false }}
           screenLayout={({ children }) => (

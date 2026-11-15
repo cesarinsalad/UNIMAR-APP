@@ -7,6 +7,9 @@ module.exports = {
     // Sheets (true-sheet) al mock oficial: el módulo nativo no existe en el
     // runtime de test — wirse por API declarativa (present/dismiss noops).
     '^@lodev09/react-native-true-sheet$': '@lodev09/react-native-true-sheet/mock',
+    // La capa de teclado es nativa; Jest usa su mock oficial.
+    '^react-native-keyboard-controller$':
+      '<rootDir>/node_modules/react-native-keyboard-controller/jest',
     '^@/(.*)$': '<rootDir>/src/$1',
   },
 };

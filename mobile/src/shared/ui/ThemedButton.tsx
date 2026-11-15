@@ -35,6 +35,8 @@ export function ThemedButton({
 
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
       onPress={isDisabled ? undefined : onPress}
       disabled={isDisabled}
       style={({ pressed }) => [

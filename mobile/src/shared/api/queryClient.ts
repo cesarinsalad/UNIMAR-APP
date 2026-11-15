@@ -13,7 +13,12 @@ export const queryClient = new QueryClient({
       staleTime: 0,
       gcTime: 5 * 60 * 1000,
       retry: (failureCount, error) => {
-        const status = (error as { response?: { status?: number } } | undefined)?.response?.status;
+        // ApiError del interceptor expone `status` en la instancia; algunas
+        // capas externas aún traen el status bajo `response`.
+        const detalle = error as
+          | { status?: number; response?: { status?: number } }
+          | undefined;
+        const status = detalle?.status ?? detalle?.response?.status;
         if (status && status >= 400 && status < 500) return false;
         return failureCount < 2;
       },

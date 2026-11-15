@@ -73,6 +73,7 @@ npm run test:db             # integration RLS; se salta si Supabase no está arr
 - `mobile/src/shared/` — axios con interceptores, UI primitives (theme de STYLE.md), lib (jwt, paginar, etiquetas), notifications (push + deep-link).
 - **Frontera**: features nunca se importan entre sí; lo común va a `mobile/src/shared/`.
 - Pantallas en `mobile/app/` (Expo Router file-based): `app/(app)/(tabs)/` para las 5 tabs, `mobile/app/{modulo}/[id].tsx` para deep-links de push (eventos: la ruta es un anfitrión transparente que presenta la `HojaEvento` — bottom sheet en `shared/ui/HojaInferior.{tsx,native.tsx}` con `@lodev09/react-native-true-sheet`, web degrada a Modal slide).
+- Editor de comunicados: asistente nativo de 3 pasos (Contenido → Detalles → Revisión) con lienzo WYSIWYG (`react-native-enriched-markdown` 1.2), barra pegada al IME (`react-native-keyboard-controller`), historial undo/redo propio y Markdown opcional. La web conserva un editor Markdown de segunda clase. Ambos son módulos nativos: requieren dev build, no Expo Go.
 - Path alias: `@/*` → `./src/*` (tsconfig + jest moduleNameMapper ambos, order importa en jest).
 - Validación de UI en cliente: espejo de los schemas Zod del BFF (fallar antes de llegar al 400).
 
@@ -82,6 +83,7 @@ npm run test:db             # integration RLS; se salta si Supabase no está arr
 - Mobile `noUncheckedIndexedAccess: true` — destructuring de `.split()` da `number | undefined`, parsear con `parts[n] ?? fallback`.
 - Módulo móvil en web: `expo-secure-store` build web es objeto vacío y `expo-notifications` lanza `UnavailabilityError` — guards `Platform.OS === 'web'` ya existentes en `shared/notifications/` y `sesion.store.ts`; web vive sin persistencia ni push a propósito (segunda clase).
 - `expo-file-system/legacy` para `uploadAsync` (SDK 57 lo movió ahí).
+- Tras añadir/actualizar `react-native-enriched-markdown` o `react-native-keyboard-controller`, hay que regenerar la app nativa (dev build / `eas build`); Expo Go no los incluye.
 - `.env` nunca se commitea (mirar `.env.example`).
 
 ## Gotchas operacionales
