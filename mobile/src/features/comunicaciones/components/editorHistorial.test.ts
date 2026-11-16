@@ -5,6 +5,7 @@ import {
   puedeDeshacer,
   puedeRehacer,
   registrarEnHistorial,
+  registrarSeleccionEnHistorial,
   rehacerHistorial,
 } from './editorHistorial';
 
@@ -58,6 +59,23 @@ describe('editorHistorial', () => {
     );
     expect(reescrito.entradas.map((e) => e.markdown)).toContain('abX');
     expect(puedeRehacer(reescrito)).toBe(false);
+  });
+
+  it('una actualización de selección nunca reescribe el Markdown vigente', () => {
+    let estado = crearHistorial('', SEL, 0);
+    estado = registrarEnHistorial(estado, 'Hola', { start: 4, end: 4 }, 'texto', 100);
+    // Evento de selección que llega con el closure de un render anterior
+    // (Markdown vacío): el documento debe seguir siendo "Hola".
+    estado = registrarSeleccionEnHistorial(estado, { start: 4, end: 4 });
+    expect(entradaActual(estado).markdown).toBe('Hola');
+    expect(entradaActual(estado).seleccion).toEqual({ start: 4, end: 4 });
+  });
+
+  it('registrarSeleccionEnHistorial devuelve el mismo estado si no cambia', () => {
+    const estado = crearHistorial('Hola', { start: 4, end: 4 }, 0);
+    expect(
+      registrarSeleccionEnHistorial(estado, { start: 4, end: 4 }),
+    ).toBe(estado);
   });
 
   it('el estado inicial no permite deshacer', () => {

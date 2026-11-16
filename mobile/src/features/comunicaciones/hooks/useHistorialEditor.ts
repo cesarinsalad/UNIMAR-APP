@@ -7,6 +7,7 @@ import {
   puedeDeshacer,
   puedeRehacer,
   registrarEnHistorial,
+  registrarSeleccionEnHistorial,
   rehacerHistorial,
   type EstadoHistorial,
   type SeleccionEditor,
@@ -24,6 +25,8 @@ export interface SesionEditor {
     seleccion: SeleccionEditor,
     tipo?: Exclude<TipoEntradaHistorial, 'inicial'>,
   ) => void;
+  /** Solo mueve el caret del snapshot; nunca cambia el documento. */
+  registrarSeleccion: (seleccion: SeleccionEditor) => void;
   deshacer: () => SeleccionEditor | null;
   rehacer: () => SeleccionEditor | null;
 }
@@ -63,6 +66,15 @@ export function useHistorialEditor(
     [guardarEstado],
   );
 
+  const registrarSeleccion = useCallback(
+    (seleccion: SeleccionEditor) => {
+      guardarEstado(
+        registrarSeleccionEnHistorial(estadoRef.current, seleccion),
+      );
+    },
+    [guardarEstado],
+  );
+
   const deshacer = useCallback(() => {
     const movimiento = deshacerHistorial(estadoRef.current);
     if (!movimiento) return null;
@@ -88,6 +100,7 @@ export function useHistorialEditor(
     puedeDeshacer: puedeDeshacer(estado),
     puedeRehacer: puedeRehacer(estado),
     registrar,
+    registrarSeleccion,
     deshacer,
     rehacer,
   };

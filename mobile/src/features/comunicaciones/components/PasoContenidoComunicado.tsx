@@ -174,8 +174,10 @@ export function PasoContenidoComunicado({
     setSeleccionVisual(seleccion);
     seleccionRef.current = seleccion;
     // Mantiene el caret del snapshot al día para que undo/redo lo restaure
-    // en el punto donde estaba el usuario, no un carácter antes.
-    sesion.registrar(sesion.valor, seleccion);
+    // en el punto donde estaba el usuario, no un carácter antes. Nunca se
+    // pasa `sesion.valor`: este closure puede ser de un render anterior y
+    // el evento nativo de selección puede llegar antes que el de Markdown.
+    sesion.registrarSeleccion(seleccion);
   }
 
   function cambiarSeleccionMarkdown(
@@ -184,7 +186,7 @@ export function PasoContenidoComunicado({
     const seleccion = e.nativeEvent.selection;
     setSeleccionMarkdown(seleccion);
     seleccionRef.current = seleccion;
-    sesion.registrar(sesion.valor, seleccion);
+    sesion.registrarSeleccion(seleccion);
   }
 
   function cambiarMarkdown(markdown: string) {
@@ -361,7 +363,7 @@ export function PasoContenidoComunicado({
           accessibilityHint={errorTitulo}
           value={titulo}
           onChangeText={onCambiarTitulo}
-          placeholder="Título del comunicado"
+          placeholder="Escribe el título"
           placeholderTextColor={colors.text.secondary}
           editable={editable}
           multiline

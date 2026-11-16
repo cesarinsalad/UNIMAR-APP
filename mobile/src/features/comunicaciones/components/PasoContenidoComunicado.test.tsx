@@ -71,6 +71,7 @@ function sesion(valor: string): SesionEditor {
     puedeDeshacer: false,
     puedeRehacer: false,
     registrar: jest.fn(),
+    registrarSeleccion: jest.fn(),
     deshacer: () => null,
     rehacer: () => null,
   };
@@ -174,6 +175,36 @@ describe('PasoContenidoComunicado (fallback automático de Markdown)', () => {
 
     expect(arbol.root.findAllByProps({ testID: 'scroll-web' })).toHaveLength(0);
     expect(arbol.root.findAllByProps({ testID: 'barra-web' })).toHaveLength(0);
+    act(() => arbol.unmount());
+  });
+
+  it('el placeholder del título es corto y el label accesible sigue siendo descriptivo', async () => {
+    const arbol = crear({ sesion: sesion('') });
+    await drenar();
+
+    const titulo = arbol.root.findAll(
+      (nodo) => nodo.props.placeholder === 'Escribe el título',
+    )[0]!;
+    expect(titulo.props.accessibilityLabel).toBe('Título del comunicado');
+    act(() => arbol.unmount());
+  });
+
+  it('un cambio de selección actualiza el caret sin reescribir el Markdown vigente', async () => {
+    const registrar = jest.fn();
+    const registrarSeleccion = jest.fn();
+    const arbol = crear({
+      sesion: { ...sesion(''), registrar, registrarSeleccion },
+    });
+    await drenar();
+
+    act(() =>
+      arbol.root
+        .findAllByProps({ testID: 'editor-visual' })[0]!
+        .props.onChangeSelection({ start: 3, end: 3 }),
+    );
+
+    expect(registrarSeleccion).toHaveBeenCalledWith({ start: 3, end: 3 });
+    expect(registrar).not.toHaveBeenCalled();
     act(() => arbol.unmount());
   });
 

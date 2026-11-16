@@ -55,6 +55,28 @@ export function puedeRehacer(estado: EstadoHistorial): boolean {
 }
 
 /**
+ * Actualiza solo el caret de la entrada actual. Un cambio de selección no
+ * modifica el documento: separarlo de `registrarEnHistorial` evita que el
+ * valor de un render anterior (closure) se registre como Markdown vigente
+ * cuando el evento nativo llega antes de que React re-renderice.
+ */
+export function registrarSeleccionEnHistorial(
+  estado: EstadoHistorial,
+  seleccion: SeleccionEditor,
+): EstadoHistorial {
+  const actual = entradaActual(estado);
+  if (
+    actual.seleccion.start === seleccion.start &&
+    actual.seleccion.end === seleccion.end
+  ) {
+    return estado;
+  }
+  const entradas = estado.entradas.slice();
+  entradas[estado.indice] = { ...actual, seleccion };
+  return { ...estado, entradas };
+}
+
+/**
  * Registra un cambio. La escritura continua dentro de la ventana agrupa en
  * una sola entrada; un comando de formato (o una pausa) separa transacción.
  */
@@ -67,15 +89,7 @@ export function registrarEnHistorial(
 ): EstadoHistorial {
   const actual = entradaActual(estado);
   if (actual.markdown === markdown) {
-    if (
-      actual.seleccion.start === seleccion.start &&
-      actual.seleccion.end === seleccion.end
-    ) {
-      return estado;
-    }
-    const entradas = estado.entradas.slice();
-    entradas[estado.indice] = { ...actual, seleccion };
-    return { ...estado, entradas };
+    return registrarSeleccionEnHistorial(estado, seleccion);
   }
 
   const base = estado.entradas.slice(0, estado.indice + 1);

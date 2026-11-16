@@ -1,4 +1,5 @@
 import { createRef } from 'react';
+import { Platform } from 'react-native';
 import { act, create } from 'react-test-renderer';
 
 import type { EnrichedMarkdownTextInputInstance } from 'react-native-enriched-markdown';
@@ -98,6 +99,29 @@ describe('EditorCuerpoEnriquecido', () => {
     });
     expect(mockEditorMethods.setValue).toHaveBeenCalledWith('**Texto**');
     act(() => arbol.unmount());
+  });
+
+  it('en web declara las medidas en px: lineHeight no puede ser un multiplicador CSS', () => {
+    const OS_ORIGINAL = Platform.OS;
+    (Platform as { OS: string }).OS = 'web';
+    try {
+      let arbol!: ReturnType<typeof create>;
+      act(() => {
+        arbol = create(
+          <EditorCuerpoEnriquecido valorInicial="" onChangeMarkdown={() => {}} />,
+        );
+      });
+
+      const estilo = arbol.root.findByProps({ defaultValue: '' }).props.style;
+      // RN: 24 px de interlineado. CSS: "24" sería 24 × 16 px por línea.
+      expect(estilo.lineHeight).toBe('24px');
+      expect(estilo.fontSize).toBe('16px');
+      expect(estilo.minHeight).toBe('340px');
+      expect(estilo.textAlign).toBe('left');
+      act(() => arbol.unmount());
+    } finally {
+      (Platform as { OS: string }).OS = OS_ORIGINAL;
+    }
   });
 
   it('desactiva formatos sin paridad con el lector', () => {

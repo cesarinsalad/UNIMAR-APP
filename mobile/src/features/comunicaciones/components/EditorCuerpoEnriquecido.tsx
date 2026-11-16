@@ -155,6 +155,30 @@ function accesoribilidad(
   return { accessibilityLabel: etiqueta, accessibilityHint: pista };
 }
 
+const PROPIEDADES_CSS = [
+  'color',
+  'fontFamily',
+  'fontSize',
+  'fontStyle',
+  'fontWeight',
+  'lineHeight',
+  'minHeight',
+  'padding',
+  'paddingTop',
+  'paddingBottom',
+  'textAlign',
+] as const;
+
+/** Propiedades de la hoja que en RN van en px y en CSS necesitan unidad. */
+const PROPIEDADES_EN_PX = new Set<(typeof PROPIEDADES_CSS)[number]>([
+  'fontSize',
+  'lineHeight',
+  'minHeight',
+  'padding',
+  'paddingTop',
+  'paddingBottom',
+]);
+
 /**
  * La variante web pide CSSProperties. Los alias de RN (paddingHorizontal,
  * textAlignVertical) no existen en CSS y React los reportaría como
@@ -164,24 +188,23 @@ function estiloCssWeb(
   estilo: TextStyle,
 ): Record<string, string | number> {
   const css: Record<string, string | number> = {};
-  for (const propiedad of [
-    'color',
-    'fontFamily',
-    'fontSize',
-    'fontStyle',
-    'fontWeight',
-    'lineHeight',
-    'minHeight',
-    'padding',
-    'paddingTop',
-    'paddingBottom',
-  ] as const) {
+  for (const propiedad of PROPIEDADES_CSS) {
     const valor = estilo[propiedad];
-    if (valor !== undefined) css[propiedad] = valor as string | number;
+    if (valor === undefined) continue;
+    // RN mide en píxeles; CSS interpreta un `line-height` sin unidad como
+    // multiplicador (24 → 24 × fontSize). El resto de dimensiones se
+    // declaran también en px para no depender de la inferencia de React.
+    css[propiedad] =
+      typeof valor === 'number' && PROPIEDADES_EN_PX.has(propiedad)
+        ? `${valor}px`
+        : (valor as string | number);
   }
   // El <div contentEditable> de la lib conserva el outline del navegador;
   // el foco se comunica con el borde de la caja que lo envuelve.
   css.outlineStyle = 'none';
+  // El cuerpo es texto de lectura: alineado a la izquierda, sin heredar
+  // centrados de contenedores ajenos al editor.
+  css.textAlign ??= 'left';
   return css;
 }
 
