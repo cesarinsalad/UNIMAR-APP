@@ -65,6 +65,12 @@ export default function RootLayout() {
     Montserrat_600SemiBold: require('../assets/fonts/Montserrat_600SemiBold.ttf'),
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     Montserrat_700Bold: require('../assets/fonts/Montserrat_700Bold.ttf'),
+    // Itálicas explícitas: sin estos TTF, `fontStyle: 'italic'` hace que
+    // Android resuelva la fuente del sistema en los spans de Markdown.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    Montserrat_400Regular_Italic: require('../assets/fonts/Montserrat_400Regular_Italic.ttf'),
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    Montserrat_600SemiBold_Italic: require('../assets/fonts/Montserrat_600SemiBold_Italic.ttf'),
   });
 
   useEffect(() => {

@@ -1,6 +1,16 @@
-import Markdown from 'react-native-markdown-display';
+import { Text } from 'react-native';
+import Markdown, {
+  hasParents,
+  type RenderRules,
+} from 'react-native-markdown-display';
 
-import { colors, fontFamily, radius, spacing, typography } from '@/shared/ui';
+import {
+  colors,
+  fontFamily,
+  radius,
+  spacing,
+  typography,
+} from '@/shared/ui/theme';
 
 /**
  * Tema Markdown mapeado a los tokens de marca (STYLE.md):
@@ -29,7 +39,6 @@ const estilosMarkdown = {
   heading2: {
     fontSize: typography.size.subtitle,
     fontFamily: typography.family.heading,
-    fontWeight: typography.weight.semibold,
     color: colors.text.primary,
     marginTop: 20,
     marginBottom: spacing.sm,
@@ -62,8 +71,25 @@ const estilosMarkdown = {
     marginTop: spacing.md,
     marginBottom: spacing.sm,
   },
-  strong: { color: colors.text.primary, fontFamily: typography.family.heading },
-  em: { fontStyle: 'italic' },
+  // El peso y la inclinación viven en el archivo TTF: `fontWeight` o
+  // `fontStyle` junto a una familia personalizada hacen que Android busque
+  // una variante inexistente y caiga a la fuente del sistema.
+  strong: {
+    color: colors.text.primary,
+    fontFamily: fontFamily.semibold,
+    fontWeight: 'normal',
+  },
+  em: {
+    fontFamily: fontFamily.regularItalic,
+    fontStyle: 'normal',
+  },
+  /** Negrita + itálica: el TTF combinado evita que una regla pise a la otra. */
+  strongEm: {
+    color: colors.text.primary,
+    fontFamily: fontFamily.semiboldItalic,
+    fontWeight: 'normal',
+    fontStyle: 'normal',
+  },
   bullet_list: { marginTop: spacing.sm, marginBottom: spacing.sm },
   ordered_list: { marginTop: spacing.sm, marginBottom: spacing.sm },
   list_item: { marginTop: spacing.xs },
@@ -95,7 +121,33 @@ const estilosMarkdown = {
   },
 } as const;
 
+/**
+ * El texto hoja es el que lleva la familia final: la regla por defecto
+ * hereda los estilos del árbol y, en negrita + itálica, la variante más
+ * cercana pisa a la otra. Aquí se detecta la combinación y se aplica el
+ * TTF semibold itálico.
+ */
+const reglasMarkdown: RenderRules = {
+  text: (node, _children, parent, styles, inheritedStyles = {}) => (
+    <Text
+      key={node.key}
+      style={[
+        inheritedStyles,
+        hasParents(parent, 'em') && hasParents(parent, 'strong')
+          ? styles.strongEm
+          : null,
+        styles.text,
+      ]}>
+      {node.content}
+    </Text>
+  ),
+};
+
 /** Render del cuerpo Markdown con el tema corporativo UNIMAR. */
 export function CuerpoMarkdown({ cuerpo }: { cuerpo: string }) {
-  return <Markdown style={estilosMarkdown}>{cuerpo}</Markdown>;
+  return (
+    <Markdown style={estilosMarkdown} rules={reglasMarkdown}>
+      {cuerpo}
+    </Markdown>
+  );
 }

@@ -172,6 +172,9 @@ export const fontFamily = {
   medium: 'Montserrat_500Medium',
   semibold: 'Montserrat_600SemiBold',
   bold: 'Montserrat_700Bold',
+  /** Variantes itálicas: sin su TTF propio Android cae a la fuente del sistema. */
+  regularItalic: 'Montserrat_400Regular_Italic',
+  semiboldItalic: 'Montserrat_600SemiBold_Italic',
 } as const;
 
 export const typography = {
