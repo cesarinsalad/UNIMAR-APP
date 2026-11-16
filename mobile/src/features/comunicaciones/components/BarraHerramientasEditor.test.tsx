@@ -26,7 +26,6 @@ jest.mock('phosphor-react-native', () => {
 
 function montar(overrides: Partial<Parameters<typeof BarraHerramientasEditor>[0]> = {}) {
   const props = {
-    modo: 'visual' as const,
     estados: {},
     puedeDeshacer: true,
     puedeRehacer: false,
@@ -65,12 +64,12 @@ describe('BarraHerramientasEditor', () => {
     act(() => arbol.unmount());
   });
 
-  it('despliega los comandos secundarios y el cambio de modo', () => {
-    const { arbol, props } = montar();
+  it('despliega los comandos secundarios sin modo Markdown', () => {
+    const { arbol } = montar();
     act(() => boton(arbol, 'Más opciones de formato').props.onPress());
-    const markdown = boton(arbol, 'Editar Markdown');
-    act(() => markdown.props.onPress());
-    expect(props.onComando).toHaveBeenCalledWith('alternarMarkdown');
+    // El formato solo entra por botones: el modo Markdown crudo ya no es
+    // alcanzable (queda como fallback automático interno del paso).
+    expect(() => boton(arbol, 'Editar Markdown')).toThrow();
     act(() => arbol.unmount());
   });
 

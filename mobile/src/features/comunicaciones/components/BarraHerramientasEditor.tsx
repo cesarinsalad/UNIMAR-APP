@@ -10,7 +10,6 @@ import {
 import {
   ArrowClockwiseIcon,
   ArrowCounterClockwiseIcon,
-  CodeIcon,
   DotsThreeIcon,
   KeyboardIcon,
   LinkSimpleIcon,
@@ -31,7 +30,6 @@ import { colors, radius, spacing, touchTarget } from '@/shared/ui/theme';
 import type { ComandoEditor, EstadosComandos } from './comandosEditor';
 
 interface Props {
-  modo: 'visual' | 'markdown';
   estados: EstadosComandos;
   puedeDeshacer: boolean;
   puedeRehacer: boolean;
@@ -40,15 +38,10 @@ interface Props {
   onRehacer: () => void;
   onComando: (comando: ComandoEditor) => void;
   onOcultarTeclado: () => void;
-  /** La web escribe Markdown directamente; no ofrece modo visual. */
-  mostrarAlternarMarkdown?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
-const ICONO: Record<
-  Exclude<ComandoEditor, 'alternarMarkdown'>,
-  (color: string) => ReactNode
-> = {
+const ICONO: Record<ComandoEditor, (color: string) => ReactNode> = {
   negrita: (color) => <TextBIcon size={21} weight="bold" color={color} />,
   cursiva: (color) => <TextItalicIcon size={21} weight="bold" color={color} />,
   tachado: (color) => <TextStrikethroughIcon size={21} weight="bold" color={color} />,
@@ -74,7 +67,6 @@ const ETIQUETA: Record<ComandoEditor, string> = {
   indentar: 'Aumentar sangría',
   desindentar: 'Disminuir sangría',
   enlace: 'Enlace',
-  alternarMarkdown: 'Editar Markdown',
 };
 
 function Boton({
@@ -112,7 +104,7 @@ function Icono({
   comando,
   activo,
 }: {
-  comando: Exclude<ComandoEditor, 'alternarMarkdown'>;
+  comando: ComandoEditor;
   activo: boolean;
 }) {
   return (
@@ -128,7 +120,6 @@ function Icono({
  * teclado queda fuera del scroll para no perderse en pantallas estrechas.
  */
 export function BarraHerramientasEditor({
-  modo,
   estados,
   puedeDeshacer,
   puedeRehacer,
@@ -137,7 +128,6 @@ export function BarraHerramientasEditor({
   onRehacer,
   onComando,
   onOcultarTeclado,
-  mostrarAlternarMarkdown = true,
   style,
 }: Props) {
   const [masAbierto, setMasAbierto] = useState(false);
@@ -174,28 +164,6 @@ export function BarraHerramientasEditor({
               <Icono comando={comando} activo={Boolean(estados[comando])} />
             </Boton>
           ))}
-          {mostrarAlternarMarkdown ? (
-            <>
-              <View style={estilos.separador} />
-              <Boton
-                etiqueta={
-                  modo === 'visual' ? 'Editar Markdown' : 'Volver a edición visual'
-                }
-                activo={modo === 'markdown'}
-                deshabilitado={!editable}
-                onPress={() => accion('alternarMarkdown')}>
-                <CodeIcon
-                  size={21}
-                  weight="bold"
-                  color={
-                    modo === 'markdown'
-                      ? colors.brand.primary
-                      : colors.text.primary
-                  }
-                />
-              </Boton>
-            </>
-          ) : null}
         </ScrollView>
       ) : null}
 

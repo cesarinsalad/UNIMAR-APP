@@ -1,4 +1,4 @@
-/** Comandos comunes al editor visual y al modo Markdown. */
+/** Comandos del editor de comunicado (barra compartida entre móvil y web). */
 export type ComandoEditor =
   | 'negrita'
   | 'cursiva'
@@ -10,7 +10,6 @@ export type ComandoEditor =
   | 'numerada'
   | 'indentar'
   | 'desindentar'
-  | 'enlace'
-  | 'alternarMarkdown';
+  | 'enlace';
 
 export type EstadosComandos = Partial<Record<ComandoEditor, boolean>>;

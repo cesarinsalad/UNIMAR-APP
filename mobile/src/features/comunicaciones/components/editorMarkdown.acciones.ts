@@ -117,7 +117,7 @@ export function aplicarEnlaceMarkdown(
 export function aplicarComandoMarkdown(
   valor: string,
   seleccion: SeleccionEditor,
-  comando: Exclude<ComandoEditor, 'enlace' | 'alternarMarkdown'>,
+  comando: Exclude<ComandoEditor, 'enlace'>,
 ): ResultadoAccion {
   switch (comando) {
     case 'negrita':

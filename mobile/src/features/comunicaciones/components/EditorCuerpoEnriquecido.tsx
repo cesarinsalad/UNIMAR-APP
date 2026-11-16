@@ -5,6 +5,7 @@ import {
   useRef,
 } from 'react';
 import {
+  Platform,
   StyleSheet,
   type StyleProp,
   type TextStyle,
@@ -34,6 +35,7 @@ export interface EditorCuerpoEnriquecidoProps {
   editable?: boolean;
   autoFocus?: boolean;
   placeholder?: string;
+  accessibilityLabel?: string;
   accessibilityHint?: string;
   style?: StyleProp<TextStyle>;
   onFocus?: () => void;
@@ -62,6 +64,7 @@ export const EditorCuerpoEnriquecido = forwardRef<
     editable = true,
     autoFocus = false,
     placeholder = 'Empieza a escribir…',
+    accessibilityLabel = 'Cuerpo del comunicado',
     accessibilityHint,
     style,
     onFocus,
@@ -105,8 +108,14 @@ export const EditorCuerpoEnriquecido = forwardRef<
       defaultValue={valorInicial}
       editable={editable}
       autoFocus={autoFocus}
-      accessibilityLabel="Cuerpo del comunicado"
-      accessibilityHint={accessibilityHint}
+      {...(accesoribilidad(
+        Platform.OS === 'web',
+        accessibilityLabel,
+        accessibilityHint,
+      ) as unknown as {
+        accessibilityLabel?: string;
+        accessibilityHint?: string;
+      })}
       placeholder={placeholder}
       placeholderTextColor={colors.text.secondary}
       markdownShortcuts={{ heading: true, unorderedList: true, orderedList: true }}
@@ -124,10 +133,57 @@ export const EditorCuerpoEnriquecido = forwardRef<
       scrollEnabled={false}
       selectionMenuConfig={MENU_SELECCION}
       formatMenuConfig={MENU_FORMATO}
-      style={estiloCampo}
+      style={Platform.OS === 'web' ? estiloCssWeb(estiloCampo) : estiloCampo}
     />
   );
 });
+
+/**
+ * La variante web de la lib extiende atributos DOM, no props de RN: React
+ * advertiría por `accessibilityLabel`/`accessibilityHint` en un `<div>`. Se
+ * traducen a su equivalente aria; el filtro `nativeInputProps` de la lib se
+ * encarga del resto (markdownShortcuts, onPress, scrollEnabled…).
+ */
+function accesoribilidad(
+  web: boolean,
+  etiqueta: string | undefined,
+  pista: string | undefined,
+): Record<string, string | undefined> {
+  if (web) {
+    return { 'aria-label': etiqueta, 'aria-description': pista };
+  }
+  return { accessibilityLabel: etiqueta, accessibilityHint: pista };
+}
+
+/**
+ * La variante web pide CSSProperties. Los alias de RN (paddingHorizontal,
+ * textAlignVertical) no existen en CSS y React los reportaría como
+ * inválidos; el resto de la hoja ya es CSS válido (color, fuente, tamaño).
+ */
+function estiloCssWeb(
+  estilo: TextStyle,
+): Record<string, string | number> {
+  const css: Record<string, string | number> = {};
+  for (const propiedad of [
+    'color',
+    'fontFamily',
+    'fontSize',
+    'fontStyle',
+    'fontWeight',
+    'lineHeight',
+    'minHeight',
+    'padding',
+    'paddingTop',
+    'paddingBottom',
+  ] as const) {
+    const valor = estilo[propiedad];
+    if (valor !== undefined) css[propiedad] = valor as string | number;
+  }
+  // El <div contentEditable> de la lib conserva el outline del navegador;
+  // el foco se comunica con el borde de la caja que lo envuelve.
+  css.outlineStyle = 'none';
+  return css;
+}
 
 /** Configuraciones constantes: no se recrean en cada tecla. */
 const MENU_SELECCION = {

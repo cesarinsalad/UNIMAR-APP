@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Modal, StyleSheet, TextInput, View } from 'react-native';
 
-import { colors, radius, spacing } from '@/shared/ui';
+import { colors, radius, sinAnilloNativo, spacing } from '@/shared/ui';
 import { ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
 
 export interface ModalRechazoProps {
@@ -113,6 +113,8 @@ const estilos = StyleSheet.create({
     fontSize: 16,
     color: colors.text.primary,
     backgroundColor: colors.bg.surface,
+    // Sin anillo nativo del navegador: el foco ya lo marca el borde.
+    ...sinAnilloNativo,
   },
   textarea: {
     minHeight: 96,
