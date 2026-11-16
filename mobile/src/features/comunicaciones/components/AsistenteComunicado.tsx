@@ -292,6 +292,11 @@ export function AsistenteComunicado({ id, datosIniciales }: Props) {
         setIdGuardado(guardado.id);
       }
 
+      // Entidad final con la portada ya aplicada: se usa para sembrar el
+      // detalle cacheado y que el gate `imagenPath != null` de usePortada
+      // quede abierto sin esperar a un refetch.
+      let entidadFinal = guardado;
+
       if (portadaLocal && guardado?.id) {
         let idAdjunto = adjuntoPortadaId;
         if (!idAdjunto) {
@@ -299,16 +304,24 @@ export function AsistenteComunicado({ id, datosIniciales }: Props) {
           idAdjunto = adjunto.id;
           setAdjuntoPortadaId(idAdjunto);
         }
-        await asignarPortada(guardado.id, idAdjunto);
+        entidadFinal = await asignarPortada(guardado.id, idAdjunto);
         setAdjuntoPortadaId(null);
         setPortadaLocal(null);
       }
       if (quitarPortadaActual && guardado?.id) {
-        await quitarPortada(guardado.id);
+        entidadFinal = await quitarPortada(guardado.id);
         setQuitarPortadaActual(false);
       }
+
+      if (entidadFinal?.id) {
+        queryClient.setQueryData(CLAVES_COMUNICADOS.detalle(entidadFinal.id), entidadFinal);
+      }
+      // Invalidar TODO el módulo (no solo la portada): el refetch de creación
+      // puede resolver antes de que termine la subida y dejar `imagenPath`
+      // viejo en el feed/detalle.
+      void queryClient.invalidateQueries({ queryKey: CLAVES_COMUNICADOS.prefijo });
       void queryClient.invalidateQueries({
-        queryKey: CLAVES_COMUNICADOS.portada(guardado?.id ?? ''),
+        queryKey: CLAVES_COMUNICADOS.portada(entidadFinal?.id ?? ''),
       });
       permitirSalidaRef.current = true;
       if (navegacion.isFocused()) router.back();

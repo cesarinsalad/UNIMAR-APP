@@ -4,6 +4,11 @@ import type { IStorageService } from '../domain/ports';
 interface SupabaseStorageDeps {
   /** URL base de Supabase (p.ej. http://127.0.0.1:54321), sin /storage/v1 */
   url: string;
+  /**
+   * Origen público que se usa en las URLs firmadas devueltas al cliente.
+   * Ausente = se devuelve la URL tal cual (Supabase Cloud ya es público).
+   */
+  publicUrl?: string;
   serviceRoleKey: string;
   bucket: string;
 }
@@ -12,6 +17,29 @@ function throwIfError(prefix: string, error: { message: string } | null): void {
   if (error) {
     throw new Error(`${prefix}: ${error.message}`);
   }
+}
+
+/**
+ * Reemplaza el origen de una URL firmada por la base pública configurada.
+ *
+ * El token firmado de Storage solo cubre `bucket/path` (no el host), así que
+ * cambiar el origen no invalida la firma: sirve para que un cliente que no
+ * alcanza la URL interna (p. ej. `127.0.0.1` en dev) use el gateway del BFF.
+ * `publicBase` es un origen (protocolo + host); se conservan el path y el
+ * `?token=` de la URL firmada.
+ */
+export function publicarUrlFirmada(
+  urlFirmada: string,
+  publicBase: string | undefined,
+): string {
+  if (!publicBase) return urlFirmada;
+  const firmada = new URL(urlFirmada);
+  // Se parte de la base pública (origen sin path) y se le pega el path+query
+  // firmados. Asignar `host` por separado conservaría el puerto interno.
+  const publica = new URL(publicBase);
+  publica.pathname = firmada.pathname;
+  publica.search = firmada.search;
+  return publica.toString();
 }
 
 /**
@@ -24,12 +52,14 @@ function throwIfError(prefix: string, error: { message: string } | null): void {
 export class SupabaseStorageService implements IStorageService {
   private readonly client: StorageClient;
   private readonly bucket: string;
+  private readonly publicUrl?: string;
 
   constructor(deps: SupabaseStorageDeps) {
     this.client = new StorageClient(`${deps.url}/storage/v1`, {
       Authorization: `Bearer ${deps.serviceRoleKey}`,
     });
     this.bucket = deps.bucket;
+    this.publicUrl = deps.publicUrl;
   }
 
   async crearUrlCargaFirmada(
@@ -41,7 +71,7 @@ export class SupabaseStorageService implements IStorageService {
       throw new Error('No se recibió URL de carga firmada');
     }
     return {
-      urlFirmada: data.signedUrl,
+      urlFirmada: publicarUrlFirmada(data.signedUrl, this.publicUrl),
       token: data.token,
       path: data.path,
     };
@@ -55,7 +85,7 @@ export class SupabaseStorageService implements IStorageService {
     if (!data?.signedUrl) {
       throw new Error('No se recibió URL de descarga firmada');
     }
-    return data.signedUrl;
+    return publicarUrlFirmada(data.signedUrl, this.publicUrl);
   }
 
   async existeObjeto(path: string): Promise<boolean> {

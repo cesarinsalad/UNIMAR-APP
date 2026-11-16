@@ -69,6 +69,22 @@ export function errorHandler(
   res: Response,
   _next: NextFunction,
 ): void {
+  // body-parser (express.json / express.raw) rechaza cuerpos por encima del
+  // límite con `entity.too.large`. Sin este caso, un archivo grande acabaría
+  // reportado como 500 en vez de 413.
+  if (
+    typeof err === 'object' &&
+    err !== null &&
+    (err as { type?: unknown }).type === 'entity.too.large'
+  ) {
+    res.status(413).json({
+      error: {
+        code: 'PAYLOAD_TOO_LARGE',
+        message: 'El archivo excede el tamaño máximo permitido',
+      },
+    });
+    return;
+  }
   if (err instanceof AppError) {
     res.status(err.status).json({
       error: { code: err.code, message: err.message },

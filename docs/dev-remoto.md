@@ -25,6 +25,13 @@
   domain de ngrok** (fijo, en `mobile/app.json`) — por eso funciona desde cualquier red.
 - `--tunnel` de Metro usa la propia infra ngrok de Expo (`*.exp.direct`, token embedded
   del CLI), independiente de tu cuenta ngrok.
+- **Storage también sale por ese mismo túnel.** El BFF firma URLs con
+  `SUPABASE_URL` (loopback) pero las reescribe al origen `SUPABASE_PUBLIC_URL`
+  antes de devolverlas; con `SUPABASE_PUBLIC_URL` = dev domain, el BFF monta
+  el gateway `/storage/v1` y reenvía a Supabase local. Así el teléfono sube
+  portadas/adjuntos sin un segundo túnel (el plan free de ngrok da un solo
+  dev domain). En producción `SUPABASE_PUBLIC_URL` va vacía y el cliente
+  habla directo con Supabase Cloud.
 
 ## Setup one-time (por máquina)
 

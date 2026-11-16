@@ -190,6 +190,13 @@ universidad). Con decanatos = solo esos. Un COMUNICADOR solo puede publicar a
 > una URL firmada de Supabase Storage; (2) el cliente sube el archivo
 > directamente a esa URL; (3) `POST /comunicados/:id/adjuntos` registra los
 > metadatos. El cliente **nunca** usa claves de Storage.
+>
+> **Origen de las URLs firmadas:** el BFF las reescribe con
+> `SUPABASE_PUBLIC_URL` si está definida. En producción (Supabase Cloud) va
+> vacía y la URL ya es pública; en dev con Supabase local apunta al host
+> público del BFF (dev domain del túnel), que monta el gateway `/storage/v1`
+> y reenvía a Storage. Nunca debe ser `127.0.0.1`: el teléfono no alcanza el
+> loopback de la laptop.
 
 ---
 

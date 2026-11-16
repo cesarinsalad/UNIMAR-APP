@@ -89,6 +89,7 @@ npm run test:db             # integration RLS; se salta si Supabase no está arr
 ## Gotchas operacionales
 
 - Supabase local exige **Docker**; puerto Postgres 54322. **Flujo universal remoto** (cualquier red, sin portproxy ni tocar IPs): `npm run dev:remoto` — ver `docs/dev-remoto.md` (ngrok dev domain fijo + Metro `--tunnel` + Pages).
+- **Storage en dev**: el BFF firma URLs con `SUPABASE_URL` (loopback) pero las reescribe al origen `SUPABASE_PUBLIC_URL` antes de devolverlas. En `.env` de dev debe ser el dev domain del túnel (`https://moonbeam-...ngrok-free.dev`), porque el teléfono no alcanza `127.0.0.1:54321`; el BFF monta entonces un gateway `/storage/v1` que reenvía a Storage (subida y descarga). En producción (Supabase Cloud) la variable va **vacía** → URLs públicas, subida directa cliente→Supabase y el gateway ni se monta.
 - `mobile/app.json > extra.apiBaseUrl` apunta al **dev domain ngrok** (fijo, committable). Si se despliega el BFF (demo final), cambiar esa URL y re-build (`eas update` si solo JS). El portproxy/exp:// por LAN queda documentado como legacy en `guia-expo-go.md`.
 - APKs: cloud build (`eas build --profile preview` — canal `demo`, apto para `eas update --branch demo`) es el canal oficial; `--local` en desuso (incidente Metaspace `gradle.properties` del prebuild, ver gotchas de `dev-remoto.md`).
 - Dev build y preview coexisten en el mismo teléfono: profile `development` sufla el appId vía `plugins/withAppIdSuffix.ts` + env `UNIMAR_APP_ID_SUFFIX=.dev` (eas.json).

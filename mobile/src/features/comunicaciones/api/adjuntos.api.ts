@@ -85,11 +85,18 @@ export async function subirArchivo(
   urlFirmada: string,
   archivo: Pick<ArchivoAdjunto, 'uri' | 'mimeType'>,
 ): Promise<void> {
+  // El origen de la URL puede ser el BFF detrás de ngrok (dev): el header
+  // evita el intersticial HTML del plan free, igual que el interceptor axios.
+  const headers = {
+    'Content-Type': archivo.mimeType,
+    'ngrok-skip-browser-warning': 'true',
+  };
+
   if (Platform.OS === 'web') {
     const blob = await fetch(archivo.uri).then((r) => r.blob());
     const respuesta = await fetch(urlFirmada, {
       method: 'PUT',
-      headers: { 'Content-Type': archivo.mimeType },
+      headers,
       body: blob,
     });
     if (!respuesta.ok) {
@@ -97,11 +104,17 @@ export async function subirArchivo(
     }
     return;
   }
-  await uploadAsync(urlFirmada, archivo.uri, {
+
+  // uploadAsync (legacy) resuelve incluso con 4xx/5xx: sin leer el status, un
+  // rechazo de Storage se manifestaría después como "archivo no encontrado".
+  const resultado = await uploadAsync(urlFirmada, archivo.uri, {
     httpMethod: 'PUT',
-    headers: { 'Content-Type': archivo.mimeType },
+    headers,
     uploadType: 1, // MULTIPART vs BINARY: 1 = binary (PUT directo)
   });
+  if (resultado.status < 200 || resultado.status >= 300) {
+    throw new Error(`El servidor de adjuntos respondió ${resultado.status}`);
+  }
 }
 
 /** Orquesta las dos fases: URL firmada → subida → registro. */

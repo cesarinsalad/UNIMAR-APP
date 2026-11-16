@@ -2,6 +2,7 @@ import cors from 'cors';
 import express, { type Express, type NextFunction, type Router } from 'express';
 import { NotFoundError } from './shared/errors';
 import { errorHandler } from './shared/http/middlewares';
+import { storageGateway } from './shared/http/storageGateway';
 import { unitOfWorkMiddleware } from './shared/http/unitOfWorkMiddleware';
 import type { IJwtService } from './shared/security/jwt';
 import type { AuthService } from './modules/identidad';
@@ -35,6 +36,18 @@ export function createApp(deps: AppDeps): Express {
   // Sin credentials: la app usa Bearer token en header, no cookies.
   const allowedOrigins = env.CORS_ORIGIN.split(',').map((o) => o.trim());
   app.use(cors({ origin: allowedOrigins, credentials: false }));
+
+  // Gateway de Storage: solo existe cuando el cliente recibe URLs firmadas con
+  // el origen del BFF (dev con Supabase local). Con Supabase Cloud la variable
+  // está vacía y el cliente sube/descarga directo: esta ruta no se monta.
+  // Va antes de express.json() porque el body es binario (imagen/PDF).
+  if (env.SUPABASE_PUBLIC_URL) {
+    app.use(
+      '/storage/v1',
+      express.raw({ type: '*/*', limit: '6mb' }),
+      storageGateway({ supabaseUrl: env.SUPABASE_URL }),
+    );
+  }
 
   app.use(express.json());
 

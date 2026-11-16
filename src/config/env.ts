@@ -16,6 +16,24 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(1, 'JWT_SECRET es requerida'),
   JWT_EXPIRES_IN: z.string().default('8h'),
   SUPABASE_URL: z.string().min(1, 'SUPABASE_URL es requerida'),
+  /**
+   * Origen público de Storage que se devuelve al cliente en las URLs firmadas.
+   *
+   * - Vacío (producción con Supabase Cloud): la URL firmada ya es pública y se
+   *   devuelve tal cual; el cliente sube/descarga directo contra Supabase.
+   * - Definido (dev con Supabase local): en este caso suele ser el origen
+   *   público del propio BFF, que monta el gateway `/storage/v1` y reenvía a
+   *   `SUPABASE_URL`. Nunca es una IP de loopback porque el cliente no la
+   *   alcanza.
+   */
+  SUPABASE_PUBLIC_URL: z
+    .string()
+    .trim()
+    .refine(
+      (v) => v === '' || URL.canParse(v),
+      'SUPABASE_PUBLIC_URL debe ser una URL válida (p. ej. https://midominio.dev)',
+    )
+    .default(''),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, 'SUPABASE_SERVICE_ROLE_KEY es requerida'),
   /** Proveedor de notificaciones push: `mock` no hace red, `expo` usa Expo Push API. */
   PUSH_PROVIDER: z.enum(['mock', 'expo']).default('mock'),

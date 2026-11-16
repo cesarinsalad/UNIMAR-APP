@@ -43,6 +43,7 @@ const authService = new AuthService(
 );
 const storageService = new SupabaseStorageService({
   url: env.SUPABASE_URL,
+  publicUrl: env.SUPABASE_PUBLIC_URL || undefined,
   serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
   bucket: BUCKET_ADJUNTOS,
 });
