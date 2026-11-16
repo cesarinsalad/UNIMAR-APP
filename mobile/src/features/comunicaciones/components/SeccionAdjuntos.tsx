@@ -6,8 +6,11 @@ import { urlDescargaAdjunto, type ArchivoAdjunto } from '../api/adjuntos.api';
 import { tieneErroresAdjunto, validarAdjunto } from '../hooks/formulario';
 import { useAdjuntos, useEliminarAdjunto, useSubirAdjunto } from '../hooks/useAdjuntos';
 import { ApiError } from '@/shared/api/axios';
-import { colors, radius, spacing } from '@/shared/ui';
-import { ModalConfirmacion, ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
+import { ModalConfirmacion } from '@/shared/ui/ModalConfirmacion';
+import { ThemedButton } from '@/shared/ui/ThemedButton';
+import { ThemedText } from '@/shared/ui/ThemedText';
+import { ThemedView } from '@/shared/ui/ThemedView';
+import { colors, radius, spacing } from '@/shared/ui/theme';
 import type { Adjunto } from '../types';
 
 const PICKER_TYPES = ['application/pdf', 'image/png', 'image/jpeg'];
@@ -16,10 +19,16 @@ interface Props {
   comunicadoId: string;
   /** Recibe accionesPermitidas().puedeEditar del comunicado actual. */
   puedeEditar: boolean;
+  /** storage_path de la portada vigente: no es un adjunto, se excluye. */
+  portadaPath?: string | null;
 }
 
 /** Sección de adjuntos del detalle: listar, abrir, subir y eliminar. */
-export function SeccionAdjuntos({ comunicadoId, puedeEditar }: Props) {
+export function SeccionAdjuntos({
+  comunicadoId,
+  puedeEditar,
+  portadaPath,
+}: Props) {
   const adjuntos = useAdjuntos(comunicadoId);
   const subir = useSubirAdjunto(comunicadoId);
   const eliminar = useEliminarAdjunto(comunicadoId);
@@ -27,7 +36,9 @@ export function SeccionAdjuntos({ comunicadoId, puedeEditar }: Props) {
   // Confirmación con Modal (Alert.alert es no-op en web).
   const [porBorrar, setPorBorrar] = useState<Adjunto | null>(null);
 
-  const lista = adjuntos.data ?? [];
+  const lista = (adjuntos.data ?? []).filter(
+    (adjunto) => !portadaPath || adjunto.storagePath !== portadaPath,
+  );
 
   async function abrir(adjuntoId: string) {
     setError(null);
@@ -89,6 +100,13 @@ export function SeccionAdjuntos({ comunicadoId, puedeEditar }: Props) {
 
   function glifo(mime: string): string {
     return mime === 'application/pdf' ? 'PDF' : 'IMG';
+  }
+
+  // En lectura, una sección vacía no aporta nada: se oculta completa (también
+  // durante la carga inicial para no mostrar la cabecera y luego quitarla).
+  // En edición se mantiene porque aloja el botón de adjuntar.
+  if (!puedeEditar && (adjuntos.isPending || lista.length === 0)) {
+    return null;
   }
 
   return (

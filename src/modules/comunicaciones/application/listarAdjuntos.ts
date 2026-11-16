@@ -24,7 +24,12 @@ export class ListarAdjuntos {
         throw new NotFoundError('Comunicado no encontrado');
       }
 
-      return this.adjuntoRepo.listarPorComunicado(tx, comunicadoId);
+      const adjuntos = await this.adjuntoRepo.listarPorComunicado(tx, comunicadoId);
+      // La portada vive como adjunto en Storage, pero no es un adjunto del
+      // comunicado: se excluye la que está vigente (imagen_path).
+      return comunicado.imagenPath
+        ? adjuntos.filter((adjunto) => adjunto.storagePath !== comunicado.imagenPath)
+        : adjuntos;
     });
   }
 }

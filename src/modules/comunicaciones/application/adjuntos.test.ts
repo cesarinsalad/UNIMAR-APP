@@ -94,7 +94,11 @@ function makeStorage(overrides: Partial<IStorageService> = {}): { storage: IStor
   return { storage, calls };
 }
 
-function makeAdjuntoRepo(initial: Adjunto | null = null): { repo: IAdjuntoRepository; calls: MockCalls['repoAdjunto'] } {
+function makeAdjuntoRepo(
+  initial: Adjunto | Adjunto[] | null = null,
+): { repo: IAdjuntoRepository; calls: MockCalls['repoAdjunto'] } {
+  const items =
+    initial === null ? [] : Array.isArray(initial) ? initial : [initial];
   const calls: MockCalls['repoAdjunto'] = [];
   const repo: IAdjuntoRepository = {
     crear: async (tx, input) => {
@@ -103,15 +107,15 @@ function makeAdjuntoRepo(initial: Adjunto | null = null): { repo: IAdjuntoReposi
     },
     listarPorComunicado: async (tx, comunicadoId) => {
       calls.push({ method: 'listarPorComunicado', args: [comunicadoId] });
-      return initial && initial.comunicadoId === comunicadoId ? [initial] : [];
+      return items.filter((item) => item.comunicadoId === comunicadoId);
     },
     buscarPorId: async (tx, id) => {
       calls.push({ method: 'buscarPorId', args: [id] });
-      return initial && initial.id === id ? initial : null;
+      return items.find((item) => item.id === id) ?? null;
     },
     eliminar: async (tx, id) => {
       calls.push({ method: 'eliminar', args: [id] });
-      return initial?.id === id;
+      return items.some((item) => item.id === id);
     },
   };
   return { repo, calls };
@@ -327,6 +331,51 @@ describe('ListarAdjuntos', () => {
     const result = await uc.ejecutar(makeClaims('uuid-est', 'ESTUDIANTE', 5), 'com-id');
     expect(result.length).toBe(1);
     expect(calls.some((c) => c.method === 'listarPorComunicado')).toBe(true);
+  });
+
+  it('excluye la portada vigente y conserva los demás adjuntos', async () => {
+    const portada = makeAdjunto({
+      id: 'adj-portada',
+      storagePath: 'com-id/uuid-portada.png',
+      nombre: 'portada.png',
+    });
+    const documento = makeAdjunto({
+      id: 'adj-documento',
+      storagePath: 'com-id/uuid-documento.pdf',
+      nombre: 'documento.pdf',
+      mimeType: 'application/pdf',
+    });
+    const comRepo = makeComRepo(
+      makeComunicado({ imagenPath: 'com-id/uuid-portada.png' }),
+    );
+    const { repo } = makeAdjuntoRepo([portada, documento]);
+    const uc = new ListarAdjuntos(comRepo, repo, makeUnitOfWork());
+
+    const result = await uc.ejecutar(
+      makeClaims('uuid-est', 'ESTUDIANTE', 5),
+      'com-id',
+    );
+
+    expect(result.map((adjunto) => adjunto.id)).toEqual(['adj-documento']);
+  });
+
+  it('si solo existe la portada devuelve una lista vacía', async () => {
+    const portada = makeAdjunto({
+      storagePath: 'com-id/uuid-portada.png',
+      nombre: 'portada.png',
+    });
+    const comRepo = makeComRepo(
+      makeComunicado({ imagenPath: 'com-id/uuid-portada.png' }),
+    );
+    const { repo } = makeAdjuntoRepo(portada);
+    const uc = new ListarAdjuntos(comRepo, repo, makeUnitOfWork());
+
+    const result = await uc.ejecutar(
+      makeClaims('uuid-est', 'ESTUDIANTE', 5),
+      'com-id',
+    );
+
+    expect(result).toEqual([]);
   });
 
   it('Comunicado no visible -> NotFoundError', async () => {

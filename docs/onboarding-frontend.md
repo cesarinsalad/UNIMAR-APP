@@ -182,7 +182,7 @@ universidad). Con decanatos = solo esos. Un COMUNICADOR solo puede publicar a
 |--------|------|-----|-------------|
 | POST | `/comunicados/:id/adjuntos/url-carga` | COMUNICADOR | Fase 1: pide URL firmada. Body: `nombre`, `mime_type`, `tamano`. Devuelve `urlFirmada` + `path`. |
 | POST | `/comunicados/:id/adjuntos` | COMUNICADOR | Fase 2: registra tras subir. Body: `path` (de la fase 1), `nombre`, `mime_type`, `tamano`. |
-| GET | `/comunicados/:id/adjuntos` | todos | Listar adjuntos del comunicado |
+| GET | `/comunicados/:id/adjuntos` | todos | Listar adjuntos del comunicado (excluye la portada vigente) |
 | GET | `/adjuntos/:id/url-descarga` | todos | URL firmada de descarga (TTL 300s) |
 | DELETE | `/adjuntos/:id` | autor/ADMIN | Eliminar |
 
