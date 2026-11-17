@@ -10,9 +10,9 @@ import {
 } from 'react-native';
 import type { IconWeight } from 'phosphor-react-native';
 
+import { Card } from './Card';
 import { colors, radius, spacing, touchTarget } from './theme';
 import { ThemedText } from './ThemedText';
-import { ThemedView } from './ThemedView';
 import { HojaInferior } from './HojaInferior';
 import { useEsDesktop } from './useEsDesktop';
 
@@ -135,9 +135,12 @@ export function MenuAcciones({
               style={styles.cortinaWeb}
               onPress={cerrar}
             />
-            <ThemedView variant="card" style={styles.desplegable}>
+            <Card
+              elevationKey="md"
+              padding="zero"
+              style={styles.desplegable}>
               {listaAcciones}
-            </ThemedView>
+            </Card>
           </>
         ) : null
       ) : (
@@ -256,6 +259,8 @@ const styles = StyleSheet.create({
     minWidth: 208,
     paddingVertical: spacing.xs,
     borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
     zIndex: 11,
   },
   /** Desempate de la celda con menú abierto (ver ContextoMenuAbierto):
