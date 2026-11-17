@@ -408,6 +408,18 @@ lateral 3px).
   deja seleccionados. Leyenda con puntos redondos de 4px por naturaleza
   (banda flotante bajo la cifra: los puntos nunca participan del layout de
   la celda — el cuadrado se mantiene).
+- **Registro de novedades (bandeja):** la bandeja es un registro
+  cronológico, no una pila de tarjetas idénticas. Un documento blanco por
+  día, con el membrete en cápsula hundida ("HOY" · "AYER" · "JUE 12 NOV":
+  caption semibold, MAYÚSCULAS, tracking 0.5) y dentro filas separadas por
+  hairline (`SeparadorFino`): icono del tipo en tile `surface-tint-blue` de
+  40/radius 12 (el rechazo usa la tríada DEVUELTO), titular `body`
+  semibold si no se leyó, cuerpo `bodySm` y metadato
+  `clasificación · hora` en caption. La no-leída se firma con el punto
+  naranja de 10px sobre el tile (anillo blanco de 2px) — nunca con barra
+  lateral de color ni repitiendo el tipo como eyebrow. "Marcar todo
+  leído" es texto quieto `bodySm` semibold azul con check: no compite con
+  el headline.
 
 ## Do's and Don'ts
 

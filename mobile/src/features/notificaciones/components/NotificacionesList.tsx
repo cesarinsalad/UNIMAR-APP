@@ -1,18 +1,38 @@
+import { Fragment, useMemo } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   RefreshControl,
   StyleSheet,
-  View as RNView,
-  type ListRenderItemInfo,
+  View,
 } from 'react-native';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BellSlashIcon, WarningCircleIcon } from 'phosphor-react-native';
 
-import { colors, spacing } from '@/shared/ui';
-import { ThemedText, ThemedView } from '@/shared/ui';
+import {
+  Card,
+  EmptyState,
+  SeparadorFino,
+  Skeleton,
+  SkeletonGroup,
+  ThemedButton,
+  ThemedText,
+  colors,
+  radius,
+  spacing,
+} from '@/shared/ui';
 import type { Notificacion } from '../types';
 import { aplanarPaginas, useNotificaciones } from '../hooks/useNotificaciones';
-import { NotificacionCard } from './NotificacionCard';
+import { agruparPorDia, type GrupoDia } from '../grupos';
+import { NotificacionFila } from './NotificacionFila';
 
+/**
+ * Bandeja como registro cronológico: un documento blanco por día (Hoy /
+ * Ayer / fecha) con filas hairline dentro. La agrupación por día es el eje
+ * de lectura — dentro del documento la hora basta — y evita la pila de
+ * tarjetas idénticas que competían entre sí.
+ */
 export function NotificacionesList({
   onAbrir,
 }: {
@@ -21,56 +41,61 @@ export function NotificacionesList({
   const query = useNotificaciones();
   const insets = useSafeAreaInsets();
 
-  const notificaciones = aplanarPaginas(query.data?.pages);
+  const notificaciones = useMemo(
+    () => aplanarPaginas(query.data?.pages),
+    [query.data],
+  );
+  const grupos = useMemo(() => agruparPorDia(notificaciones), [notificaciones]);
 
   if (query.isPending) {
-    return (
-      <EstadoCentrado>
-        <ThemedText tone="secondary">Cargando notificaciones...</ThemedText>
-      </EstadoCentrado>
-    );
+    return <CargandoBandeja />;
   }
 
   if (query.isError) {
     return (
-      <EstadoCentrado gap>
-        <ThemedText tone="secondary">No se pudieron cargar las notificaciones.</ThemedText>
-        <ThemedText variant="caption" tone="tertiary" style={styles.errorDetalle}>
+      <View style={[estilos.contenido, estilos.contenidoCentrado]}>
+        <EmptyState
+          icon={
+            <WarningCircleIcon size={32} color={colors.status.danger} weight="regular" />
+          }
+          title="No se pudo cargar la bandeja"
+          message="Inténtalo de nuevo en unos segundos."
+          action={
+            <ThemedButton
+              title="Reintentar"
+              variant="secondary"
+              size="sm"
+              onPress={() => void query.refetch()}
+            />
+          }
+        />
+        <ThemedText
+          variant="caption"
+          tone="tertiary"
+          numberOfLines={3}
+          style={estilos.detalleError}>
           {query.error.message}
         </ThemedText>
-        <ThemedText
-          variant="body"
-          weight="semibold"
-          style={styles.reintentar}
-          onPress={() => query.refetch()}>
-          Reintentar
-        </ThemedText>
-      </EstadoCentrado>
+      </View>
     );
   }
 
+  const vacia = notificaciones.length === 0;
+
   return (
     <FlatList
-      data={notificaciones}
-      keyExtractor={(item) => item.id}
-      renderItem={({ item }: ListRenderItemInfo<Notificacion>) => (
-        <NotificacionCard notificacion={item} onAbrir={onAbrir} />
+      data={grupos}
+      keyExtractor={(grupo) => grupo.clave}
+      renderItem={({ item }) => (
+        <SeccionDia grupo={item} onAbrir={onAbrir} />
       )}
       contentContainerStyle={[
-        styles.contenido,
+        estilos.contenido,
+        vacia && estilos.contenidoCentrado,
         { paddingBottom: insets.bottom + spacing.xxl },
       ]}
-      ItemSeparatorComponent={Separador}
-      ListEmptyComponent={
-        <EstadoCentrado>
-          <ThemedText variant="bodyLg" weight="semibold">
-            No hay notificaciones
-          </ThemedText>
-          <ThemedText tone="secondary">
-            Cuando se publiquen comunicados o eventos de tu interés, aparecerán aquí.
-          </ThemedText>
-        </EstadoCentrado>
-      }
+      ItemSeparatorComponent={SeparadorGrupo}
+      ListEmptyComponent={<BandejaVacia />}
       ListFooterComponent={
         query.isFetchingNextPage ? <PieDePagina /> : null
       }
@@ -80,6 +105,7 @@ export function NotificacionesList({
         }
       }}
       onEndReachedThreshold={0.35}
+      showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl
           refreshing={query.isRefetching}
@@ -92,61 +118,190 @@ export function NotificacionesList({
   );
 }
 
-function EstadoCentrado({
-  children,
-  gap = false,
+/** Un día = un documento: membreta de fecha + tarjeta con filas hairline. */
+function SeccionDia({
+  grupo,
+  onAbrir,
 }: {
-  children: React.ReactNode;
-  gap?: boolean;
+  grupo: GrupoDia;
+  onAbrir: (notificacion: Notificacion) => void;
 }) {
   return (
-    <ThemedView variant="base" style={[styles.estado, gap && styles.estadoConGap]}>
-      {children}
-    </ThemedView>
+    <View style={estilos.grupo}>
+      <View style={estilos.chipDia}>
+        <ThemedText
+          variant="caption"
+          weight="semibold"
+          style={estilos.chipTexto}>
+          {grupo.etiqueta}
+        </ThemedText>
+      </View>
+      <Card padding="zero">
+        <View style={estilos.documento}>
+          {grupo.notificaciones.map((notificacion, indice) => (
+            <Fragment key={notificacion.id}>
+              {indice > 0 ? <SeparadorFino /> : null}
+              <NotificacionFila
+                notificacion={notificacion}
+                onAbrir={onAbrir}
+              />
+            </Fragment>
+          ))}
+        </View>
+      </Card>
+    </View>
   );
 }
 
-function Separador() {
-  return <RNView style={styles.separador} />;
+function CargandoBandeja() {
+  return (
+    <SkeletonGroup
+      label="Cargando notificaciones"
+      style={[estilos.contenido, estilos.cargando]}>
+      {[0, 1].map((seccion) => (
+        <View key={seccion} style={estilos.grupo}>
+          <Skeleton style={estilos.esqueletoChip} />
+          <View style={estilos.esqueletoDocumento}>
+            {[0, 1, 2].map((fila) => (
+              <View key={fila} style={estilos.esqueletoFila}>
+                <Skeleton style={estilos.esqueletoIcono} />
+                <View style={estilos.esqueletoTextos}>
+                  <Skeleton style={estilos.esqueletoTitulo} />
+                  <Skeleton style={estilos.esqueletoCuerpo} />
+                  <Skeleton style={estilos.esqueletoMeta} />
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+      ))}
+    </SkeletonGroup>
+  );
+}
+
+function BandejaVacia() {
+  return (
+    <EmptyState
+      icon={<BellSlashIcon size={32} color={colors.text.secondary} weight="regular" />}
+      title="Sin novedades"
+      message="Cuando se publiquen comunicados o eventos de tu interés, aparecerán aquí."
+      action={
+        <ThemedButton
+          title="Ver noticias"
+          variant="secondary"
+          size="sm"
+          onPress={() => router.navigate('/comunicados')}
+        />
+      }
+    />
+  );
+}
+
+function SeparadorGrupo() {
+  return <View style={estilos.separadorGrupo} />;
 }
 
 function PieDePagina() {
   return (
-    <ThemedText variant="caption" tone="tertiary" style={styles.footer}>
-      Cargando más...
-    </ThemedText>
+    <View
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel="Cargando más novedades"
+      style={estilos.pie}>
+      <ActivityIndicator size="small" color={colors.brand.primary} />
+      <ThemedText variant="caption" tone="secondary">
+        Cargando más novedades…
+      </ThemedText>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
+const estilos = StyleSheet.create({
   contenido: {
-    padding: spacing.lg,
-    gap: spacing.md,
-    backgroundColor: colors.bg.surface,
+    paddingTop: spacing.md,
+    paddingHorizontal: spacing.lg,
   },
-  separador: {
-    height: spacing.md,
+  contenidoCentrado: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingTop: 0,
   },
-  estado: {
-    flex: 1,
+  cargando: {
+    gap: spacing.xl,
+  },
+  grupo: {
+    gap: spacing.sm,
+  },
+  separadorGrupo: {
+    height: spacing.xl,
+  },
+  /** Membreta de fecha: cápsula hundida, MAYÚSCULAS semibold con tracking
+   *  (receta de membrete de la casa, sin Bold). */
+  chipDia: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.bg.sunken,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  chipTexto: {
+    color: colors.text.secondary,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  documento: {
+    borderRadius: radius.card,
+    // Recorta el ripple de las filas en las esquinas de la tarjeta; la
+    // sombra queda en el Card exterior.
+    overflow: 'hidden',
+  },
+  detalleError: {
+    textAlign: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  pie: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.xl,
     gap: spacing.sm,
+    paddingVertical: spacing.xl,
+  },
+  esqueletoChip: {
+    width: 64,
+    height: 24,
+    borderRadius: radius.pill,
+  },
+  esqueletoDocumento: {
     backgroundColor: colors.bg.surface,
+    borderRadius: radius.card,
+    paddingVertical: spacing.xs,
   },
-  estadoConGap: {
-    gap: spacing.lg,
+  esqueletoFila: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
   },
-  errorDetalle: {
-    textAlign: 'center',
+  esqueletoIcono: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.lg,
   },
-  reintentar: {
-    color: colors.brand.primary,
-    textDecorationLine: 'underline',
+  esqueletoTextos: {
+    flex: 1,
+    gap: spacing.sm,
   },
-  footer: {
-    textAlign: 'center',
-    paddingVertical: spacing.lg,
+  esqueletoTitulo: {
+    width: '70%',
+    height: 16,
+  },
+  esqueletoCuerpo: {
+    width: '90%',
+    height: 12,
+  },
+  esqueletoMeta: {
+    width: '45%',
+    height: 12,
   },
 });

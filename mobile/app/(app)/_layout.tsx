@@ -27,6 +27,8 @@ export default function AppLayout() {
   // cabecera sustituye la chapa institucional y aporta el inset superior.
   const enEditorComunicado =
     Platform.OS !== 'web' && pathname === '/comunicados/nuevo';
+  // En la propia bandeja la campana se apuntaría a sí misma: se retira.
+  const enNotificaciones = pathname.startsWith('/notificaciones');
 
   useEffect(() => {
     // Este layout solo está montado si hay sesión, así que al consumir la
@@ -68,12 +70,14 @@ export default function AppLayout() {
                     </View>
                   </Pressable>
                 ) : null}
-                <CampanaConBadge
-                  total={totalNoLeidas.data?.total ?? 0}
-                  tono="azul"
-                  compacto
-                  tamano={20}
-                />
+                {enNotificaciones ? null : (
+                  <CampanaConBadge
+                    total={totalNoLeidas.data?.total ?? 0}
+                    tono="azul"
+                    compacto
+                    tamano={20}
+                  />
+                )}
               </View>
             }
           />
