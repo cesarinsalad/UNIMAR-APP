@@ -20,6 +20,7 @@ import { RechazarComunicado } from './rechazarComunicado';
 import { PublicarComunicado } from './publicarComunicado';
 import { ArchivarComunicado } from './archivarComunicado';
 import { DesarchivarComunicado } from './desarchivarComunicado';
+import { EliminarComunicado } from './eliminarComunicado';
 import { EstadisticasComunicado } from './estadisticasComunicado';
 import { ObtenerComunicado } from './obtenerComunicado';
 import { ListarComunicados } from './listarComunicados';
@@ -77,6 +78,7 @@ interface RepoCall {
 function makeRepo(
   initial: Comunicado | null = null,
   alcance: AlcanceComunicado[] = [],
+  opciones: { fallaEliminar?: boolean } = {},
 ): { repo: IComunicadoRepository; calls: RepoCall[] } {
   const calls: RepoCall[] = [];
   let store: Comunicado | null = initial;
@@ -121,6 +123,15 @@ function makeRepo(
     transicionarEstado: async (tx, id, input) => {
       calls.push({ method: 'transicionarEstado', args: [id, input] });
       return store ? ({ ...store, ...input } as Comunicado) : null;
+    },
+    marcarEliminado: async (tx, id, eliminadoPor) => {
+      calls.push({ method: 'marcarEliminado', args: [id, eliminadoPor] });
+      if (opciones.fallaEliminar) return false;
+      if (store && store.id === id) {
+        store = null;
+        return true;
+      }
+      return false;
     },
     registrarLectura: async (tx, id, userId) => {
       calls.push({ method: 'registrarLectura', args: [id, userId] });
@@ -455,6 +466,50 @@ describe('DesarchivarComunicado', () => {
     const { repo } = makeRepo(null);
     const uc = new DesarchivarComunicado(repo, makeUnitOfWork());
     await expect(uc.ejecutar(makeAdminClaims(), 'com-missing')).rejects.toThrow(NotFoundError);
+  });
+});
+
+describe('EliminarComunicado', () => {
+  it('Autor elimina su BORRADOR (borrado lógico) y delega el usuario que elimina', async () => {
+    const { repo, calls } = makeRepo(makeComunicado({ autorId: 'uuid-c', estado: 'BORRADOR' }));
+    const uc = new EliminarComunicado(repo, makeUnitOfWork());
+    await expect(uc.ejecutar(makeComComunicador('uuid-c', 5), 'com-id')).resolves.toBeUndefined();
+    const call = calls.find((c) => c.method === 'marcarEliminado');
+    expect(call).toBeDefined();
+    expect(call!.args).toEqual(['com-id', 'uuid-c']);
+  });
+
+  it('ADMIN elimina cualquier comunicado, en cualquier estado', async () => {
+    const { repo, calls } = makeRepo(makeComunicado({ autorId: 'uuid-other', estado: 'PUBLICADO' }));
+    const uc = new EliminarComunicado(repo, makeUnitOfWork());
+    await uc.ejecutar(makeAdminClaims('uuid-a'), 'com-id');
+    expect(calls.some((c) => c.method === 'marcarEliminado')).toBe(true);
+  });
+
+  it('COMUNICADOR ajeno -> ForbiddenError', async () => {
+    const { repo } = makeRepo(makeComunicado({ autorId: 'uuid-other', estado: 'BORRADOR' }));
+    const uc = new EliminarComunicado(repo, makeUnitOfWork());
+    await expect(uc.ejecutar(makeComComunicador('uuid-c', 5), 'com-id')).rejects.toThrow(ForbiddenError);
+  });
+
+  it('ESTUDIANTE -> ForbiddenError', async () => {
+    const { repo } = makeRepo(makeComunicado({ autorId: 'uuid-est', estado: 'BORRADOR' }));
+    const uc = new EliminarComunicado(repo, makeUnitOfWork());
+    await expect(uc.ejecutar(makeEstudianteClaims(), 'com-id')).rejects.toThrow(ForbiddenError);
+  });
+
+  it('No existe -> NotFoundError', async () => {
+    const { repo } = makeRepo(null);
+    const uc = new EliminarComunicado(repo, makeUnitOfWork());
+    await expect(uc.ejecutar(makeAdminClaims(), 'com-missing')).rejects.toThrow(NotFoundError);
+  });
+
+  it('RLS no deja marcar (0 filas) -> NotFoundError', async () => {
+    const { repo } = makeRepo(makeComunicado({ autorId: 'uuid-c' }), [], { fallaEliminar: true });
+    const uc = new EliminarComunicado(repo, makeUnitOfWork());
+    await expect(uc.ejecutar(makeComComunicador('uuid-c', 5), 'com-id')).rejects.toThrow(
+      NotFoundError,
+    );
   });
 });
 

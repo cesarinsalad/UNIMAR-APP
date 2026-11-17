@@ -81,7 +81,7 @@ function construirWhere(filtro: FiltroComunicados): {
   params: (string | number)[];
 } {
   const params: (string | number)[] = [];
-  const where: string[] = [];
+  const where: string[] = ['c.deleted_at IS NULL'];
 
   if (filtro.estado) {
     params.push(filtro.estado);
@@ -185,7 +185,7 @@ export class PostgresComunicadoRepository implements IComunicadoRepository {
 
   async buscarPorId(tx: DbTx, id: string): Promise<Comunicado | null> {
     const result = await tx.query<ComunicadoRow>(
-      `${BASE_SELECT} WHERE c.id = $1 GROUP BY c.id`,
+      `${BASE_SELECT} WHERE c.id = $1 AND c.deleted_at IS NULL GROUP BY c.id`,
       [id],
     );
     return result.rows[0] ? mapRow(result.rows[0]) : null;
@@ -223,7 +223,7 @@ export class PostgresComunicadoRepository implements IComunicadoRepository {
   async contarPorEstado(tx: DbTx): Promise<Record<Estado, number>> {
     const conteos = Object.fromEntries(ESTADOS.map((e) => [e, 0])) as Record<Estado, number>;
     const result = await tx.query<{ estado: Estado; n: number }>(
-      'SELECT estado, count(*)::int AS n FROM comunicados GROUP BY estado',
+      'SELECT estado, count(*)::int AS n FROM comunicados WHERE deleted_at IS NULL GROUP BY estado',
     );
     for (const row of result.rows) {
       conteos[row.estado] = row.n;
@@ -270,7 +270,7 @@ export class PostgresComunicadoRepository implements IComunicadoRepository {
     if (sets.length > 0) {
       values.push(id);
       await tx.query(
-        `UPDATE comunicados SET ${sets.join(', ')} WHERE id = $${values.length}`,
+        `UPDATE comunicados SET ${sets.join(', ')} WHERE id = $${values.length} AND deleted_at IS NULL`,
         values,
       );
     }
@@ -324,11 +324,25 @@ export class PostgresComunicadoRepository implements IComunicadoRepository {
 
     values.push(id);
     await tx.query(
-      `UPDATE comunicados SET ${sets.join(', ')} WHERE id = $${values.length}`,
+      `UPDATE comunicados SET ${sets.join(', ')} WHERE id = $${values.length} AND deleted_at IS NULL`,
       values,
     );
 
     return this.buscarPorId(tx, id);
+  }
+
+  async marcarEliminado(tx: DbTx, id: string, eliminadoPor: string): Promise<boolean> {
+    // Borrado lógico: la fila se conserva (trazabilidad y adjuntos intactos)
+    // y la RLS de SELECT la oculta al público. El UPDATE está cubierto por
+    // `comunicados_update` (autor o ADMIN): si RLS no lo permite, 0 filas.
+    const result = await tx.query<{ id: string }>(
+      `UPDATE comunicados
+          SET deleted_at = now(), deleted_by = $2
+        WHERE id = $1 AND deleted_at IS NULL
+        RETURNING id`,
+      [id, eliminadoPor],
+    );
+    return result.rows.length > 0;
   }
 
   async registrarLectura(
@@ -384,7 +398,7 @@ export class PostgresComunicadoRepository implements IComunicadoRepository {
     imagenPie: string | null,
   ): Promise<Comunicado | null> {
     await tx.query(
-      'UPDATE comunicados SET imagen_path = $1, imagen_pie = $2 WHERE id = $3',
+      'UPDATE comunicados SET imagen_path = $1, imagen_pie = $2 WHERE id = $3 AND deleted_at IS NULL',
       [imagenPath, imagenPie, id],
     );
     return this.buscarPorId(tx, id);

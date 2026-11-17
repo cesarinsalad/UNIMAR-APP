@@ -131,6 +131,14 @@ export async function desarchivarComunicado(id: string): Promise<Comunicado> {
   return data;
 }
 
+/**
+ * DELETE /comunicados/:id — borrado lógico (autor o ADMIN, cualquier estado).
+ * 204 sin cuerpo: el comunicado deja de existir para la app.
+ */
+export async function eliminarComunicado(id: string): Promise<void> {
+  await api.delete(`/comunicados/${id}`);
+}
+
 /** PUT /comunicados/:id/portada — asigna portada (adjunto imagen ya registrado). */
 export async function asignarPortada(
   id: string,

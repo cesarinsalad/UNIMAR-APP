@@ -19,6 +19,7 @@ import {
   MegaphoneIcon,
   PaperPlaneTiltIcon,
   PencilSimpleIcon,
+  TrashIcon,
   XCircleIcon,
   XIcon,
 } from 'phosphor-react-native';
@@ -27,6 +28,7 @@ import {
   aprobarComunicado,
   archivarComunicado,
   desarchivarComunicado,
+  eliminarComunicado,
   publicarComunicado,
   rechazarComunicado,
   solicitarRevisionComunicado,
@@ -51,6 +53,7 @@ import {
   EstadoCentrado,
   HojaMenuAcciones,
   MenuAcciones,
+  ModalConfirmacion,
   SkeletonCard,
   SkeletonGroup,
   Select,
@@ -119,7 +122,8 @@ export interface ComunicadosSeccionProps {
  * server-side (búsqueda q, estado, decanato del ADMIN, categoría) + tablas
  * de escritorio / tarjetas táctiles ( `< 768`), con las acciones por
  * rol×estado del doc: EDITAR, ENVIAR, APROBAR, RECHAZAR (con motivo),
- * PUBLICAR, ARCHIVAR, DESARCHIVAR. Transiciones OPTIMISTAS con la misma
+ * PUBLICAR, ARCHIVAR, DESARCHIVAR y ELIMINAR (borrado lógico, autor o
+ * ADMIN en cualquier estado). Transiciones OPTIMISTAS con la misma
  * mutación del detalle: la fila sale al instante y si el BFF rechaza,
  * vuelve exacta. La RLS decide el alcance.
  */
@@ -157,15 +161,18 @@ export function ComunicadosSeccion({ estado, onEstado }: ComunicadosSeccionProps
   const totalCola = soloDevueltos ? comunicados.length : totalDeCola(query);
   const etiquetaTotal = totalCola === 1 ? '1 comunicado' : `${totalCola} comunicados`;
 
-  // UNA transición compuesta para las 6 acciones (el detalle usa el mismo
+  // UNA transición compuesta para las 7 acciones (el detalle usa el mismo
   // patrón): optimistic removal por id + invalidate del prefijo al éxito.
-  const transicion = useTransicionComunicado<{ accion: AccionCola; id: string; motivo?: string }>(
-    ejecutarTransicion,
-  );
+  // ELIMINAR devuelve void (204) y descarta la caché del detalle.
+  const transicion = useTransicionComunicado<
+    { accion: AccionCola; id: string; motivo?: string },
+    Comunicado | void
+  >(ejecutarTransicion);
   const [filaEnVuelo, setFilaEnVuelo] = useState<string | null>(null);
   const [erroresFila, setErroresFila] = useState<{ [id: string]: string }>({});
   const [porRechazar, setPorRechazar] = useState<Comunicado | null>(null);
   const [errorRechazo, setErrorRechazo] = useState<string | null>(null);
+  const [porBorrar, setPorBorrar] = useState<Comunicado | null>(null);
   const [porAcciones, setPorAcciones] = useState<Comunicado | null>(null);
   /** Fila con el `⋮` abierto (desktop): la celda se eleva por contexto
    *  para que el dropdown pinte encima de sus hermanas en web. */
@@ -241,6 +248,9 @@ export function ComunicadosSeccion({ estado, onEstado }: ComunicadosSeccionProps
     if (p.puedeDesarchivar) {
       lista.push({ clave: 'DESARCHIVAR', etiqueta: 'Desarchivar', icono: ArrowCounterClockwiseIcon });
     }
+    if (p.puedeEliminar) {
+      lista.push({ clave: 'ELIMINAR', etiqueta: 'Eliminar', icono: TrashIcon, destructiva: true });
+    }
     return lista;
   }
 
@@ -255,6 +265,9 @@ export function ComunicadosSeccion({ estado, onEstado }: ComunicadosSeccionProps
         break;
       case 'RECHAZAR':
         setPorRechazar(c);
+        break;
+      case 'ELIMINAR':
+        setPorBorrar(c);
         break;
       default:
         void ejecutar(clave as AccionCola, c);
@@ -469,6 +482,24 @@ export function ComunicadosSeccion({ estado, onEstado }: ComunicadosSeccionProps
           void confirmarRechazo(motivo);
         }}
       />
+
+      <ModalConfirmacion
+        visible={porBorrar !== null}
+        titulo="Eliminar comunicado"
+        mensaje={
+          porBorrar
+            ? `¿Eliminar "${porBorrar.titulo}"? Dejará de aparecer en la app. Esta acción no se puede deshacer.`
+            : ''
+        }
+        textoConfirmar="Eliminar"
+        destructive
+        onConfirmar={() => {
+          const objetivo = porBorrar;
+          setPorBorrar(null);
+          if (objetivo) void ejecutar('ELIMINAR', objetivo);
+        }}
+        onCancelar={() => setPorBorrar(null)}
+      />
     </ThemedView>
   );
 }
@@ -482,7 +513,8 @@ type AccionCola =
   | 'RECHAZAR'
   | 'PUBLICAR'
   | 'ARCHIVAR'
-  | 'DESARCHIVAR';
+  | 'DESARCHIVAR'
+  | 'ELIMINAR';
 
 async function ejecutarTransicion(
   id: string,
@@ -502,6 +534,8 @@ async function ejecutarTransicion(
       return archivarComunicado(id);
     case 'DESARCHIVAR':
       return desarchivarComunicado(id);
+    case 'ELIMINAR':
+      return eliminarComunicado(id);
     default:
       throw new Error(`Acción no transicional: ${args.accion}`);
   }

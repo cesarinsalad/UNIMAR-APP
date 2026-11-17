@@ -98,6 +98,13 @@ export interface IComunicadoRepository {
     },
   ): Promise<Comunicado | null>;
 
+  /**
+   * Borrado lógico (`deleted_at` + `deleted_by`). Devuelve `false` si la fila
+   * ya estaba eliminada o RLS no la dejó tocar (autor/ADMIN como segunda
+   * barrera). No borra la fila: adjuntos y portada quedan intactos.
+   */
+  marcarEliminado(tx: DbTx, id: string, eliminadoPor: string): Promise<boolean>;
+
   registrarLectura(tx: DbTx, comunicadoId: string, usuarioId: string): Promise<void>;
 
   contarLecturas(tx: DbTx, comunicadoId: string): Promise<number>;

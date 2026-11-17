@@ -119,9 +119,14 @@ Notas de modelado:
 
 - `comunicados SELECT`: `estado = PUBLICADO` ∧ no expirado ∧ (audiencia global ∨
   `decanato_id` del claim ∈ audiencias). COMUNICADOR/ADMIN ven sus propios en
-  cualquier estado.
+  cualquier estado. Los eliminados lógicamente (`deleted_at`) no los ve el
+  público; autor/ADMIN conservan acceso directo y el repositorio filtra
+  `deleted_at IS NULL` en toda la app. Restaurar es SQL manual con `postgres`.
 - `comunicados INSERT/UPDATE`: COMUNICADOR solo si audiencia ⊆ su decanato;
-  ADMIN sin restricción.
+  ADMIN sin restricción. `UPDATE` exige `deleted_at IS NULL` (un eliminado no
+  se edita ni se "resucita" vía `app_bff`).
+- `comunicados DELETE`: no existe (borrado físico prohibido). El retiro total
+  es el soft delete (`deleted_at`, autor/ADMIN, cualquier estado).
 - `eventos SELECT`: ADMIN ve todo MENOS el PERSONAL de otros (los PERSONAL
   son exclusivos del dueño — decisión de privacidad, mismo régimen que el
   historial médico; el dueño los lee sea cual sea su rol). OFICIAL: GLOBAL o

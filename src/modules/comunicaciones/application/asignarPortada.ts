@@ -1,8 +1,8 @@
 import type { Claims } from '../../../shared/security/jwt';
+import type { DbTx } from '../../../shared/kernel/db';
 import type { UnitOfWork } from '../../../shared/kernel/unitOfWork';
 import { BadRequestError, ForbiddenError, NotFoundError } from '../../../shared/errors';
-import type { IAdjuntoRepository } from '../domain/ports';
-import type { IComunicadoRepository } from '../domain/ports';
+import type { IAdjuntoRepository, IComunicadoRepository, IStorageService } from '../domain/ports';
 import type { Comunicado, Estado } from '../domain/comunicado';
 
 const ESTADOS_ASIGNABLES: Estado[] = ['BORRADOR', 'PUBLICADO'];
@@ -19,12 +19,16 @@ const MIMES_PORTADA = ['image/png', 'image/jpeg'];
  *   comunicado y ser image/png|jpeg (la subida/registro ya pasó por los
  *   validadores y RLS del flujo de adjuntos).
  * - adjuntoId === null limpia la portada (DELETE /:id/portada).
+ * - Si el comunicado ya tenía portada previa (distinta de la nueva, o al
+ *   quitarla), limpia su registro en `comunicado_adjuntos` y su objeto en
+ *   Storage para que la portada reemplazada no aparezca como adjunto.
  */
 export class AsignarPortada {
   constructor(
     private readonly comunicadoRepo: IComunicadoRepository,
     private readonly adjuntoRepo: IAdjuntoRepository,
     private readonly uow: UnitOfWork,
+    private readonly storage?: IStorageService,
   ) {}
 
   async ejecutar(
@@ -49,9 +53,14 @@ export class AsignarPortada {
         throw new ForbiddenError('No puedes editar un comunicado que no creaste');
       }
 
+      const imagenPathAnterior = comunicado.imagenPath;
+
       if (adjuntoId === null) {
         const limpio = await this.comunicadoRepo.asignarPortada(tx, comunicadoId, null, null);
         if (!limpio) throw new NotFoundError('Comunicado no encontrado tras actualizar');
+        if (imagenPathAnterior) {
+          await this.limpiarPortadaAnterior(tx, comunicadoId, imagenPathAnterior);
+        }
         return limpio;
       }
 
@@ -73,7 +82,25 @@ export class AsignarPortada {
         pie,
       );
       if (!actualizado) throw new NotFoundError('Comunicado no encontrado tras actualizar');
+      if (imagenPathAnterior && imagenPathAnterior !== adjunto.storagePath) {
+        await this.limpiarPortadaAnterior(tx, comunicadoId, imagenPathAnterior);
+      }
       return actualizado;
     });
+  }
+
+  private async limpiarPortadaAnterior(
+    tx: DbTx,
+    comunicadoId: string,
+    storagePathAnterior: string,
+  ): Promise<void> {
+    const adjuntos = await this.adjuntoRepo.listarPorComunicado(tx, comunicadoId);
+    const anterior = adjuntos.find((adjunto) => adjunto.storagePath === storagePathAnterior);
+    if (anterior) {
+      await this.adjuntoRepo.eliminar(tx, anterior.id);
+    }
+    if (this.storage) {
+      await this.storage.eliminarObjeto(storagePathAnterior);
+    }
   }
 }

@@ -47,11 +47,15 @@ function esListadoPaginado<T>(data: unknown): data is PaginaRemota<T> {
  * rechaza, vuelve exactamente como estaba (snapshot por caché). Estructura:
  * quitar → si ok, pisa el detalle sincronizado + invalidate en background;
  * si error, restaura.
+ *
+ * También sirve para `ELIMINAR`: la mutación devuelve `void` (204) y en ese
+ * caso se descarta la caché del detalle en vez de pisarla.
  */
 export function useTransicionComunicado<
   TArgs extends { id: string; motivo?: string },
+  TResult extends Comunicado | void = Comunicado,
 >(
-  mutacion: (id: string, motivo: string, args: TArgs) => Promise<Comunicado>,
+  mutacion: (id: string, motivo: string, args: TArgs) => Promise<TResult>,
 ) {
   const queryClient = useQueryClient();
 
@@ -78,8 +82,12 @@ export function useTransicionComunicado<
         queryClient.setQueryData(queryKey, data);
       }
     },
-    onSuccess: (comunicado, { id }) => {
-      queryClient.setQueryData(CLAVES_COMUNICADOS.detalle(id), comunicado);
+    onSuccess: (resultado, { id }) => {
+      if (resultado) {
+        queryClient.setQueryData(CLAVES_COMUNICADOS.detalle(id), resultado);
+      } else {
+        queryClient.removeQueries({ queryKey: CLAVES_COMUNICADOS.detalle(id) });
+      }
       void queryClient.invalidateQueries({ queryKey: CLAVES_COMUNICADOS.prefijo });
     },
   });

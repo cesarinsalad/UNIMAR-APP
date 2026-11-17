@@ -14,6 +14,7 @@ import type { RechazarComunicado } from '../application/rechazarComunicado';
 import type { PublicarComunicado } from '../application/publicarComunicado';
 import type { ArchivarComunicado } from '../application/archivarComunicado';
 import type { DesarchivarComunicado } from '../application/desarchivarComunicado';
+import type { EliminarComunicado } from '../application/eliminarComunicado';
 import type { EstadisticasComunicado } from '../application/estadisticasComunicado';
 import type { AsignarPortada } from '../application/asignarPortada';
 import type { UrlPortada } from '../application/urlPortada';
@@ -48,6 +49,7 @@ export interface ComunicadosRoutesDeps {
   publicar: PublicarComunicado;
   archivar: ArchivarComunicado;
   desarchivar: DesarchivarComunicado;
+  eliminar: EliminarComunicado;
   estadisticas: EstadisticasComunicado;
   asignarPortada: AsignarPortada;
   urlPortada: UrlPortada;
@@ -146,6 +148,18 @@ export function comunicadosRoutes(deps: ComunicadosRoutesDeps): Router {
         categoria: body.categoria,
       });
       res.json({ data: result });
+    }),
+  );
+
+  // Borrado lógico: autor o ADMIN (el caso de uso afina sobre el rol).
+  // 204 sin cuerpo: la entidad deja de existir para la app.
+  router.delete(
+    '/:id',
+    authorize('COMUNICADOR'),
+    asyncHandler(async (req, res) => {
+      const id = parseId(getParamId(req.params.id));
+      await deps.eliminar.ejecutar(requireAuth(req)!, id);
+      res.status(204).send();
     }),
   );
 

@@ -56,6 +56,7 @@ function makeRepo(estadoInicial: Comunicado['estado']): IComunicadoRepository {
       store = { ...store, ...input } as Comunicado;
       return store;
     },
+    marcarEliminado: async () => false,
     asignarPortada: async (tx, id, imagenPath) => {
       store = { ...store, imagenPath } as Comunicado;
       return store;

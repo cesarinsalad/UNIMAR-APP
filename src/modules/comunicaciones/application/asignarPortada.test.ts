@@ -1,13 +1,17 @@
 // Tests unitarios de AsignarPortada (sin DB): mocks estructurales de
 // IComunicadoRepository + IAdjuntoRepository + UnitOfWork, siguiendo el
 // patrón de comunicados.test.ts.
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { DbTx } from '../../../shared/kernel/db';
 import type { UnitOfWork } from '../../../shared/kernel/unitOfWork';
 import type { Claims } from '../../../shared/security/jwt';
 import type { Adjunto } from '../domain/adjunto';
 import type { Comunicado } from '../domain/comunicado';
-import type { IAdjuntoRepository, IComunicadoRepository } from '../domain/ports';
+import type {
+  IAdjuntoRepository,
+  IComunicadoRepository,
+  IStorageService,
+} from '../domain/ports';
 import { AsignarPortada } from './asignarPortada';
 import { BadRequestError, ForbiddenError, NotFoundError } from '../../../shared/errors';
 
@@ -84,6 +88,7 @@ function makeRepos(store: Store) {
       store.comunicado = { ...store.comunicado, ...input } as Comunicado;
       return store.comunicado;
     },
+    marcarEliminado: async () => false,
     registrarLectura: async () => undefined,
     contar: async () => 0,
     contarPorEstado: async () => ({ BORRADOR: 0, PENDIENTE: 0, PUBLICADO: 0, ARCHIVADO: 0 }),
@@ -100,9 +105,23 @@ function makeRepos(store: Store) {
     listarPorComunicado: async (_tx, comunicadoId) =>
       store.adjuntos.filter((a) => a.comunicadoId === comunicadoId),
     buscarPorId: async (_tx, id) => store.adjuntos.find((a) => a.id === id) ?? null,
-    eliminar: async (_tx, id) => store.adjuntos.some((a) => a.id === id),
+    eliminar: async (_tx, id) => {
+      const idx = store.adjuntos.findIndex((a) => a.id === id);
+      if (idx === -1) return false;
+      store.adjuntos.splice(idx, 1);
+      return true;
+    },
   };
   return { comRepo, adjRepo };
+}
+
+function makeStorageMock(): IStorageService {
+  return {
+    crearUrlCargaFirmada: vi.fn(),
+    crearUrlDescargaFirmada: vi.fn(),
+    existeObjeto: vi.fn(),
+    eliminarObjeto: vi.fn().mockResolvedValue(undefined),
+  };
 }
 
 describe('AsignarPortada', () => {
@@ -211,14 +230,64 @@ describe('AsignarPortada', () => {
     ).rejects.toThrow(NotFoundError);
   });
 
-  it('adjuntoId null limpia la portada', async () => {
+  it('adjuntoId null limpia la portada y elimina la portada anterior de adjuntos y Storage', async () => {
+    const portadaAnterior = makeAdjunto({
+      id: 'adj-portada-anterior',
+      storagePath: 'com-id/foto.png',
+    });
+    const adjuntoNormal = makeAdjunto({
+      id: 'adj-doc',
+      storagePath: 'com-id/guia.pdf',
+      nombre: 'guia.pdf',
+      mimeType: 'application/pdf',
+    });
     const store: Store = {
       comunicado: makeComunicado({ imagenPath: 'com-id/foto.png' }),
-      adjuntos: [],
+      adjuntos: [portadaAnterior, adjuntoNormal],
     };
     const { comRepo, adjRepo } = makeRepos(store);
-    const uc = new AsignarPortada(comRepo, adjRepo, makeUnitOfWork());
+    const storage = makeStorageMock();
+    const uc = new AsignarPortada(comRepo, adjRepo, makeUnitOfWork(), storage);
+
     const result = await uc.ejecutar(makeComunicador(), 'com-id', null);
+
     expect(result.imagenPath).toBeNull();
+    expect(store.adjuntos).toEqual([adjuntoNormal]);
+    expect(storage.eliminarObjeto).toHaveBeenCalledTimes(1);
+    expect(storage.eliminarObjeto).toHaveBeenCalledWith('com-id/foto.png');
+  });
+
+  it('al reemplazar la portada elimina la portada anterior de adjuntos y Storage sin tocar los demás adjuntos', async () => {
+    const portadaAnterior = makeAdjunto({
+      id: 'adj-portada-1',
+      storagePath: 'com-id/portada-1.png',
+      nombre: 'portada-1.png',
+    });
+    const portadaNueva = makeAdjunto({
+      id: 'adj-portada-2',
+      storagePath: 'com-id/portada-2.jpg',
+      nombre: 'portada-2.jpg',
+      mimeType: 'image/jpeg',
+    });
+    const adjuntoNormal = makeAdjunto({
+      id: 'adj-doc',
+      storagePath: 'com-id/acta.pdf',
+      nombre: 'acta.pdf',
+      mimeType: 'application/pdf',
+    });
+    const store: Store = {
+      comunicado: makeComunicado({ imagenPath: 'com-id/portada-1.png' }),
+      adjuntos: [portadaAnterior, portadaNueva, adjuntoNormal],
+    };
+    const { comRepo, adjRepo } = makeRepos(store);
+    const storage = makeStorageMock();
+    const uc = new AsignarPortada(comRepo, adjRepo, makeUnitOfWork(), storage);
+
+    const result = await uc.ejecutar(makeComunicador(), 'com-id', 'adj-portada-2');
+
+    expect(result.imagenPath).toBe('com-id/portada-2.jpg');
+    expect(store.adjuntos).toEqual([portadaNueva, adjuntoNormal]);
+    expect(storage.eliminarObjeto).toHaveBeenCalledTimes(1);
+    expect(storage.eliminarObjeto).toHaveBeenCalledWith('com-id/portada-1.png');
   });
 });

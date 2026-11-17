@@ -158,6 +158,8 @@ enviarlo en el header `Authorization` de los demás requests.
 | POST | `/comunicados/:id/rechazar` | ADMIN | PENDIENTE → BORRADOR con `motivo` |
 | POST | `/comunicados/:id/publicar` | ADMIN | BORRADOR → PUBLICADO directo |
 | POST | `/comunicados/:id/archivar` | autor/ADMIN | PUBLICADO → ARCHIVADO |
+| POST | `/comunicados/:id/desarchivar` | autor/ADMIN | ARCHIVADO → BORRADOR (limpia `aprobadoPor`/`publicadoAt`) |
+| DELETE | `/comunicados/:id` | autor/ADMIN | Borrado **lógico** desde cualquier estado (`deleted_at`) → `204`. Deja de aparecer en listados, feed, conteos y dashboard; adjuntos/portada se conservan. |
 | GET | `/comunicados/:id/estadisticas` | autor/ADMIN | `{ lecturas: number }` |
 
 #### Portada (imagen de la tarjeta)

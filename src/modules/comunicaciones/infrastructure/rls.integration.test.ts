@@ -329,6 +329,142 @@ describe.skipIf(!RUN_DB_TESTS)('RLS Comunicaciones (ABAC)', () => {
   });
 
   // ──────────────────────────────────────────────────────────
+  // comunicados: borrado lógico (deleted_at)
+  // ──────────────────────────────────────────────────────────
+  describe('comunicados soft delete', () => {
+    it('Autor marca deleted_at en su BORRADOR y el estudiante deja de verlo', async () => {
+      await withTx(async (c) => {
+        const u = await seedUsuarios(c);
+        const coms = await seedComunicados(c, u);
+        await setClaims(c, claimsFor(u.com5, 'COMUNICADOR', 5, 'COM5'));
+
+        const upd = await c.query(
+          'UPDATE comunicados SET deleted_at = now(), deleted_by = $2 WHERE id = $1',
+          [coms.borrador5, u.com5],
+        );
+        expect(upd.rowCount).toBe(1);
+
+        // El autor conserva acceso directo (la RLS SELECT se evalúa sobre la
+        // fila nueva del UPDATE); el repositorio filtra deleted_at IS NULL.
+        const propio = await c.query('SELECT id FROM comunicados WHERE id = $1', [coms.borrador5]);
+        expect(propio.rowCount).toBe(1);
+
+        // Para el público (estudiante) ya no existe.
+        await setClaims(c, claimsFor(u.est5, 'ESTUDIANTE', 5, 'EST5'));
+        const publico = await c.query('SELECT id FROM comunicados WHERE id = $1', [coms.borrador5]);
+        expect(publico.rowCount).toBe(0);
+      });
+    });
+
+    it('ADMIN elimina un PUBLICADO ajeno y el estudiante deja de verlo', async () => {
+      await withTx(async (c) => {
+        const u = await seedUsuarios(c);
+        const coms = await seedComunicados(c, u);
+        await setClaims(c, claimsFor(u.adminId, 'ADMIN', null, 'Admin'));
+
+        const upd = await c.query(
+          'UPDATE comunicados SET deleted_at = now() WHERE id = $1',
+          [coms.publicado5],
+        );
+        expect(upd.rowCount).toBe(1);
+
+        await setClaims(c, claimsFor(u.est5, 'ESTUDIANTE', 5, 'EST5'));
+        const sel = await c.query('SELECT id FROM comunicados WHERE id = $1', [coms.publicado5]);
+        expect(sel.rowCount).toBe(0);
+      });
+    });
+
+    it('COMUNICADOR ajeno no puede eliminar -> 0 filas y sigue visible', async () => {
+      await withTx(async (c) => {
+        const u = await seedUsuarios(c);
+        const coms = await seedComunicados(c, u);
+        await setClaims(c, claimsFor(u.com3, 'COMUNICADOR', 3, 'COM3'));
+
+        const upd = await c.query(
+          'UPDATE comunicados SET deleted_at = now() WHERE id = $1',
+          [coms.borrador5],
+        );
+        expect(upd.rowCount).toBe(0);
+
+        await setClaims(c, claimsFor(u.com5, 'COMUNICADOR', 5, 'COM5'));
+        const sel = await c.query('SELECT id FROM comunicados WHERE id = $1', [coms.borrador5]);
+        expect(sel.rowCount).toBe(1);
+      });
+    });
+
+    it('ESTUDIANTE no puede eliminar -> 0 filas', async () => {
+      await withTx(async (c) => {
+        const u = await seedUsuarios(c);
+        const coms = await seedComunicados(c, u);
+        await setClaims(c, claimsFor(u.est5, 'ESTUDIANTE', 5, 'EST5'));
+
+        const upd = await c.query(
+          'UPDATE comunicados SET deleted_at = now() WHERE id = $1',
+          [coms.publicado5],
+        );
+        expect(upd.rowCount).toBe(0);
+      });
+    });
+
+    it('Un eliminado no se puede volver a editar vía app_bff -> 0 filas', async () => {
+      await withTx(async (c) => {
+        const u = await seedUsuarios(c);
+        const coms = await seedComunicados(c, u);
+        await setClaims(c, claimsFor(u.com5, 'COMUNICADOR', 5, 'COM5'));
+
+        const del = await c.query(
+          'UPDATE comunicados SET deleted_at = now() WHERE id = $1',
+          [coms.borrador5],
+        );
+        expect(del.rowCount).toBe(1);
+
+        const edit = await c.query(
+          "UPDATE comunicados SET titulo = 'resucitado' WHERE id = $1",
+          [coms.borrador5],
+        );
+        expect(edit.rowCount).toBe(0);
+      });
+    });
+  });
+
+  // ──────────────────────────────────────────────────────────
+  // soft delete (PostgresComunicadoRepository): la app lo oculta
+  // ──────────────────────────────────────────────────────────
+  describe('soft delete (PostgresComunicadoRepository)', () => {
+    const repo = new PostgresComunicadoRepository();
+
+    it('marcarEliminado lo oculta en buscarPorId, listar y conteos', async () => {
+      await withTx(async (c) => {
+        const u = await seedUsuarios(c);
+        const coms = await seedComunicados(c, u);
+        await setClaims(c, claimsFor(u.com5, 'COMUNICADOR', 5, 'COM5'));
+
+        await expect(repo.marcarEliminado(c, coms.borrador5, u.com5)).resolves.toBe(true);
+        // Idempotente: la segunda vez ya no hay fila vigente que marcar.
+        await expect(repo.marcarEliminado(c, coms.borrador5, u.com5)).resolves.toBe(false);
+
+        await expect(repo.buscarPorId(c, coms.borrador5)).resolves.toBeNull();
+
+        const listado = await repo.listar(c, { limit: 100, offset: 0 });
+        expect(listado.map((x) => x.id)).not.toContain(coms.borrador5);
+
+        const conteos = await repo.contarPorEstado(c);
+        expect(conteos.BORRADOR).toBe(0);
+      });
+    });
+
+    it('COMUNICADOR ajeno no puede marcar eliminado (RLS) -> false', async () => {
+      await withTx(async (c) => {
+        const u = await seedUsuarios(c);
+        const coms = await seedComunicados(c, u);
+        await setClaims(c, claimsFor(u.com3, 'COMUNICADOR', 3, 'COM3'));
+
+        await expect(repo.marcarEliminado(c, coms.borrador5, u.com3)).resolves.toBe(false);
+      });
+    });
+  });
+
+  // ──────────────────────────────────────────────────────────
   // comunicado_audiencias: INSERT
   // ──────────────────────────────────────────────────────────
   describe('comunicado_audiencias INSERT', () => {

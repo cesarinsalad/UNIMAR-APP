@@ -12,6 +12,7 @@ const sinAcciones = {
   puedePublicar: false,
   puedeArchivar: false,
   puedeDesarchivar: false,
+  puedeEliminar: false,
 };
 
 describe('accionesPermitidas', () => {
@@ -43,12 +44,24 @@ describe('accionesPermitidas', () => {
     expect(r.puedeRechazar).toBe(false);
     expect(r.puedePublicar).toBe(false);
     expect(r.puedeDesarchivar).toBe(false);
+    expect(r.puedeEliminar).toBe(true);
   });
 
   it('COMUNICADOR ajeno → nada (ni siquiera PUBLICADO)', () => {
     for (const estado of ['PENDIENTE', 'PUBLICADO'] as const) {
       expect(accionesPermitidas({ ...contexto('COMUNICADOR', false), estado })).toEqual(sinAcciones);
     }
+  });
+
+  it('COMUNICADOR autor en PENDIENTE → solo eliminar (sin salida editorial)', () => {
+    const r = accionesPermitidas({
+      ...contexto('COMUNICADOR', true),
+      estado: 'PENDIENTE',
+    });
+    expect(r.puedeEliminar).toBe(true);
+    expect(r.puedeEditar).toBe(false);
+    expect(r.puedeArchivar).toBe(false);
+    expect(r.puedeDesarchivar).toBe(false);
   });
 
   it('COMUNICADOR autor en PUBLICADO → editar y archivar', () => {
@@ -59,6 +72,7 @@ describe('accionesPermitidas', () => {
     expect(r.puedeEditar).toBe(true);
     expect(r.puedeArchivar).toBe(true);
     expect(r.puedeSolicitarRevision).toBe(false);
+    expect(r.puedeEliminar).toBe(true);
   });
 
   it('ADMIN en PENDIENTE ajeno → aprobar y rechazar', () => {
@@ -70,6 +84,7 @@ describe('accionesPermitidas', () => {
     expect(r.puedeRechazar).toBe(true);
     expect(r.puedePublicar).toBe(false);
     expect(r.puedeSolicitarRevision).toBe(false);
+    expect(r.puedeEliminar).toBe(true);
   });
 
   it('ADMIN en BORRADOR ajeno → editar y publicar directo, sin rechazar', () => {
@@ -81,6 +96,7 @@ describe('accionesPermitidas', () => {
     expect(r.puedePublicar).toBe(true);
     expect(r.puedeAprobar).toBe(false);
     expect(r.puedeRechazar).toBe(false);
+    expect(r.puedeEliminar).toBe(true);
   });
 
   it('ADMIN en ARCHIVADO → solo desarchivar (el único camino de salida)', () => {
@@ -93,6 +109,7 @@ describe('accionesPermitidas', () => {
       puedePublicar: false,
       puedeArchivar: false,
       puedeDesarchivar: true,
+      puedeEliminar: true,
     });
   });
 
