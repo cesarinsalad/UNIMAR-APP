@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   },
   bloqueTitulo: {
     paddingHorizontal: spacing.lg,
-    marginTop: spacing.lg,
+    marginTop: spacing.md,
     gap: spacing.xs,
   },
   resumen: {

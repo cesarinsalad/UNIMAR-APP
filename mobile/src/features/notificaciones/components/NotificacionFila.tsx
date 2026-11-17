@@ -88,21 +88,17 @@ export function NotificacionFila({ notificacion, onAbrir }: Props) {
 
       <View style={estilos.textos}>
         <ThemedText
-          variant="body"
+          variant="bodySm"
           weight={noLeida ? 'semibold' : 'medium'}
           numberOfLines={2}>
           {notificacion.titulo}
         </ThemedText>
         {notificacion.cuerpo ? (
-          <ThemedText variant="bodySm" tone="secondary" numberOfLines={2}>
+          <ThemedText variant="bodySm" tone="secondary" numberOfLines={1}>
             {notificacion.cuerpo}
           </ThemedText>
         ) : null}
-        <ThemedText
-          variant="caption"
-          tone="secondary"
-          numberOfLines={1}
-          style={estilos.meta}>
+        <ThemedText variant="caption" tone="secondary" numberOfLines={1}>
           {hora ? `${etiqueta} · ${hora}` : etiqueta}
         </ThemedText>
       </View>
@@ -118,7 +114,7 @@ const estilos = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     backgroundColor: colors.bg.surface,
   },
   presionada: {
@@ -148,8 +144,5 @@ const estilos = StyleSheet.create({
   textos: {
     flex: 1,
     gap: 2,
-  },
-  meta: {
-    marginTop: spacing.xs,
   },
 });

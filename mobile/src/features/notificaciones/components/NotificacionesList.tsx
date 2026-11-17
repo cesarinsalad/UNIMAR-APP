@@ -11,7 +11,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BellSlashIcon, WarningCircleIcon } from 'phosphor-react-native';
 
 import {
-  Card,
   EmptyState,
   SeparadorFino,
   Skeleton,
@@ -118,7 +117,7 @@ export function NotificacionesList({
   );
 }
 
-/** Un día = un documento: membreta de fecha + tarjeta con filas hairline. */
+/** Un día = una superficie plana: membrete de fecha + filas hairline. */
 function SeccionDia({
   grupo,
   onAbrir,
@@ -136,19 +135,17 @@ function SeccionDia({
           {grupo.etiqueta}
         </ThemedText>
       </View>
-      <Card padding="zero">
-        <View style={estilos.documento}>
-          {grupo.notificaciones.map((notificacion, indice) => (
-            <Fragment key={notificacion.id}>
-              {indice > 0 ? <SeparadorFino /> : null}
-              <NotificacionFila
-                notificacion={notificacion}
-                onAbrir={onAbrir}
-              />
-            </Fragment>
-          ))}
-        </View>
-      </Card>
+      <View style={estilos.documento}>
+        {grupo.notificaciones.map((notificacion, indice) => (
+          <Fragment key={notificacion.id}>
+            {indice > 0 ? <SeparadorFino /> : null}
+            <NotificacionFila
+              notificacion={notificacion}
+              onAbrir={onAbrir}
+            />
+          </Fragment>
+        ))}
+      </View>
     </View>
   );
 }
@@ -218,7 +215,7 @@ function PieDePagina() {
 
 const estilos = StyleSheet.create({
   contenido: {
-    paddingTop: spacing.md,
+    paddingTop: spacing.sm,
     paddingHorizontal: spacing.lg,
   },
   contenidoCentrado: {
@@ -227,13 +224,13 @@ const estilos = StyleSheet.create({
     paddingTop: 0,
   },
   cargando: {
-    gap: spacing.xl,
+    gap: spacing.lg,
   },
   grupo: {
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
   separadorGrupo: {
-    height: spacing.xl,
+    height: spacing.lg,
   },
   /** Membreta de fecha: cápsula hundida, MAYÚSCULAS semibold con tracking
    *  (receta de membrete de la casa, sin Bold). */
@@ -250,9 +247,10 @@ const estilos = StyleSheet.create({
     textTransform: 'uppercase',
   },
   documento: {
+    backgroundColor: colors.bg.surface,
     borderRadius: radius.card,
-    // Recorta el ripple de las filas en las esquinas de la tarjeta; la
-    // sombra queda en el Card exterior.
+    // Recorta el ripple en las esquinas sin elevar el registro: la
+    // proximidad y los hairlines bastan para delimitar cada día.
     overflow: 'hidden',
   },
   detalleError: {
@@ -274,14 +272,13 @@ const estilos = StyleSheet.create({
   esqueletoDocumento: {
     backgroundColor: colors.bg.surface,
     borderRadius: radius.card,
-    paddingVertical: spacing.xs,
   },
   esqueletoFila: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
   },
   esqueletoIcono: {
     width: 40,
@@ -290,7 +287,7 @@ const estilos = StyleSheet.create({
   },
   esqueletoTextos: {
     flex: 1,
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
   esqueletoTitulo: {
     width: '70%',
