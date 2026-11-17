@@ -41,6 +41,53 @@ function normalizar(texto: string): string {
     .toLocaleLowerCase('es');
 }
 
+export interface SelectTriggerProps {
+  /** Texto visible: opción actual o placeholder. */
+  etiqueta: string;
+  /** true = sin selección (el texto se atenúa). */
+  placeholder?: boolean;
+  disabled?: boolean;
+  onPress: () => void;
+  accessibilityLabel?: string;
+}
+
+/**
+ * Piel del disparador de un Select: campo blanco con borde sutil y caret.
+ * Se exporta para que otros selectores del sistema (p. ej. la audiencia
+ * multi-selección) mantengan exactamente el mismo aspecto que los filtros
+ * de las listas.
+ */
+export function SelectTrigger({
+  etiqueta,
+  placeholder = false,
+  disabled = false,
+  onPress,
+  accessibilityLabel,
+}: SelectTriggerProps) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? etiqueta}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      hitSlop={{ top: spacing.xs, bottom: spacing.xs }}
+      onPress={onPress}
+      style={({ pressed }) => [
+        estilos.fila,
+        disabled && estilos.deshabilitado,
+        pressed && !disabled && estilos.presionada,
+      ]}>
+      <ThemedText
+        variant="bodySm"
+        numberOfLines={1}
+        style={[estilos.textoTrigger, placeholder && estilos.textoPlaceholder]}>
+        {etiqueta}
+      </ThemedText>
+      <CaretDownIcon size={16} color={colors.text.secondary} />
+    </Pressable>
+  );
+}
+
 /**
  * Select del sistema: trigger blanco + HojaInferior compartida (TrueSheet en
  * nativo, Modal slide en web). Las opciones viven en una cuadrícula de dos
@@ -76,17 +123,11 @@ export function Select<T extends string | number | null>({
 
   return (
     <View>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={actual?.etiqueta ?? placeholder}
-        hitSlop={{ top: spacing.xs, bottom: spacing.xs }}
+      <SelectTrigger
+        etiqueta={mostrarPlaceholder ? placeholder : actual?.etiqueta ?? placeholder}
+        placeholder={mostrarPlaceholder}
         onPress={abrir}
-        style={({ pressed }) => [estilos.fila, pressed && estilos.presionada]}>
-        <ThemedText variant="bodySm" numberOfLines={1} style={estilos.textoTrigger}>
-          {mostrarPlaceholder ? placeholder : actual?.etiqueta ?? placeholder}
-        </ThemedText>
-        <CaretDownIcon size={16} color={colors.text.secondary} />
-      </Pressable>
+      />
 
       <HojaInferior abierto={abierto} onCerrar={() => setAbierto(false)}>
         {({ cerrar }) => (
@@ -177,7 +218,9 @@ const estilos = StyleSheet.create({
     minHeight: 40,
   },
   textoTrigger: { flexShrink: 1 },
+  textoPlaceholder: { color: colors.text.secondary },
   presionada: { opacity: 0.85 },
+  deshabilitado: { opacity: 0.5 },
   contenido: { gap: spacing.lg },
   buscador: {
     flexDirection: 'row',

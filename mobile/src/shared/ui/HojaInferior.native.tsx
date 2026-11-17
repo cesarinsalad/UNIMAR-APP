@@ -61,14 +61,15 @@ export function HojaInferior({ abierto, onCerrar, children }: HojaInferiorProps)
   }, [abierto]);
 
   return (
-    // detents: ['auto', 1] — altura natural = medida del contenido y
-    // arrastrable hasta pantalla completa. `scrollableRef` conecta el
-    // ScrollView interno: así el auto detent mide el contenido largo y el
-    // nested-scroll/teclado quedan cableados. Safe-area la maneja la hoja
-    // con `insetAdjustment` default — sin padding manual (guía v4).
+    // detents: ['auto'] — altura natural = medida del contenido, sin segundo
+    // detent a pantalla completa que estire hojas cortas con espacio vacío.
+    // `scrollableRef` conecta el ScrollView interno: así el auto detent mide
+    // el contenido y habilita scroll si rebasa la pantalla, manteniendo el
+    // gesto hacia abajo para cerrar. Safe-area la maneja la hoja con
+    // `insetAdjustment` default — sin padding manual (guía v4).
     <TrueSheet
       ref={hoja}
-      detents={['auto', 1]}
+      detents={['auto']}
       dimmed
       dimColor="rgba(0,0,0,0.45)"
       grabber

@@ -11,6 +11,9 @@ La paleta se rige por los lineamientos corporativos institucionales y principios
 * `brand/primary` — **Azul Corporativo `#0D4D98`**: botones de acción principal, encabezados superior y avatares de iconos.
 
 
+* `brand/primary-soft` — **Azul Corporativo Suave `#3F6FAF`**: variante aclarada del azul de marca para textos secundarios de marca (p. ej. pasos ya completados de un asistente). Conserva contraste AA (5.12:1) sobre blanco.
+
+
 * `brand/on-primary` — **Blanco Puro `#FFFFFF`**: texto e iconos obligatorios sobre el Azul Corporativo. Prohibido el uso de naranja sobre azul para evitar la vibración visual.
 
 

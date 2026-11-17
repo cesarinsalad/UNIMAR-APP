@@ -16,6 +16,9 @@
 export const colors = {
   brand: {
     primary: '#0D4D98',
+    /** Variante aclarada del azul de marca para textos secundarios de marca
+     *  (p. ej. pasos ya completados). Contraste 5.12:1 sobre blanco (AA). */
+    primarySoft: '#3F6FAF',
     onPrimary: '#FFFFFF',
     surfaceBlue: '#EBF2FA',
   },

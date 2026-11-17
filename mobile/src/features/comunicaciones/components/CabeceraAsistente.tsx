@@ -14,6 +14,7 @@ const ETIQUETAS: Record<PasoAsistente, string> = {
 
 interface Props {
   paso: PasoAsistente;
+  titulo?: string;
   onAtras: () => void;
   atrasDeshabilitado?: boolean;
   onSiguiente?: () => void;
@@ -24,6 +25,7 @@ interface Props {
 /** Cabecera contextual del asistente: reemplaza la barra institucional. */
 export function CabeceraAsistente({
   paso,
+  titulo = 'Nuevo comunicado',
   onAtras,
   atrasDeshabilitado = false,
   onSiguiente,
@@ -34,7 +36,17 @@ export function CabeceraAsistente({
     <View
       accessibilityLabel={`Paso ${paso} de 3: ${ETIQUETAS[paso]}`}
       style={estilos.contenedor}>
-      <View style={estilos.fila}>
+      <View style={estilos.filaTitulo}>
+        <ThemedText
+          variant="body"
+          weight="semibold"
+          numberOfLines={1}
+          style={estilos.titulo}>
+          {titulo}
+        </ThemedText>
+      </View>
+
+      <View style={estilos.filaAcciones}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Volver"
@@ -50,10 +62,6 @@ export function CabeceraAsistente({
           <ArrowLeftIcon size={22} weight="bold" color={colors.text.primary} />
         </Pressable>
 
-        <ThemedText variant="body" weight="semibold" style={estilos.titulo}>
-          {ETIQUETAS[paso]}
-        </ThemedText>
-
         {onSiguiente ? (
           <Pressable
             accessibilityRole="button"
@@ -67,22 +75,43 @@ export function CabeceraAsistente({
               siguienteDeshabilitado && estilos.deshabilitado,
               pressed && !siguienteDeshabilitado && estilos.presionado,
             ]}>
-            <ThemedText variant="bodySm" weight="semibold" style={estilos.textoSiguiente}>
+            <ThemedText
+              variant="bodySm"
+              weight="semibold"
+              numberOfLines={1}
+              style={estilos.textoSiguiente}>
               {siguienteEtiqueta}
             </ThemedText>
           </Pressable>
         ) : (
-          <View style={estilos.espacioDerecha} />
+          <View />
         )}
       </View>
 
       <View style={estilos.progreso} accessibilityElementsHidden>
-        {([1, 2, 3] as const).map((numero) => (
-          <View
-            key={numero}
-            style={[estilos.segmento, numero <= paso && estilos.segmentoActivo]}
-          />
-        ))}
+        {([1, 2, 3] as const).map((numero) => {
+          const esActual = numero === paso;
+          const completado = numero < paso;
+          return (
+            <View key={numero} style={estilos.columnaPaso}>
+              <ThemedText
+                variant="caption"
+                weight={esActual ? 'semibold' : 'regular'}
+                tone={esActual || completado ? 'primary' : 'secondary'}
+                numberOfLines={1}
+                style={[
+                  estilos.etiquetaPaso,
+                  completado && estilos.etiquetaPasoCompletada,
+                  esActual && estilos.etiquetaPasoActiva,
+                ]}>
+                {ETIQUETAS[numero]}
+              </ThemedText>
+              <View
+                style={[estilos.segmento, numero <= paso && estilos.segmentoActivo]}
+              />
+            </View>
+          );
+        })}
       </View>
     </View>
   );
@@ -94,14 +123,21 @@ const estilos = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xs,
   },
-  fila: {
-    minHeight: 52,
+  filaTitulo: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: spacing.xs,
+  },
+  filaAcciones: {
+    minHeight: touchTarget.min,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   botonAtras: {
     width: touchTarget.min,
     height: touchTarget.min,
+    marginLeft: -spacing.sm,
     borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
@@ -112,11 +148,7 @@ const estilos = StyleSheet.create({
     alignItems: 'flex-end',
     justifyContent: 'center',
   },
-  espacioDerecha: {
-    width: 68,
-  },
   titulo: {
-    flex: 1,
     textAlign: 'center',
   },
   textoSiguiente: {
@@ -131,10 +163,25 @@ const estilos = StyleSheet.create({
   progreso: {
     flexDirection: 'row',
     gap: spacing.xs,
+    paddingTop: spacing.xs,
     paddingBottom: spacing.sm,
   },
-  segmento: {
+  columnaPaso: {
     flex: 1,
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  etiquetaPaso: {
+    textAlign: 'center',
+  },
+  etiquetaPasoActiva: {
+    color: colors.brand.primary,
+  },
+  etiquetaPasoCompletada: {
+    color: colors.brand.primarySoft,
+  },
+  segmento: {
+    width: '100%',
     height: 2,
     borderRadius: radius.pill,
     backgroundColor: colors.border.subtle,

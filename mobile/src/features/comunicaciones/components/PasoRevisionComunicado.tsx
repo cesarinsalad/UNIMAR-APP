@@ -1,10 +1,11 @@
 import { Image, ScrollView, StyleSheet, View } from 'react-native';
-import { PencilSimpleIcon } from 'phosphor-react-native';
+import { PaperclipIcon } from 'phosphor-react-native';
 
 import { ThemedButton } from '@/shared/ui/ThemedButton';
 import { ThemedText } from '@/shared/ui/ThemedText';
 import { colors, radius, spacing } from '@/shared/ui/theme';
 
+import { fuenteImagen } from '../api/adjuntos.api';
 import { CuerpoMarkdown } from './CuerpoMarkdown';
 
 interface Props {
@@ -12,14 +13,14 @@ interface Props {
   cuerpo: string;
   portadaUri: string | null;
   audiencia: string;
+  /** Nombres de los adjuntos que quedarán tras guardar. */
+  adjuntos?: readonly string[];
   autorNombre: string;
   esEdicion: boolean;
   guardando: boolean;
   guardarDeshabilitado: boolean;
   motivoDeshabilitado?: string | null;
   errorServidor: string | null;
-  onEditarContenido: () => void;
-  onEditarDetalles: () => void;
   onGuardar: () => void;
 }
 
@@ -29,14 +30,13 @@ export function PasoRevisionComunicado({
   cuerpo,
   portadaUri,
   audiencia,
+  adjuntos = [],
   autorNombre,
   esEdicion,
   guardando,
   guardarDeshabilitado,
   motivoDeshabilitado,
   errorServidor,
-  onEditarContenido,
-  onEditarDetalles,
   onGuardar,
 }: Props) {
   const tituloVisible = titulo.trim().length > 0 ? titulo.trim() : 'Comunicado sin título';
@@ -46,30 +46,12 @@ export function PasoRevisionComunicado({
       style={estilos.scroll}
       contentContainerStyle={estilos.contenido}
       showsVerticalScrollIndicator={false}>
-      <View style={estilos.atajos}>
-        <ThemedButton
-          title="Editar contenido"
-          variant="ghost"
-          size="sm"
-          disabled={guardando}
-          icon={<PencilSimpleIcon size={16} color={colors.brand.primary} />}
-          onPress={onEditarContenido}
-        />
-        <ThemedButton
-          title="Detalles"
-          variant="ghost"
-          size="sm"
-          disabled={guardando}
-          onPress={onEditarDetalles}
-        />
-      </View>
-
       <View style={estilos.documento}>
         <ThemedText variant="caption" tone="secondary">
           Vista previa
         </ThemedText>
         {portadaUri ? (
-          <Image source={{ uri: portadaUri }} style={estilos.portada} resizeMode="cover" />
+          <Image source={fuenteImagen(portadaUri)} style={estilos.portada} resizeMode="cover" />
         ) : null}
         <ThemedText variant="title" weight="bold">
           {tituloVisible}
@@ -84,6 +66,26 @@ export function PasoRevisionComunicado({
             El cuerpo aparecerá aquí cuando lo escribas.
           </ThemedText>
         )}
+
+        {adjuntos.length > 0 ? (
+          <View style={estilos.adjuntos}>
+            <View style={estilos.adjuntosCabecera}>
+              <PaperclipIcon size={16} color={colors.brand.primary} weight="bold" />
+              <ThemedText variant="caption" weight="semibold" style={estilos.adjuntosTitulo}>
+                {`Adjuntos (${adjuntos.length})`}
+              </ThemedText>
+            </View>
+            {adjuntos.map((nombre, indice) => (
+              <ThemedText
+                key={`${nombre}-${indice}`}
+                variant="bodySm"
+                numberOfLines={1}
+                style={estilos.adjuntoNombre}>
+                {nombre}
+              </ThemedText>
+            ))}
+          </View>
+        ) : null}
       </View>
 
       {errorServidor ? (
@@ -120,11 +122,6 @@ const estilos = StyleSheet.create({
     paddingBottom: spacing.xxl,
     gap: spacing.xl,
   },
-  atajos: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
   documento: {
     gap: spacing.md,
   },
@@ -133,6 +130,23 @@ const estilos = StyleSheet.create({
     aspectRatio: 3 / 2,
     borderRadius: radius.lg,
     backgroundColor: colors.brand.surfaceBlue,
+  },
+  adjuntos: {
+    gap: spacing.xs,
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    backgroundColor: colors.brand.surfaceBlue,
+  },
+  adjuntosCabecera: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  adjuntosTitulo: {
+    color: colors.brand.primary,
+  },
+  adjuntoNombre: {
+    paddingLeft: spacing.xl,
   },
   error: {
     color: colors.status.danger,

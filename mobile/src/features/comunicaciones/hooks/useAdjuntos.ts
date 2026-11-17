@@ -9,11 +9,13 @@ import {
 import { CLAVES_COMUNICADOS } from './queryKeys';
 import type { Adjunto } from '../types';
 
-/** Lista de adjuntos de un comunicado (RLS hereda la visibilidad del padre). */
-export function useAdjuntos(comunicadoId: string) {
+/** Lista de adjuntos de un comunicado (RLS hereda la visibilidad del padre).
+ *  `enabled=false` evita consultar cuando aún no existe id (asistente nuevo). */
+export function useAdjuntos(comunicadoId: string, enabled = true) {
   return useQuery({
     queryKey: CLAVES_COMUNICADOS.adjuntos(comunicadoId),
     queryFn: () => listarAdjuntos(comunicadoId),
+    enabled,
   });
 }
 

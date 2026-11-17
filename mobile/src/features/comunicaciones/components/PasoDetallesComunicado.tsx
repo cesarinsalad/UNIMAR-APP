@@ -1,11 +1,20 @@
 import { Image, Platform, ScrollView, StyleSheet, View } from 'react-native';
-import { CameraIcon, ImagesSquareIcon } from 'phosphor-react-native';
+import {
+  CameraIcon,
+  ImagesSquareIcon,
+  LockSimpleIcon,
+} from 'phosphor-react-native';
 
-import { Chip } from '@/shared/ui/Chip';
+import { Card } from '@/shared/ui/Card';
+import { Skeleton, SkeletonGroup } from '@/shared/ui/Skeleton';
 import { ThemedButton } from '@/shared/ui/ThemedButton';
 import { ThemedText } from '@/shared/ui/ThemedText';
-import { ThemedView } from '@/shared/ui/ThemedView';
-import { colors, radius, spacing, touchTarget } from '@/shared/ui/theme';
+import { colors, layout, radius, spacing } from '@/shared/ui/theme';
+
+import { SeccionAdjuntosPaso, type ArchivoAdjuntoCola } from './SeccionAdjuntosPaso';
+import { SelectorAudiencia } from './SelectorAudiencia';
+import { fuenteImagen, type ArchivoAdjunto } from '../api/adjuntos.api';
+import type { Adjunto } from '../types';
 
 interface Decanato {
   id: number;
@@ -16,59 +25,75 @@ interface Props {
   portadaUri: string | null;
   onElegirPortada: (desdeCamara: boolean) => void;
   onQuitarPortada: () => void;
+  errorPortada?: string | null;
+  /** true mientras se firma la URL de una portada ya guardada (edición). */
+  cargandoPortada?: boolean;
+
   seleccion: number[] | null;
   seleccionEfectiva: number[] | null;
   rol: 'ESTUDIANTE' | 'COMUNICADOR' | 'ADMIN';
   decanatoUsuario: number | null;
   decanatos: readonly Decanato[];
-  onToggleGlobal: () => void;
-  onToggleDecanato: (id: number) => void;
+  onCambiarAudiencia: (seleccion: number[]) => void;
   errorAudiencia?: string | null;
-  errorPortada?: string | null;
-  titulo: string;
-  cuerpoLength: number;
+
+  adjuntosExistentes: readonly Adjunto[];
+  adjuntosNuevos: readonly ArchivoAdjuntoCola[];
+  adjuntosPorEliminar: readonly Adjunto[];
+  cargandoAdjuntos?: boolean;
+  portadaPath?: string | null;
+  onAgregarAdjuntos: (archivos: ArchivoAdjunto[]) => void;
+  onQuitarAdjuntoNuevo: (clave: string) => void;
+  onMarcarAdjuntoExistente: (adjunto: Adjunto) => void;
+  onDesmarcarAdjuntoExistente: (id: string) => void;
+  errorAdjuntos?: string | null;
+
   editable: boolean;
 }
 
-/** Paso de configuración: portada y audiencia fuera del lienzo de escritura. */
+/**
+ * Paso de configuración: portada, audiencia y adjuntos fuera del lienzo
+ * de escritura. La piel es tarjetas blancas sobre el lienzo gris cálido
+ * (STYLE.md §4): la portada vacía respira en brand/surface-blue con borde
+ * punteado, en lugar de un bloque gris plano.
+ */
 export function PasoDetallesComunicado({
   portadaUri,
   onElegirPortada,
   onQuitarPortada,
+  errorPortada,
+  cargandoPortada = false,
   seleccion,
   seleccionEfectiva,
   rol,
   decanatoUsuario,
   decanatos,
-  onToggleGlobal,
-  onToggleDecanato,
+  onCambiarAudiencia,
   errorAudiencia,
-  errorPortada,
-  titulo,
-  cuerpoLength,
+  adjuntosExistentes,
+  adjuntosNuevos,
+  adjuntosPorEliminar,
+  cargandoAdjuntos = false,
+  portadaPath,
+  onAgregarAdjuntos,
+  onQuitarAdjuntoNuevo,
+  onMarcarAdjuntoExistente,
+  onDesmarcarAdjuntoExistente,
+  errorAdjuntos,
   editable,
 }: Props) {
-  const resumenTitulo = titulo.trim().length > 0 ? titulo.trim() : 'Sin título';
+  const decanatoUsuarioNombre =
+    decanatos.find((decanato) => decanato.id === decanatoUsuario)?.nombre ?? null;
+
   return (
     <ScrollView
       style={estilos.scroll}
       contentContainerStyle={estilos.contenido}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}>
-      <ThemedView variant="sunken" style={estilos.resumen}>
-        <ThemedText variant="caption" tone="secondary">
-          Documento
-        </ThemedText>
-        <ThemedText variant="bodySm" weight="semibold" numberOfLines={2}>
-          {resumenTitulo}
-        </ThemedText>
-        <ThemedText variant="caption" tone="secondary">
-          {`${cuerpoLength.toLocaleString('es-VE')} caracteres`}
-        </ThemedText>
-      </ThemedView>
 
-      <View style={estilos.seccion}>
-        <View style={estilos.cabeceraSeccion}>
+      <Card padding="md" style={estilos.tarjeta}>
+        <View style={estilos.cabeceraTarjeta}>
           <ThemedText variant="subtitle" weight="semibold">
             Portada
           </ThemedText>
@@ -79,11 +104,11 @@ export function PasoDetallesComunicado({
 
         {portadaUri ? (
           <View style={estilos.bloquePortada}>
-            <Image source={{ uri: portadaUri }} style={estilos.portada} resizeMode="cover" />
+            <Image source={fuenteImagen(portadaUri)} style={estilos.portada} resizeMode="cover" />
             <View style={estilos.accionesPortada}>
               <ThemedButton
                 title="Cambiar"
-                variant="ghost"
+                variant="tonal"
                 size="sm"
                 disabled={!editable}
                 onPress={() => onElegirPortada(false)}
@@ -91,7 +116,7 @@ export function PasoDetallesComunicado({
               {Platform.OS !== 'web' ? (
                 <ThemedButton
                   title="Cámara"
-                  variant="ghost"
+                  variant="tonal"
                   size="sm"
                   disabled={!editable}
                   icon={<CameraIcon size={18} color={colors.brand.primary} />}
@@ -107,10 +132,16 @@ export function PasoDetallesComunicado({
               />
             </View>
           </View>
+        ) : cargandoPortada ? (
+          <SkeletonGroup label="Cargando portada del comunicado">
+            <Skeleton testID="portada-skeleton" style={estilos.portada} />
+          </SkeletonGroup>
         ) : (
-          <ThemedView variant="sunken" style={estilos.slotVacio}>
-            <ImagesSquareIcon size={28} color={colors.brand.primary} />
-            <ThemedText variant="bodySm" weight="semibold">
+          <View style={estilos.slotVacio}>
+            <View style={estilos.slotIcono}>
+              <ImagesSquareIcon size={26} color={colors.brand.primary} weight="duotone" />
+            </View>
+            <ThemedText variant="body" weight="semibold">
               Añadir una portada
             </ThemedText>
             <ThemedText variant="caption" tone="secondary" style={estilos.centrado}>
@@ -118,8 +149,7 @@ export function PasoDetallesComunicado({
             </ThemedText>
             <View style={estilos.accionesPortada}>
               <ThemedButton
-                title="Galería"
-                variant="secondary"
+                title="Elegir imagen"
                 size="sm"
                 disabled={!editable}
                 onPress={() => onElegirPortada(false)}
@@ -127,7 +157,7 @@ export function PasoDetallesComunicado({
               {Platform.OS !== 'web' ? (
                 <ThemedButton
                   title="Cámara"
-                  variant="secondary"
+                  variant="ghost"
                   size="sm"
                   disabled={!editable}
                   icon={<CameraIcon size={18} color={colors.brand.primary} />}
@@ -135,19 +165,17 @@ export function PasoDetallesComunicado({
                 />
               ) : null}
             </View>
-          </ThemedView>
+          </View>
         )}
         {errorPortada ? (
           <ThemedText variant="caption" style={estilos.error}>
             {errorPortada}
           </ThemedText>
         ) : null}
-      </View>
+      </Card>
 
-      <View style={estilos.separador} />
-
-      <View style={estilos.seccion}>
-        <View style={estilos.cabeceraSeccion}>
+      <Card padding="md" style={estilos.tarjeta}>
+        <View style={estilos.cabeceraTarjeta}>
           <ThemedText variant="subtitle" weight="semibold">
             Audiencia
           </ThemedText>
@@ -157,31 +185,28 @@ export function PasoDetallesComunicado({
         </View>
 
         {rol === 'COMUNICADOR' ? (
-          <ThemedText variant="body" tone="secondary">
-            Se publicará únicamente en tu decanato.
-          </ThemedText>
-        ) : rol === 'ADMIN' ? (
-          <View style={estilos.audiencias}>
-            <Chip
-              etiqueta="Toda la universidad"
-              activa={seleccionEfectiva?.length === 0}
-              size="sm"
-              role="checkbox"
-              disabled={!editable}
-              onPress={onToggleGlobal}
-            />
-            {decanatos.map((decanato) => (
-              <Chip
-                key={decanato.id}
-                etiqueta={decanato.nombre}
-                activa={Boolean(seleccionEfectiva?.includes(decanato.id))}
-                size="sm"
-                role="checkbox"
-                disabled={!editable}
-                onPress={() => onToggleDecanato(decanato.id)}
-              />
-            ))}
+          <View style={estilos.avisoFila}>
+            <View style={estilos.avisoIcono}>
+              <LockSimpleIcon size={20} color={colors.brand.primary} weight="duotone" />
+            </View>
+            <View style={estilos.avisoTextos}>
+              <ThemedText variant="bodySm" weight="semibold">
+                Solo tu decanato
+              </ThemedText>
+              <ThemedText variant="caption" tone="secondary">
+                {decanatoUsuarioNombre
+                  ? `Se publicará en ${decanatoUsuarioNombre}.`
+                  : 'Se publicará únicamente en tu decanato.'}
+              </ThemedText>
+            </View>
           </View>
+        ) : rol === 'ADMIN' ? (
+          <SelectorAudiencia
+            seleccionEfectiva={seleccionEfectiva}
+            decanatos={decanatos}
+            onChange={onCambiarAudiencia}
+            disabled={!editable}
+          />
         ) : (
           <ThemedText variant="body" tone="secondary">
             Tu cuenta no tiene permiso para publicar comunicados.
@@ -198,33 +223,45 @@ export function PasoDetallesComunicado({
             {errorAudiencia}
           </ThemedText>
         ) : null}
-        {rol === 'ADMIN' && seleccion === null ? (
+        {rol === 'ADMIN' && seleccion === null && !errorAudiencia ? (
           <ThemedText variant="caption" tone="secondary">
             Elige una audiencia para continuar.
           </ThemedText>
         ) : null}
-      </View>
+      </Card>
+
+      <SeccionAdjuntosPaso
+        existentes={adjuntosExistentes}
+        cargandoExistentes={cargandoAdjuntos}
+        portadaPath={portadaPath}
+        nuevos={adjuntosNuevos}
+        porEliminar={adjuntosPorEliminar}
+        editable={editable}
+        error={errorAdjuntos}
+        onAgregar={onAgregarAdjuntos}
+        onQuitarNuevo={onQuitarAdjuntoNuevo}
+        onMarcarExistente={onMarcarAdjuntoExistente}
+        onDesmarcarExistente={onDesmarcarAdjuntoExistente}
+      />
     </ScrollView>
   );
 }
 
 const estilos = StyleSheet.create({
-  scroll: { flex: 1, backgroundColor: colors.bg.surface },
+  scroll: { flex: 1, backgroundColor: colors.bg.canvas },
   contenido: {
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.xxl,
-    gap: spacing.xl,
+    gap: spacing.lg,
+    width: '100%',
+    maxWidth: layout.maxContentWidth,
+    alignSelf: 'center',
   },
-  resumen: {
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    gap: 2,
-  },
-  seccion: {
+  tarjeta: {
     gap: spacing.md,
   },
-  cabeceraSeccion: {
+  cabeceraTarjeta: {
     gap: 2,
   },
   bloquePortada: {
@@ -233,34 +270,60 @@ const estilos = StyleSheet.create({
   portada: {
     width: '100%',
     aspectRatio: 3 / 2,
-    borderRadius: radius.lg,
+    borderRadius: radius.card,
     backgroundColor: colors.brand.surfaceBlue,
   },
   accionesPortada: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: spacing.sm,
   },
   slotVacio: {
-    minHeight: touchTarget.min,
-    borderRadius: radius.lg,
+    minHeight: 220,
+    borderRadius: radius.card,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: '#B9CDE6',
+    backgroundColor: colors.brand.surfaceBlue,
     paddingVertical: spacing.xl,
     paddingHorizontal: spacing.lg,
     alignItems: 'center',
+    justifyContent: 'center',
     gap: spacing.sm,
+  },
+  slotIcono: {
+    width: 52,
+    height: 52,
+    borderRadius: radius.pill,
+    backgroundColor: colors.bg.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
   },
   centrado: {
     textAlign: 'center',
   },
-  separador: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.border.subtle,
-  },
-  audiencias: {
+  avisoFila: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.md,
+    borderRadius: radius.input,
+    backgroundColor: colors.brand.surfaceBlue,
+  },
+  avisoIcono: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.sm,
+    backgroundColor: colors.bg.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avisoTextos: {
+    flex: 1,
+    gap: 2,
   },
   error: {
     color: colors.status.danger,

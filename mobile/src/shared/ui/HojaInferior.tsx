@@ -35,7 +35,6 @@ export function HojaInferior({ abierto, onCerrar, children }: HojaInferiorProps)
       <Pressable accessibilityLabel="Cerrar hoja" style={estilos.cortina} onPress={onCerrar}>
         <Pressable style={estilos.hoja}>
           <ScrollView
-            style={estilos.scroll}
             contentContainerStyle={estilos.contenido}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}>
@@ -59,10 +58,8 @@ const estilos = StyleSheet.create({
     borderTopRightRadius: radius.card,
     width: '100%',
     maxWidth: layout.maxContentWidth,
-    alignSelf: 'center',
-  },
-  scroll: {
     maxHeight: '85%',
+    alignSelf: 'center',
   },
   /** Solo padding: el RITMO (rhythm) lo aporta el contenido con sus propios
    *  gaps (misma regla de la variante native) — así cabecera, secciones y

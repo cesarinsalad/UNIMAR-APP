@@ -18,7 +18,8 @@ import {
 } from '../api/comunicados.api';
 import { seleccionarPortada } from '../api/portada.api';
 import type { ArchivoAdjunto } from '../api/adjuntos.api';
-import { subirAdjunto } from '../api/adjuntos.api';
+import { eliminarAdjunto, subirAdjunto } from '../api/adjuntos.api';
+import { useAdjuntos } from '../hooks/useAdjuntos';
 import { usePortada } from '../hooks/usePortada';
 import {
   clampAudiencia,
@@ -32,13 +33,14 @@ import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import { ApiError } from '@/shared/api/axios';
 import { ModalConfirmacion } from '@/shared/ui/ModalConfirmacion';
 import { colors, spacing } from '@/shared/ui/theme';
-import type { Comunicado } from '../types';
+import type { Adjunto, Comunicado } from '../types';
 import { CLAVES_COMUNICADOS } from '../hooks/queryKeys';
 
 import { CabeceraAsistente, type PasoAsistente } from './CabeceraAsistente';
 import { PasoContenidoComunicado } from './PasoContenidoComunicado';
 import { PasoDetallesComunicado } from './PasoDetallesComunicado';
 import { PasoRevisionComunicado } from './PasoRevisionComunicado';
+import type { ArchivoAdjuntoCola } from './SeccionAdjuntosPaso';
 
 interface Props {
   id?: string;
@@ -70,12 +72,21 @@ export function AsistenteComunicado({ id, datosIniciales }: Props) {
   );
   const [errorServidor, setErrorServidor] = useState<string | null>(null);
   const [errorPortada, setErrorPortada] = useState<string | null>(null);
+  const [errorAdjuntos, setErrorAdjuntos] = useState<string | null>(null);
   const [tocadoContenido, setTocadoContenido] = useState(false);
   const [tocadoDetalles, setTocadoDetalles] = useState(false);
   const [descarteVisible, setDescarteVisible] = useState(false);
+  // Cubre TODO el pipeline de guardado (entidad + portada + adjuntos). El
+  // loader de la mutación se apaga al guardar el comunicado; este estado
+  // mantiene el spinner hasta que la pantalla puede salir.
+  const [guardandoTodo, setGuardandoTodo] = useState(false);
 
   const [portadaLocal, setPortadaLocal] = useState<ArchivoAdjunto | null>(null);
   const [quitarPortadaActual, setQuitarPortadaActual] = useState(false);
+  // Adjuntos elegidos en esta sesión (aún sin subir) y existentes marcados
+  // para borrar: ambos se aplican SOLO al guardar, como la portada.
+  const [adjuntosNuevos, setAdjuntosNuevos] = useState<ArchivoAdjuntoCola[]>([]);
+  const [adjuntosPorEliminar, setAdjuntosPorEliminar] = useState<Adjunto[]>([]);
   // Si el POST creó el borrador pero falló la portada, reintentar debe
   // actualizar ese mismo registro, nunca crear un duplicado.
   const [idGuardado, setIdGuardado] = useState<string | null>(null);
@@ -86,6 +97,8 @@ export function AsistenteComunicado({ id, datosIniciales }: Props) {
     id ?? 'nuevo',
     Boolean(esEdicion && datosIniciales?.imagenPath && !quitarPortadaActual && !portadaLocal),
   );
+  // En creación no hay entidad: la query queda deshabilitada.
+  const adjuntosGuardados = useAdjuntos(id ?? 'sin-id', Boolean(id));
 
   const crear = useMutacionComunicado(crearComunicado);
   const editar = useMutacionComunicado(
@@ -93,7 +106,8 @@ export function AsistenteComunicado({ id, datosIniciales }: Props) {
       editarComunicado(args.idComunicado, args.patch),
   );
   const pendiente = crear.isPending || editar.isPending;
-  const editable = !pendiente;
+  const ocupado = pendiente || guardandoTodo;
+  const editable = !ocupado;
   const reducido = useReducedMotion();
 
   const seleccionEfectiva = useMemo(() => {
@@ -120,7 +134,9 @@ export function AsistenteComunicado({ id, datosIniciales }: Props) {
     sesion.valor !== inicialRef.current.cuerpo ||
     serializarSeleccion(seleccion) !== inicialRef.current.seleccion ||
     portadaLocal !== null ||
-    quitarPortadaActual;
+    quitarPortadaActual ||
+    adjuntosNuevos.length > 0 ||
+    adjuntosPorEliminar.length > 0;
 
   const permitirSalidaRef = useRef(false);
   const accionSalidaRef = useRef<(() => void) | null>(null);
@@ -132,7 +148,7 @@ export function AsistenteComunicado({ id, datosIniciales }: Props) {
       if (permitirSalidaRef.current) return;
       // Guardado en vuelo: la pantalla no se abandona hasta conocer el
       // resultado; evita un router.back() tardío sobre otra pantalla.
-      if (pendiente) {
+      if (ocupado) {
         event.preventDefault();
         return;
       }
@@ -142,12 +158,12 @@ export function AsistenteComunicado({ id, datosIniciales }: Props) {
       setDescarteVisible(true);
     });
     return unsubscribe;
-  }, [dirty, navegacion, pendiente]);
+  }, [dirty, navegacion, ocupado]);
 
   useEffect(() => {
     if (Platform.OS === 'web') return;
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (pendiente) return true;
+      if (ocupado) return true;
       if (paso > 1) {
         Keyboard.dismiss();
         setPaso((pasoActual) => (pasoActual - 1) as PasoAsistente);
@@ -156,22 +172,40 @@ export function AsistenteComunicado({ id, datosIniciales }: Props) {
       return false;
     });
     return () => subscription.remove();
-  }, [paso, pendiente]);
+  }, [paso, ocupado]);
 
-  function toggleDecanato(idDecanato: number) {
+  function cambiarAudiencia(nueva: number[]) {
     if (usuario?.rol !== 'ADMIN') return;
-    setSeleccion((actual) => {
-      const base = actual ?? [];
-      return base.includes(idDecanato)
-        ? base.filter((d) => d !== idDecanato)
-        : [...base, idDecanato];
-    });
+    setSeleccion(nueva);
   }
 
-  function toggleGlobal() {
-    if (usuario?.rol !== 'ADMIN') return;
-    setSeleccion((actual) =>
-      actual === null || actual.length > 0 ? [] : null,
+  function agregarAdjuntos(archivos: ArchivoAdjunto[]) {
+    setErrorAdjuntos(null);
+    setAdjuntosNuevos((actual) => [
+      ...actual,
+      ...archivos.map((archivo, indice) => ({
+        ...archivo,
+        clave: `${Date.now()}-${indice}-${archivo.nombre}`,
+      })),
+    ]);
+  }
+
+  function quitarAdjuntoNuevo(clave: string) {
+    setErrorAdjuntos(null);
+    setAdjuntosNuevos((actual) => actual.filter((archivo) => archivo.clave !== clave));
+  }
+
+  function marcarAdjuntoExistente(adjunto: Adjunto) {
+    setErrorAdjuntos(null);
+    setAdjuntosPorEliminar((actual) =>
+      actual.some((marcado) => marcado.id === adjunto.id) ? actual : [...actual, adjunto],
+    );
+  }
+
+  function desmarcarAdjuntoExistente(adjuntoId: string) {
+    setErrorAdjuntos(null);
+    setAdjuntosPorEliminar((actual) =>
+      actual.filter((marcado) => marcado.id !== adjuntoId),
     );
   }
 
@@ -204,7 +238,7 @@ export function AsistenteComunicado({ id, datosIniciales }: Props) {
   }
 
   function atras() {
-    if (pendiente) return;
+    if (ocupado) return;
     Keyboard.dismiss();
     if (paso > 1) {
       setPaso((pasoActual) => (pasoActual - 1) as PasoAsistente);
@@ -214,10 +248,11 @@ export function AsistenteComunicado({ id, datosIniciales }: Props) {
   }
 
   function siguiente() {
-    if (pendiente) return;
+    if (ocupado) return;
     Keyboard.dismiss();
     setErrorServidor(null);
     setErrorPortada(null);
+    setErrorAdjuntos(null);
     if (paso === 1) {
       setTocadoContenido(true);
       if (tieneErrores(errores)) return;
@@ -249,15 +284,19 @@ export function AsistenteComunicado({ id, datosIniciales }: Props) {
   }
 
   async function guardar() {
-    if (pendiente) return;
+    if (pendiente || guardandoTodo) return;
+    setGuardandoTodo(true);
     setErrorServidor(null);
+    setErrorAdjuntos(null);
     setTocadoContenido(true);
     setTocadoDetalles(true);
     if (tieneErrores(errores)) {
+      setGuardandoTodo(false);
       setPaso(errores.titulo || errores.cuerpo ? 1 : 2);
       return;
     }
     if (adminSinElegir || comunicadorSinDecanato) {
+      setGuardandoTodo(false);
       setPaso(2);
       return;
     }
@@ -270,6 +309,8 @@ export function AsistenteComunicado({ id, datosIniciales }: Props) {
 
     const idExistente = id ?? idGuardado;
     let entidadGuardada = false;
+    let cerrar = false;
+    let fase: 'entidad' | 'portada' | 'adjuntos' = 'entidad';
 
     try {
       const guardado = idExistente
@@ -297,6 +338,7 @@ export function AsistenteComunicado({ id, datosIniciales }: Props) {
       // quede abierto sin esperar a un refetch.
       let entidadFinal = guardado;
 
+      fase = 'portada';
       if (portadaLocal && guardado?.id) {
         let idAdjunto = adjuntoPortadaId;
         if (!idAdjunto) {
@@ -313,6 +355,50 @@ export function AsistenteComunicado({ id, datosIniciales }: Props) {
         setQuitarPortadaActual(false);
       }
 
+      // Adjuntos diferidos: cada éxito sale de la cola, así un reintento no
+      // vuelve a subir lo ya registrado ni repite bajas. Subidas y bajas van
+      // en paralelo (allSettled) y se conservan solo los fallidos.
+      fase = 'adjuntos';
+      if (guardado?.id) {
+        if (adjuntosNuevos.length > 0) {
+          const resultados = await Promise.allSettled(
+            adjuntosNuevos.map((archivo) => subirAdjunto(guardado.id, archivo)),
+          );
+          const clavesSubidas = new Set(
+            adjuntosNuevos
+              .filter((_, indice) => resultados[indice]?.status === 'fulfilled')
+              .map((archivo) => archivo.clave),
+          );
+          if (clavesSubidas.size > 0) {
+            setAdjuntosNuevos((actual) =>
+              actual.filter((archivo) => !clavesSubidas.has(archivo.clave)),
+            );
+          }
+          if (resultados.some((resultado) => resultado.status === 'rejected')) {
+            throw new Error('adjuntos');
+          }
+        }
+
+        if (adjuntosPorEliminar.length > 0) {
+          const resultados = await Promise.allSettled(
+            adjuntosPorEliminar.map((adjunto) => eliminarAdjunto(adjunto.id)),
+          );
+          const idsEliminados = new Set(
+            adjuntosPorEliminar
+              .filter((_, indice) => resultados[indice]?.status === 'fulfilled')
+              .map((adjunto) => adjunto.id),
+          );
+          if (idsEliminados.size > 0) {
+            setAdjuntosPorEliminar((actual) =>
+              actual.filter((adjunto) => !idsEliminados.has(adjunto.id)),
+            );
+          }
+          if (resultados.some((resultado) => resultado.status === 'rejected')) {
+            throw new Error('adjuntos');
+          }
+        }
+      }
+
       if (entidadFinal?.id) {
         queryClient.setQueryData(CLAVES_COMUNICADOS.detalle(entidadFinal.id), entidadFinal);
       }
@@ -323,19 +409,38 @@ export function AsistenteComunicado({ id, datosIniciales }: Props) {
       void queryClient.invalidateQueries({
         queryKey: CLAVES_COMUNICADOS.portada(entidadFinal?.id ?? ''),
       });
-      permitirSalidaRef.current = true;
-      if (navegacion.isFocused()) router.back();
+      cerrar = true;
     } catch (e) {
       if (entidadGuardada) {
-        setErrorServidor(
-          'El comunicado se guardó, pero la portada no se pudo completar. Reintenta o quita la portada.',
-        );
+        if (fase === 'adjuntos') {
+          setErrorAdjuntos(
+            'No se pudieron completar todos los cambios de adjuntos. Revisa los pendientes y vuelve a guardar.',
+          );
+          setErrorServidor(
+            'El comunicado se guardó, pero quedaron adjuntos pendientes. Reintenta el guardado.',
+          );
+        } else {
+          setErrorServidor(
+            'El comunicado se guardó, pero la portada no se pudo completar. Reintenta o quita la portada.',
+          );
+        }
       } else if (e instanceof ApiError) {
         setErrorServidor(e.message);
       } else {
         setErrorServidor('Error de red. Verifica tu conexión.');
       }
     }
+
+    if (cerrar) {
+      // El spinner sigue encendido hasta que la navegación desmonta la
+      // pantalla: no se apaga un frame antes de salir.
+      permitirSalidaRef.current = true;
+      if (navegacion.isFocused()) {
+        router.back();
+        return;
+      }
+    }
+    setGuardandoTodo(false);
   }
 
   if (!usuario) return null;
@@ -357,6 +462,17 @@ export function AsistenteComunicado({ id, datosIniciales }: Props) {
             )
             .join(', ');
 
+  const adjuntosExistentes = adjuntosGuardados.data ?? [];
+  const adjuntosVisibles = adjuntosExistentes.filter(
+    (adjunto) =>
+      adjunto.storagePath !== datosIniciales?.imagenPath &&
+      !adjuntosPorEliminar.some((marcado) => marcado.id === adjunto.id),
+  );
+  const nombresAdjuntos = [
+    ...adjuntosVisibles.map((adjunto) => adjunto.nombre),
+    ...adjuntosNuevos.map((archivo) => archivo.nombre),
+  ];
+
   const pasoContenido = (
     <PasoContenidoComunicado
       titulo={titulo}
@@ -373,21 +489,34 @@ export function AsistenteComunicado({ id, datosIniciales }: Props) {
       portadaUri={portadaUri}
       onElegirPortada={(desdeCamara) => void elegirPortada(desdeCamara)}
       onQuitarPortada={quitarPortadaElegida}
+      errorPortada={errorPortada}
+      cargandoPortada={
+        Boolean(esEdicion && datosIniciales?.imagenPath) &&
+        !portadaLocal &&
+        !quitarPortadaActual &&
+        portadaApi.cargando
+      }
       seleccion={seleccion}
       seleccionEfectiva={seleccionEfectiva}
       rol={usuario.rol}
       decanatoUsuario={usuario.decanato_id}
       decanatos={decanatos.data ?? []}
-      onToggleGlobal={toggleGlobal}
-      onToggleDecanato={toggleDecanato}
+      onCambiarAudiencia={cambiarAudiencia}
       errorAudiencia={
         tocadoDetalles && adminSinElegir
           ? 'Elige toda la universidad o al menos un decanato.'
           : null
       }
-      errorPortada={errorPortada}
-      titulo={titulo}
-      cuerpoLength={sesion.valor.length}
+      adjuntosExistentes={adjuntosExistentes}
+      adjuntosNuevos={adjuntosNuevos}
+      adjuntosPorEliminar={adjuntosPorEliminar}
+      cargandoAdjuntos={esEdicion && adjuntosGuardados.isPending}
+      portadaPath={datosIniciales?.imagenPath ?? null}
+      onAgregarAdjuntos={agregarAdjuntos}
+      onQuitarAdjuntoNuevo={quitarAdjuntoNuevo}
+      onMarcarAdjuntoExistente={marcarAdjuntoExistente}
+      onDesmarcarAdjuntoExistente={desmarcarAdjuntoExistente}
+      errorAdjuntos={errorAdjuntos}
       editable={editable}
     />
   );
@@ -398,9 +527,10 @@ export function AsistenteComunicado({ id, datosIniciales }: Props) {
       cuerpo={sesion.valor}
       portadaUri={portadaUri}
       audiencia={audiencia}
+      adjuntos={nombresAdjuntos}
       autorNombre={usuario.nombre}
       esEdicion={esEdicion}
-      guardando={pendiente}
+      guardando={ocupado}
       guardarDeshabilitado={adminSinElegir || comunicadorSinDecanato}
       motivoDeshabilitado={
         comunicadorSinDecanato
@@ -410,8 +540,6 @@ export function AsistenteComunicado({ id, datosIniciales }: Props) {
             : null
       }
       errorServidor={errorServidor}
-      onEditarContenido={() => setPaso(1)}
-      onEditarDetalles={() => setPaso(2)}
       onGuardar={() => void guardar()}
     />
   );
@@ -425,11 +553,12 @@ export function AsistenteComunicado({ id, datosIniciales }: Props) {
       ]}>
       <CabeceraAsistente
         paso={paso}
+        titulo={esEdicion ? 'Editar comunicado' : 'Nuevo comunicado'}
         onAtras={atras}
-        atrasDeshabilitado={pendiente}
+        atrasDeshabilitado={ocupado}
         onSiguiente={paso < 3 ? siguiente : undefined}
         siguienteEtiqueta={paso === 2 ? 'Revisar' : 'Siguiente'}
-        siguienteDeshabilitado={pendiente}
+        siguienteDeshabilitado={ocupado}
       />
 
       <Animated.View
