@@ -127,14 +127,9 @@ function SeccionDia({
 }) {
   return (
     <View style={estilos.grupo}>
-      <View style={estilos.chipDia}>
-        <ThemedText
-          variant="caption"
-          weight="semibold"
-          style={estilos.chipTexto}>
-          {grupo.etiqueta}
-        </ThemedText>
-      </View>
+      <ThemedText variant="caption" weight="semibold" style={estilos.chipTexto}>
+        {grupo.etiqueta}
+      </ThemedText>
       <View style={estilos.documento}>
         {grupo.notificaciones.map((notificacion, indice) => (
           <Fragment key={notificacion.id}>
@@ -232,17 +227,10 @@ const estilos = StyleSheet.create({
   separadorGrupo: {
     height: spacing.lg,
   },
-  /** Membreta de fecha: cápsula hundida, MAYÚSCULAS semibold con tracking
-   *  (receta de membrete de la casa, sin Bold). */
-  chipDia: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.bg.sunken,
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-  },
+  /** Membrete de fecha: solo texto, MAYÚSCULAS semibold con tracking. Sin
+   *  cápsula: la fecha ordena la lectura, no compite con el contenido. Va
+   *  en `text.primary` (no atenuado): es el eje del registro. */
   chipTexto: {
-    color: colors.text.secondary,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
@@ -265,9 +253,9 @@ const estilos = StyleSheet.create({
     paddingVertical: spacing.xl,
   },
   esqueletoChip: {
-    width: 64,
-    height: 24,
-    borderRadius: radius.pill,
+    width: 48,
+    height: 12,
+    borderRadius: radius.sm,
   },
   esqueletoDocumento: {
     backgroundColor: colors.bg.surface,
@@ -291,7 +279,7 @@ const estilos = StyleSheet.create({
   },
   esqueletoTitulo: {
     width: '70%',
-    height: 16,
+    height: 12,
   },
   esqueletoCuerpo: {
     width: '90%',

@@ -88,13 +88,13 @@ export function NotificacionFila({ notificacion, onAbrir }: Props) {
 
       <View style={estilos.textos}>
         <ThemedText
-          variant="bodySm"
+          variant="caption"
           weight={noLeida ? 'semibold' : 'medium'}
           numberOfLines={2}>
           {notificacion.titulo}
         </ThemedText>
         {notificacion.cuerpo ? (
-          <ThemedText variant="bodySm" tone="secondary" numberOfLines={1}>
+          <ThemedText variant="caption" tone="secondary" numberOfLines={1}>
             {notificacion.cuerpo}
           </ThemedText>
         ) : null}

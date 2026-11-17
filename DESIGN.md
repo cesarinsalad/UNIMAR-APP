@@ -410,13 +410,18 @@ lateral 3px).
   la celda — el cuadrado se mantiene).
 - **Registro de novedades (bandeja):** la bandeja es un registro
   cronológico, no una pila de tarjetas idénticas. Una superficie blanca
-  plana por día, sin sombra ni resplandor, con el membrete en cápsula
-  hundida ("HOY" · "AYER" · "JUE 12 NOV": caption semibold, MAYÚSCULAS,
-  tracking 0.5) y dentro filas separadas por hairline (`SeparadorFino`):
-  icono del tipo en tile `surface-tint-blue` de 40/radius 12 (el rechazo
-  usa la tríada DEVUELTO), titular `bodySm` semibold si no se leyó,
-  cuerpo `bodySm` en una línea y metadato `clasificación · hora` en
-  caption. Las filas usan padding vertical 8; entre días bastan 16.
+  plana por día, sin sombra ni resplandor, con la fecha como membrete
+  suelto — sin cápsula: "HOY" · "AYER" · "JUE 12 NOV" en caption semibold,
+  MAYÚSCULAS, tracking 0.5, `text.primary` (es el eje del registro, no se
+  atenúa). Dentro, filas separadas por
+  hairline (`SeparadorFino`): icono del tipo en tile
+  `surface-tint-blue` de 40/radius 12 (el rechazo usa la tríada
+  DEVUELTO), titular `caption` semibold si no se leyó, cuerpo `caption`
+  en una línea y metadato `clasificación · hora` también `caption`. La
+  jerarquía no viene del tamaño —el sistema no baja de 12px— sino del
+  peso (semibold) y el tono (`text.secondary`). Las filas usan padding
+  vertical 8 y horizontal 16; la superficie no suma aire propio; entre
+  días bastan 16.
   La no-leída se firma con el punto naranja de 10px sobre el tile
   (anillo blanco de 2px) — nunca con barra lateral de color ni repitiendo
   el tipo como eyebrow. "Marcar todo leído" es texto quieto `bodySm`
