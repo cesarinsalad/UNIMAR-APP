@@ -1,9 +1,11 @@
+import { useEffect, useState } from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 
 import { spacing, radius, colors } from '@/shared/ui';
-import { ThemedText, ThemedView } from '@/shared/ui';
-import { chipEstado, etiquetaAudiencia } from '../helpers';
+import { Skeleton, ThemedText, ThemedView } from '@/shared/ui';
+import { fuenteImagen } from '../api/adjuntos.api';
+import { chipEstado, estadoCargaPortada, etiquetaAudiencia } from '../helpers';
 import { usePortada } from '../hooks/usePortada';
 import type { Comunicado } from '../types';
 
@@ -31,7 +33,9 @@ export function ComunicadoCard({
   return (
     <Pressable onPress={abrir} accessibilityRole="button">
       <ThemedView variant="card" style={styles.card}>
-        {conPortada ? <BannerPortada url={portada.url} /> : null}
+        {conPortada ? (
+          <BannerPortada url={portada.url} cargando={portada.cargando} />
+        ) : null}
         <View style={styles.contenido}>
           <ThemedText variant="caption" tone="tertiary">
             {etiquetaAudiencia(comunicado.decanatoIds)}
@@ -67,13 +71,29 @@ export function ComunicadoCard({
 /**
  * Banner 3:2 de la portada, full-bleed (cubre el padding superior/lateral
  * del card: las esquinas del radius las recorta `overflow: hidden`).
- * Sin URL firmada todavía → placeholder azul superficie.
+ * Mientras llega la URL firmada se pinta un skeleton; sin portada o con la
+ * imagen rota queda el fondo azul de superficie.
  */
-function BannerPortada({ url }: { url?: string }) {
+function BannerPortada({ url, cargando }: { url?: string; cargando: boolean }) {
+  const [falloImagen, setFalloImagen] = useState(false);
+
+  useEffect(() => {
+    setFalloImagen(false);
+  }, [url]);
+
+  const estado = estadoCargaPortada({ url, cargando, fallo: falloImagen });
+
   return (
     <View style={styles.banner}>
-      {url ? (
-        <Image source={{ uri: url }} style={styles.imagen} resizeMode="cover" />
+      {estado === 'imagen' && url ? (
+        <Image
+          source={fuenteImagen(url)}
+          style={styles.imagen}
+          resizeMode="cover"
+          onError={() => setFalloImagen(true)}
+        />
+      ) : estado === 'cargando' ? (
+        <Skeleton testID="portada-skeleton" style={styles.imagen} />
       ) : (
         <View style={[styles.imagen, styles.placeholder]} />
       )}

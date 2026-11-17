@@ -1,4 +1,9 @@
-import { chipEstado, esDevuelto, etiquetaAudiencia } from './helpers';
+import {
+  chipEstado,
+  esDevuelto,
+  estadoCargaPortada,
+  etiquetaAudiencia,
+} from './helpers';
 
 describe('etiquetaAudiencia', () => {
   it('[] → GLOBAL ("Toda la universidad")', () => {
@@ -41,5 +46,37 @@ describe('esDevuelto', () => {
     expect(esDevuelto({ estado: 'PENDIENTE', motivoRechazo: 'viejo' })).toBe(false);
     expect(esDevuelto({ estado: 'PUBLICADO', motivoRechazo: 'viejo' })).toBe(false);
     expect(esDevuelto({ estado: 'ARCHIVADO', motivoRechazo: 'viejo' })).toBe(false);
+  });
+});
+
+describe('estadoCargaPortada', () => {
+  it('con URL y sin fallo → imagen', () => {
+    expect(
+      estadoCargaPortada({ url: 'https://cdn/portada.jpg', cargando: false }),
+    ).toBe('imagen');
+  });
+
+  it('sin URL mientras carga → skeleton', () => {
+    expect(estadoCargaPortada({ url: undefined, cargando: true })).toBe('cargando');
+  });
+
+  it('sin URL y sin carga → placeholder (no hay portada)', () => {
+    expect(estadoCargaPortada({ url: undefined, cargando: false })).toBe('vacia');
+  });
+
+  it('si la Image falló → placeholder aunque hubiera URL', () => {
+    expect(
+      estadoCargaPortada({
+        url: 'https://cdn/portada.jpg',
+        cargando: false,
+        fallo: true,
+      }),
+    ).toBe('vacia');
+  });
+
+  it('refetch con URL cacheada nunca vuelve al skeleton', () => {
+    expect(
+      estadoCargaPortada({ url: 'https://cdn/portada.jpg', cargando: true }),
+    ).toBe('imagen');
   });
 });

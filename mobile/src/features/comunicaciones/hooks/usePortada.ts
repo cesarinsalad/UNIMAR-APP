@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { CLAVES_COMUNICADOS } from './queryKeys';
+import { resolverUrlImagen } from '../api/adjuntos.api';
 import { urlPortada } from '../api/comunicados.api';
 
 /**
@@ -13,7 +14,10 @@ import { urlPortada } from '../api/comunicados.api';
 export function usePortada(comunicadoId: string, hasPortada: boolean) {
   const query = useQuery({
     queryKey: CLAVES_COMUNICADOS.portada(comunicadoId),
-    queryFn: () => urlPortada(comunicadoId),
+    queryFn: async () => {
+      const { url } = await urlPortada(comunicadoId);
+      return { url: await resolverUrlImagen(url) };
+    },
     enabled: hasPortada,
     staleTime: 4 * 60 * 1000,
   });

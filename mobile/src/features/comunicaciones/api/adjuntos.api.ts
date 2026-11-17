@@ -70,6 +70,52 @@ export async function urlDescargaAdjunto(adjuntoId: string): Promise<string> {
   return data.url;
 }
 
+const NGROK_HOST_RE = /\.ngrok(-free)?\.(dev|app|io)$/i;
+
+/** Detecta si una URL firmada pasa por un túnel ngrok de desarrollo. */
+export function esUrlNgrok(url: string): boolean {
+  try {
+    const { hostname } = new URL(url);
+    return NGROK_HOST_RE.test(hostname);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Construye el `source` de `<Image>`: en nativo adjunta la cabecera que salta
+ * el intersticial de ngrok solo cuando la URL pertenece a ngrok; en producción
+ * (Supabase Cloud) devuelve `{ uri }` sin cabeceras adicionales.
+ */
+export function fuenteImagen(uri: string): { uri: string; headers?: Record<string, string> } {
+  if (Platform.OS !== 'web' && esUrlNgrok(uri)) {
+    return { uri, headers: { 'ngrok-skip-browser-warning': 'true' } };
+  }
+  return { uri };
+}
+
+/**
+ * Resuelve una URL de imagen para `<Image>`: en web, `<img>` ignora
+ * `source.headers`, por lo que si la URL apunta a ngrok se descarga con `fetch`
+ * enviando `ngrok-skip-browser-warning` y se expone como `blob:` URL local.
+ * En producción (no ngrok) o en nativo devuelve la URL intacta sin `fetch`.
+ */
+export async function resolverUrlImagen(url: string): Promise<string> {
+  if (Platform.OS !== 'web' || !esUrlNgrok(url)) return url;
+  const respuesta = await fetch(url, {
+    headers: { 'ngrok-skip-browser-warning': 'true' },
+  });
+  if (!respuesta.ok) {
+    throw new Error(`No se pudo cargar la imagen (${respuesta.status})`);
+  }
+  const contentType = respuesta.headers.get('content-type') ?? '';
+  if (contentType.toLowerCase().includes('text/html')) {
+    throw new Error('La respuesta recibida no es una imagen válida.');
+  }
+  const blob = await respuesta.blob();
+  return URL.createObjectURL(blob);
+}
+
 /**
  * Fase 2: subida DIRECTA a la URL firmada de Supabase Storage (PUT), sin
  * pasar por el BFF. En nativo usa la API legacy del filesystem para el
@@ -85,12 +131,14 @@ export async function subirArchivo(
   urlFirmada: string,
   archivo: Pick<ArchivoAdjunto, 'uri' | 'mimeType'>,
 ): Promise<void> {
-  // El origen de la URL puede ser el BFF detrás de ngrok (dev): el header
-  // evita el intersticial HTML del plan free, igual que el interceptor axios.
-  const headers = {
+  // En dev detrás de ngrok, el header evita el intersticial HTML del plan free;
+  // en producción (Supabase Cloud) no se añade para no provocar rechazos CORS.
+  const headers: Record<string, string> = {
     'Content-Type': archivo.mimeType,
-    'ngrok-skip-browser-warning': 'true',
   };
+  if (esUrlNgrok(urlFirmada)) {
+    headers['ngrok-skip-browser-warning'] = 'true';
+  }
 
   if (Platform.OS === 'web') {
     const blob = await fetch(archivo.uri).then((r) => r.blob());

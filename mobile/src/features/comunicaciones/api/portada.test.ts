@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { seleccionarPortada } from './portada.api';
@@ -38,7 +39,26 @@ function elegir(a: ImagePicker.ImagePickerAsset) {
 }
 
 describe('seleccionarPortada', () => {
-  beforeEach(() => jest.clearAllMocks());
+  const osOriginal = Platform.OS;
+  const docOriginal = globalThis.document;
+  const createObjectUrlOriginal = URL.createObjectURL;
+  const revokeObjectUrlOriginal = URL.revokeObjectURL;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    Object.defineProperty(Platform, 'OS', { value: 'ios', configurable: true });
+  });
+
+  afterEach(() => {
+    Object.defineProperty(Platform, 'OS', { value: osOriginal, configurable: true });
+    if (docOriginal === undefined) {
+      delete (globalThis as { document?: Document }).document;
+    } else {
+      globalThis.document = docOriginal;
+    }
+    URL.createObjectURL = createObjectUrlOriginal;
+    URL.revokeObjectURL = revokeObjectUrlOriginal;
+  });
 
   it('devuelve el archivo listo para subirAdjunto', async () => {
     elegir(asset());
@@ -101,5 +121,91 @@ describe('seleccionarPortada', () => {
     await expect(seleccionarPortada(false)).resolves.toEqual(
       expect.objectContaining({ tamano: 2048 }),
     );
+  });
+
+  it('en web normaliza a JPEG 3:2 mediante canvas y revoca el blob temporal', async () => {
+    Object.defineProperty(Platform, 'OS', { value: 'web', configurable: true });
+    const ctx = {
+      fillStyle: '',
+      fillRect: jest.fn(),
+      drawImage: jest.fn(),
+    };
+    const canvas = {
+      width: 0,
+      height: 0,
+      getContext: jest.fn(() => ctx),
+      toBlob: jest.fn((cb: (b: Blob | null) => void) => cb({ size: 4096 } as Blob)),
+    };
+    const img: {
+      naturalWidth: number;
+      naturalHeight: number;
+      onload: (() => void) | null;
+      onerror: (() => void) | null;
+      src?: string;
+    } = {
+      naturalWidth: 3000,
+      naturalHeight: 3000,
+      onload: null,
+      onerror: null,
+    };
+    Object.defineProperty(img, 'src', {
+      set() {
+        queueMicrotask(() => img.onload?.());
+      },
+    });
+    globalThis.document = {
+      createElement: jest.fn((tag: string) => (tag === 'canvas' ? canvas : img)),
+    } as unknown as Document;
+    URL.createObjectURL = jest.fn(() => 'blob:https://unimarapp.pages.dev/normalizada');
+    const revokeSpy = jest.fn();
+    URL.revokeObjectURL = revokeSpy;
+
+    elegir(
+      asset({
+        uri: 'blob:https://unimarapp.pages.dev/original',
+        fileName: 'afiche.png',
+        mimeType: 'image/png',
+      }),
+    );
+
+    await expect(seleccionarPortada(false)).resolves.toEqual({
+      uri: 'blob:https://unimarapp.pages.dev/normalizada',
+      nombre: 'afiche.jpg',
+      mimeType: 'image/jpeg',
+      tamano: 4096,
+    });
+    expect(canvas.width).toBe(1800);
+    expect(canvas.height).toBe(1200);
+    expect(ctx.drawImage).toHaveBeenCalledWith(img, 0, 500, 3000, 2000, 0, 0, 1800, 1200);
+    expect(revokeSpy).toHaveBeenCalledWith('blob:https://unimarapp.pages.dev/original');
+  });
+
+  it('en web rechaza imágenes que el navegador no puede decodificar', async () => {
+    Object.defineProperty(Platform, 'OS', { value: 'web', configurable: true });
+    const img: {
+      naturalWidth: number;
+      naturalHeight: number;
+      onload: (() => void) | null;
+      onerror: (() => void) | null;
+      src?: string;
+    } = {
+      naturalWidth: 0,
+      naturalHeight: 0,
+      onload: null,
+      onerror: null,
+    };
+    Object.defineProperty(img, 'src', {
+      set() {
+        queueMicrotask(() => img.onerror?.());
+      },
+    });
+    globalThis.document = {
+      createElement: jest.fn(() => img),
+    } as unknown as Document;
+    URL.revokeObjectURL = jest.fn();
+
+    elegir(asset({ uri: 'blob:https://unimarapp.pages.dev/corrupta' }));
+
+    await expect(seleccionarPortada(false)).rejects.toThrow('No se pudo leer la imagen');
   });
 });

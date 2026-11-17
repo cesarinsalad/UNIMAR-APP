@@ -16,9 +16,12 @@ import { colors, radius, spacing } from './theme';
 export function Skeleton({
   style,
   redondo = false,
+  testID,
 }: {
   style?: StyleProp<ViewStyle>;
   redondo?: boolean;
+  /** Identificador para pruebas; el placeholder es visual y no anuncia. */
+  testID?: string;
 }) {
   const esReducido = useReducedMotion();
   const opacidad = useRef(new Animated.Value(esReducido ? 0.9 : 0.65)).current;
@@ -49,6 +52,7 @@ export function Skeleton({
     <Animated.View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
+      testID={testID}
       style={[estilos.base, redondo && estilos.redondo, style, { opacity: opacidad }]}
     />
   );

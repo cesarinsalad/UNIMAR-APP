@@ -60,3 +60,25 @@ export function etiquetaCategoria(comunicado: {
   if (!comunicado.categoria) return etiquetaAudiencia(comunicado.decanatoIds);
   return ETIQUETAS_CATEGORIA[comunicado.categoria] ?? 'Comunicado';
 }
+
+export type EstadoCargaPortada = 'imagen' | 'cargando' | 'vacia';
+
+/**
+ * Estado del slot de portada. La URL firmada llega después del comunicado:
+ * mientras no existe se pinta un skeleton, nunca el placeholder de "sin
+ * imagen" (mentiría). Con URL cacheada un refetch no vuelve al skeleton.
+ * `fallo` es el onError de la propia Image: si falla, se cae al placeholder.
+ */
+export function estadoCargaPortada({
+  url,
+  cargando,
+  fallo = false,
+}: {
+  url?: string;
+  cargando: boolean;
+  fallo?: boolean;
+}): EstadoCargaPortada {
+  if (url && !fallo) return 'imagen';
+  if (cargando) return 'cargando';
+  return 'vacia';
+}

@@ -1,11 +1,14 @@
+import { useEffect, useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 
 import { colors, radius, spacing } from '@/shared/ui';
-import { PressableScale, ThemedText } from '@/shared/ui';
+import { PressableScale, Skeleton, ThemedText } from '@/shared/ui';
 import { haceRelativo, minutosLectura } from '@/shared/lib/tiempo';
 import { EtiquetaCategoria } from './EtiquetaCategoria';
 import { PortadaPlaceholder } from './PortadaPlaceholder';
+import { fuenteImagen } from '../api/adjuntos.api';
+import { estadoCargaPortada } from '../helpers';
 import { usePortada } from '../hooks/usePortada';
 import type { Comunicado } from '../types';
 
@@ -18,10 +21,21 @@ import type { Comunicado } from '../types';
  */
 export function NoticiaCompacta({ comunicado }: { comunicado: Comunicado }) {
   const portada = usePortada(comunicado.id, comunicado.imagenPath !== null);
+  const [falloImagen, setFalloImagen] = useState(false);
+
+  useEffect(() => {
+    setFalloImagen(false);
+  }, [portada.url]);
 
   function abrir() {
     router.push(`/comunicados/${comunicado.id}` as Parameters<typeof router.push>[0]);
   }
+
+  const estadoPortada = estadoCargaPortada({
+    url: portada.url,
+    cargando: portada.cargando,
+    fallo: falloImagen,
+  });
 
   return (
     <View style={estilos.fila}>
@@ -30,8 +44,15 @@ export function NoticiaCompacta({ comunicado }: { comunicado: Comunicado }) {
         accessibilityRole="button"
         accessibilityLabel={comunicado.titulo}
         style={estilos.contenido}>
-        {portada.url ? (
-          <Image source={{ uri: portada.url }} style={estilos.thumb} resizeMode="cover" />
+        {estadoPortada === 'imagen' && portada.url ? (
+          <Image
+            source={fuenteImagen(portada.url)}
+            style={estilos.thumb}
+            resizeMode="cover"
+            onError={() => setFalloImagen(true)}
+          />
+        ) : estadoPortada === 'cargando' ? (
+          <Skeleton testID="portada-skeleton" style={estilos.thumb} />
         ) : (
           <PortadaPlaceholder style={estilos.thumb} tamanoIcono={20} />
         )}

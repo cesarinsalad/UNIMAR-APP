@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowLeft, ShareNetwork as ShareIcon } from 'phosphor-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -19,10 +19,12 @@ import {
   rechazarComunicado,
   solicitarRevisionComunicado,
 } from '@/features/comunicaciones/api/comunicados.api';
+import { fuenteImagen } from '@/features/comunicaciones/api/adjuntos.api';
 import { CuerpoMarkdown } from '@/features/comunicaciones/components/CuerpoMarkdown';
 import { ModalRechazo } from '@/features/comunicaciones/components/ModalRechazo';
 import { SeccionAdjuntos } from '@/features/comunicaciones/components/SeccionAdjuntos';
 import { accionesPermitidas } from '@/features/comunicaciones/hooks/accionesPermitidas';
+import { estadoCargaPortada } from '@/features/comunicaciones/helpers';
 import {
   etiquetaLecturas,
   puedeVerEstadisticas,
@@ -35,9 +37,9 @@ import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import type { Comunicado } from '@/features/comunicaciones/types';
 import { ApiError } from '@/shared/api/axios';
 import { haceRelativo, minutosLectura } from '@/shared/lib/tiempo';
-import { excerpt } from '@/shared/lib/markdown';
 import { colors, elevation, layout, radius, spacing } from '@/shared/ui';
 import { EstadoCentrado, ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
+import { Skeleton, SkeletonGroup } from '@/shared/ui';
 
 const FORMATO_FECHA_LARGA = new Intl.DateTimeFormat('es-VE', {
   dateStyle: 'long',
@@ -132,10 +134,10 @@ function VerLecturas({
 
 /**
  * Detalle tipo lector (Figma): portada 3:2 con pie opcional sobre
- * gradiente; badge de categoría; título headline + lead (excerpt);
- * tarjeta de autor con lecturas; divisor sutil; cuerpo Markdown; adjuntos;
- * footer de publicación. Las acciones de gestión viven en una fila compacta
- * (visible solo con permisos); rechazo con modal confirmatorio intacto.
+ * gradiente; badge de categoría; título headline; tarjeta de autor con
+ * lecturas; divisor sutil; cuerpo Markdown; adjuntos; footer de publicación.
+ * Las acciones de gestión viven en una fila compacta (visible solo con
+ * permisos); rechazo con modal confirmatorio intacto.
  */
 function DetalleLector({
   comunicado,
@@ -292,9 +294,6 @@ function DetalleLector({
           <ThemedText variant="headline" weight="bold">
             {comunicado.titulo}
           </ThemedText>
-          <ThemedText variant="bodyLg" tone="secondary">
-            {excerpt(comunicado.cuerpo)}
-          </ThemedText>
 
           <TarjetaAutor comunicado={comunicado} comunicadoId={comunicadoId} />
 
@@ -405,13 +404,33 @@ function Divisor() {
 /** Portada 3:2 en el detalle (URL firmada cache id; pie sobre gradiente). */
 function PortadaDetalle({ comunicadoId, pie }: { comunicadoId: string; pie: string | null }) {
   const portada = usePortada(comunicadoId, true);
-  if (!portada.url) return null;
+  const [falloCarga, setFalloCarga] = useState(false);
+
+  useEffect(() => {
+    setFalloCarga(false);
+  }, [portada.url]);
+
+  const estado = estadoCargaPortada({
+    url: portada.url,
+    cargando: portada.cargando,
+    fallo: falloCarga || Boolean(portada.error),
+  });
+
+  if (estado === 'cargando') {
+    return (
+      <SkeletonGroup label="Cargando portada del comunicado">
+        <Skeleton testID="portada-skeleton" style={estilos.portadaDetalle} />
+      </SkeletonGroup>
+    );
+  }
+  if (estado !== 'imagen' || !portada.url) return null;
   return (
     <View style={estilos.portadaWrap}>
       <Image
-        source={{ uri: portada.url }}
+        source={fuenteImagen(portada.url)}
         style={estilos.portadaDetalle}
         resizeMode="cover"
+        onError={() => setFalloCarga(true)}
       />
       {pie ? (
         <>
@@ -429,11 +448,21 @@ function PortadaDetalle({ comunicadoId, pie }: { comunicadoId: string; pie: stri
 }
 
 const estilos = StyleSheet.create({
-  portadaWrap: { position: 'relative' },
+  portadaWrap: {
+    position: 'relative',
+    width: '100%',
+    maxWidth: layout.maxContentWidth,
+    alignSelf: 'center',
+  },
   // Recorte 3:2, el contrato de la portada (editor y NoticiaCard): el
   // detalle era el outlier (4:3) y mostraba la misma imagen con otro
   // encuadre que el resto del sistema.
-  portadaDetalle: { width: '100%', aspectRatio: 3 / 2, borderRadius: radius.card },
+  portadaDetalle: {
+    width: '100%',
+    aspectRatio: 3 / 2,
+    borderRadius: radius.card,
+    backgroundColor: colors.brand.surfaceBlue,
+  },
   pieGradiente: {
     position: 'absolute',
     left: 0,

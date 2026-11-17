@@ -1,9 +1,12 @@
+import { useEffect, useState } from 'react';
 import { Image, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { router } from 'expo-router';
 
 import { spacing } from '@/shared/ui';
-import { PressableScale, ThemedText, ThemedView } from '@/shared/ui';
+import { PressableScale, Skeleton, ThemedText, ThemedView } from '@/shared/ui';
 import { PortadaPlaceholder } from './PortadaPlaceholder';
+import { fuenteImagen } from '../api/adjuntos.api';
+import { estadoCargaPortada } from '../helpers';
 import { usePortada } from '../hooks/usePortada';
 import type { Comunicado } from '../types';
 
@@ -23,10 +26,21 @@ export function NoticiaCard({
   style?: StyleProp<ViewStyle>;
 }) {
   const portada = usePortada(comunicado.id, comunicado.imagenPath !== null);
+  const [falloImagen, setFalloImagen] = useState(false);
+
+  useEffect(() => {
+    setFalloImagen(false);
+  }, [portada.url]);
 
   function abrir() {
     router.push(`/comunicados/${comunicado.id}` as Parameters<typeof router.push>[0]);
   }
+
+  const estadoPortada = estadoCargaPortada({
+    url: portada.url,
+    cargando: portada.cargando,
+    fallo: falloImagen,
+  });
 
   return (
     <PressableScale
@@ -36,8 +50,15 @@ export function NoticiaCard({
       style={style}>
       <ThemedView variant="card" style={estilos.card}>
         <View style={estilos.banner}>
-          {portada.url ? (
-            <Image source={{ uri: portada.url }} style={estilos.imagen} resizeMode="cover" />
+          {estadoPortada === 'imagen' && portada.url ? (
+            <Image
+              source={fuenteImagen(portada.url)}
+              style={estilos.imagen}
+              resizeMode="cover"
+              onError={() => setFalloImagen(true)}
+            />
+          ) : estadoPortada === 'cargando' ? (
+            <Skeleton testID="portada-skeleton" style={estilos.imagen} />
           ) : (
             <PortadaPlaceholder style={estilos.imagen} tamanoIcono={28} />
           )}

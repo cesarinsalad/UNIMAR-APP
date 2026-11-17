@@ -6,6 +6,94 @@ import { MAX_TAMANO_ADJUNTO_BYTES, TAMANO_MAX_MB } from '../types';
 
 const RECORTE = [3, 2] as [number, number];
 const CALIDAD = 0.8;
+const MAX_ANCHO_PORTADA_PX = 1800;
+
+function nombreJpeg(nombreOriginal: string): string {
+  const base = nombreOriginal.replace(/\.[^.]+$/, '');
+  return `${base || `portada-${Date.now()}`}.jpg`;
+}
+
+function cargarImagenWeb(uri: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const imagen = document.createElement('img');
+    imagen.onload = () => {
+      if (imagen.naturalWidth <= 0 || imagen.naturalHeight <= 0) {
+        reject(new Error('No se pudo leer la imagen seleccionada. Intenta con otra.'));
+        return;
+      }
+      resolve(imagen);
+    };
+    imagen.onerror = () => {
+      reject(new Error('No se pudo leer la imagen seleccionada. Intenta con otra.'));
+    };
+    imagen.src = uri;
+  });
+}
+
+/**
+ * En Web `expo-image-picker` ignora `allowsEditing`/`aspect`/`quality`.
+ * Recorta a 3:2 centrado, limita la resolución y recodifica a JPEG sRGB
+ * para igualar el comportamiento del recortador nativo y rechazar archivos
+ * que el navegador no pueda decodificar.
+ */
+async function normalizarPortadaWeb(
+  uri: string,
+  nombreOriginal: string,
+): Promise<ArchivoAdjunto> {
+  try {
+    const imagen = await cargarImagenWeb(uri);
+    const anchoOrigen = imagen.naturalWidth;
+    const altoOrigen = imagen.naturalHeight;
+    const ratioObjetivo = RECORTE[0] / RECORTE[1];
+    const ratioOrigen = anchoOrigen / altoOrigen;
+
+    let sx = 0;
+    let sy = 0;
+    let sw = anchoOrigen;
+    let sh = altoOrigen;
+
+    if (ratioOrigen > ratioObjetivo) {
+      sw = altoOrigen * ratioObjetivo;
+      sx = (anchoOrigen - sw) / 2;
+    } else if (ratioOrigen < ratioObjetivo) {
+      sh = anchoOrigen / ratioObjetivo;
+      sy = (altoOrigen - sh) / 2;
+    }
+
+    const anchoDestino = Math.min(Math.round(sw), MAX_ANCHO_PORTADA_PX);
+    const altoDestino = Math.max(1, Math.round(anchoDestino / ratioObjetivo));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = anchoDestino;
+    canvas.height = altoDestino;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      throw new Error('No se pudo procesar la imagen seleccionada.');
+    }
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, anchoDestino, altoDestino);
+    ctx.drawImage(imagen, sx, sy, sw, sh, 0, 0, anchoDestino, altoDestino);
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, 'image/jpeg', CALIDAD);
+    });
+    if (!blob || blob.size <= 0) {
+      throw new Error('No se pudo leer la imagen seleccionada. Intenta con otra.');
+    }
+
+    return {
+      uri: URL.createObjectURL(blob),
+      nombre: nombreJpeg(nombreOriginal),
+      mimeType: 'image/jpeg',
+      tamano: blob.size,
+    };
+  } finally {
+    if (uri.startsWith('blob:') && typeof URL.revokeObjectURL === 'function') {
+      URL.revokeObjectURL(uri);
+    }
+  }
+}
 
 /**
  * Abre el selector de portada (galería o cámara, decide la UI) y devuelve
@@ -63,6 +151,17 @@ export async function seleccionarPortada(desdeCamara: boolean): Promise<ArchivoA
   }
   const extension = mime === 'image/png' ? 'png' : 'jpg';
   const nombre = asset.fileName ?? `portada-${Date.now()}.${extension}`;
+
+  if (Platform.OS === 'web' && typeof document !== 'undefined') {
+    const normalizada = await normalizarPortadaWeb(asset.uri, nombre);
+    if (normalizada.tamano > MAX_TAMANO_ADJUNTO_BYTES) {
+      if (normalizada.uri.startsWith('blob:') && typeof URL.revokeObjectURL === 'function') {
+        URL.revokeObjectURL(normalizada.uri);
+      }
+      throw new Error(`La portada no puede superar ${TAMANO_MAX_MB} MB.`);
+    }
+    return normalizada;
+  }
 
   // Pickers recortados suelen traer fileSize; si no, el filesystem mide en
   // nativo y el blob mide en web (getInfoAsync es shim vacío en web).
