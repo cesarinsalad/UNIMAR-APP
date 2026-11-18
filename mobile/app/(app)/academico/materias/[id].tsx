@@ -18,11 +18,11 @@ import { BotonCircular, EstadoCentrado, ThemedButton, ThemedText, ThemedView } f
 import { ApiError } from '@/shared/api/axios';
 
 /**
- * Detalle de materia (patrón lector): back circular flotante bajo el safe
- * area del teléfono (`insets.top`, la convención del detalle de evento),
- * con fallback a la tab Clases si el push llegó a una app en frío (sin
- * stack). La cabecera es solo el nombre headline — el metadato vive en el
- * cuadro de información. El narrowing por `es_actual` delega a la
+ * Detalle de materia (patrón lector): back circular flotante que respira
+ * `spacing.md` bajo la BarraInstitucional (el inset superior lo administra
+ * ella), con fallback a la tab Clases si el push llegó a una app en frío
+ * (sin stack). La cabecera es solo el nombre headline — el metadato vive
+ * en el cuadro de información. El narrowing por `es_actual` delega a la
  * variante que muestra el acta como libro de registro. Recibe el
  * deep-link del push NOTA_PUBLICADA; el error ofrece salida (Reintentar)
  * y el contenido soporta pull-to-refresh.
@@ -36,7 +36,7 @@ export default function MateriaDetalleScreen() {
     <ThemedView variant="base" style={estilos.container}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View style={estilos.filaBotones}>
+      <View style={[estilos.filaBotones, { top: spacing.md }]}>
         <BotonCircular label="Volver" onPress={volver}>
           <ArrowLeftIcon size={20} color={colors.brand.primary} weight="bold" />
         </BotonCircular>
@@ -62,10 +62,10 @@ export default function MateriaDetalleScreen() {
           contentContainerStyle={[
             estilos.scroll,
             {
-              // Compacto: el back (40) vive bajo la BarraInstitucional (el
-              // inset superior es de la barra; aquí no se vuelve a sumar) y
-              // el título arranca a aire fijo — el detalle debe caber sin
-              // scroll en la mayoría de pantallas.
+              // Compacto: el back (40) vive a `spacing.md` de la
+              // BarraInstitucional y el título arranca a `spacing.sm` de
+              // él — el detalle debe caber sin scroll en la mayoría de
+              // pantallas.
               paddingTop: spacing.md + 40 + spacing.sm,
               paddingBottom: insets.bottom + spacing.lg,
             },
