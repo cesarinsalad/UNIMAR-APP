@@ -22,11 +22,13 @@ import {
 } from '@/features/identidad/store/sesion.store';
 import { usePerfil } from '@/features/academico/hooks/usePerfil';
 import { CarnetDigital, inicialesDe } from '@/features/identidad/components/CarnetDigital';
-import { colors, layout, radius, spacing } from '@/shared/ui';
+import { colors, elevation, layout, radius, spacing } from '@/shared/ui';
 import {
+  Card,
   HeaderTab,
   ModalConfirmacion,
   PressableScale,
+  SectionHeader,
   SeparadorFino,
   ThemedText,
   ThemedView,
@@ -56,8 +58,7 @@ export default function PerfilScreen() {
         />
 
         <TarjetaIdentidad abreCarnet={() => setCarnetAbierto(true)} perfil={perfil} />
-        <TarjetaPensum />
-        <TarjetaGestion />
+        <TarjetaAccesos />
         <TarjetaAjustes />
         <TarjetaCerrarSesion />
       </ScrollView>
@@ -81,7 +82,7 @@ export default function PerfilScreen() {
   );
 }
 
-/** Tarjeta superior: avatar + nombre + carrera + cédula + estatus + carnet. */
+/** Portada de identidad: la misma voz azul de la tarjeta estrella de Inicio. */
 function TarjetaIdentidad({
   abreCarnet,
   perfil,
@@ -95,79 +96,106 @@ function TarjetaIdentidad({
   const nombre = usuario?.nombre ?? 'Sin sesión';
   const carrera = perfil.data?.carrera ?? null;
   const cedulaFormateada = perfil.data ? formatoCedula(perfil.data.cedula) : null;
+  const estatus = perfil.data?.estatus;
+  const semestre = perfil.data?.semestre;
 
   return (
-    <ThemedView variant="card" style={estilos.tarjetaIdentidad}>
-      <View style={estilos.fileRule} />
+    <ThemedView style={estilos.tarjetaIdentidad}>
+      {estatus || semestre !== undefined ? (
+        <View style={estilos.resumenSuperior}>
+          {estatus ? (
+            <ThemedView style={estilos.pill}>
+              <ThemedText variant="caption" weight="semibold" style={estilos.pillTexto}>
+                {etiquetaEstatus(estatus)}
+              </ThemedText>
+            </ThemedView>
+          ) : null}
+          {semestre !== undefined ? (
+            <ThemedText variant="caption" weight="semibold" tone="onPrimary">
+              Trimestre {aRomano(semestre)}
+            </ThemedText>
+          ) : null}
+        </View>
+      ) : null}
+
       <View style={estilos.filaIdentidad}>
         <View style={estilos.avatar}>
-          <ThemedText variant="title" weight="semibold" style={estilos.avatarTexto}>
+          <ThemedText variant="headline" weight="semibold" style={estilos.avatarTexto}>
             {iniciales || '?'}
           </ThemedText>
         </View>
         <View style={estilos.identidad}>
-          <ThemedText variant="title" weight="semibold" numberOfLines={2}>
+          <ThemedText variant="title" weight="bold" tone="onPrimary" numberOfLines={2}>
             {nombre}
           </ThemedText>
           {carrera ? (
-            <ThemedText variant="body" tone="secondary" numberOfLines={2}>
+            <ThemedText
+              variant="bodySm"
+              tone="onPrimary"
+              numberOfLines={2}
+              style={estilos.textoHeroSecundario}>
               {carrera}
             </ThemedText>
           ) : null}
           {cedulaFormateada ? (
-            <ThemedText variant="caption" tone="tertiary">
+            <ThemedText variant="caption" tone="onPrimary" style={estilos.textoHeroSecundario}>
               {cedulaFormateada}
             </ThemedText>
           ) : perfil.isPending ? (
-            <ActivityIndicator color={colors.brand.primary} style={estilos.cargandoPerfil} />
+            <ActivityIndicator color={colors.text.onPrimary} style={estilos.cargandoPerfil} />
+          ) : perfil.isError ? (
+            <ThemedText variant="caption" tone="onPrimary" style={estilos.textoHeroSecundario}>
+              No se pudo cargar el perfil académico
+            </ThemedText>
           ) : null}
         </View>
       </View>
-
-      {pillEstatus(perfil.data?.estatus, perfil.data?.semestre) ? (
-        <ThemedView style={estilos.pill}>
-          <ThemedText variant="caption" weight="medium" style={estilos.pillTexto}>
-            {pillEstatus(perfil.data?.estatus, perfil.data?.semestre)}
-          </ThemedText>
-        </ThemedView>
-      ) : null}
 
       <PressableScale
         accessibilityRole="button"
         accessibilityLabel="Ver carnet digital"
         style={estilos.botonCarnet}
         onPress={abreCarnet}>
-        <QrCodeIcon size={18} color={colors.brand.primary} weight="bold" />
+        <QrCodeIcon size={20} color={colors.brand.primary} weight="bold" />
         <ThemedText variant="bodySm" weight="semibold" style={estilos.botonCarnetTexto}>
-          Ver Carnet Digital
+          Ver carnet digital
         </ThemedText>
       </PressableScale>
     </ThemedView>
   );
 }
 
-/** Pill "Estudiante Regular · Trimestre IX" solo con el perfil cargado. */
-function pillEstatus(estatus: string | undefined, semestre: number | undefined): string | null {
-  if (!estatus) return null;
-  const periodo = semestre !== undefined ? ` · Trimestre ${aRomano(semestre)}` : '';
-  return `${etiquetaEstatus(estatus)}${periodo}`;
-}
-
-/** Fila "Pensúm Académico" → /academico/pensum (solo estudiante). */
-function TarjetaPensum() {
+/** Accesos según rol: pénsum para estudiantes y consola para el staff. */
+function TarjetaAccesos() {
   const usuario = useSesionStore((s) => s.usuario);
-  if (usuario?.rol !== 'ESTUDIANTE') return null;
+  const permisos = usePermisos();
+  const esEstudiante = usuario?.rol === 'ESTUDIANTE';
+
+  if (!esEstudiante && !permisos.puedeCrearComunicado) return null;
 
   return (
-    <ThemedView variant="card" style={estilos.tarjetaFilas}>
-      <FilaIcono
-        titulo="Pensúm Académico"
-        icono={
-          <BookBookmarkIcon size={20} color={colors.brand.primary} weight="duotone" />
-        }
-        onPress={() => router.push('/academico/pensum')}
-      />
-    </ThemedView>
+    <View style={estilos.seccion}>
+      <SectionHeader title="Accesos" />
+      <Card padding="zero" paddingV="xs">
+        {esEstudiante ? (
+          <FilaIcono
+            titulo="Pensum académico"
+            descripcion="Materias y prerrequisitos de tu carrera"
+            icono={<BookBookmarkIcon size={20} color={colors.brand.primary} weight="duotone" />}
+            onPress={() => router.push('/academico/pensum')}
+          />
+        ) : null}
+        {esEstudiante && permisos.puedeCrearComunicado ? <SeparadorFino /> : null}
+        {permisos.puedeCrearComunicado ? (
+          <FilaIcono
+            titulo="Panel de gestión"
+            descripcion="Comunicados y eventos institucionales"
+            icono={<SquaresFourIcon size={20} color={colors.brand.primary} weight="duotone" />}
+            onPress={() => router.push('/gestion' as never)}
+          />
+        ) : null}
+      </Card>
+    </View>
   );
 }
 
@@ -234,56 +262,72 @@ function TarjetaAjustes() {
   if (Platform.OS === 'web') return null;
 
   return (
-    <ThemedView variant="card" style={estilos.tarjetaFilas}>
-      <View style={estilos.fila}>
-        <View style={estilos.leading}>
-          <BellIcon size={20} color={colors.brand.primary} weight="duotone" />
-        </View>
-        <View style={estilos.textoFila}>
-          <ThemedText variant="body" weight="medium">
-            Notificaciones Push
-          </ThemedText>
-          {huboError ? (
-            <ThemedText variant="caption" tone="tertiary">
-              No se pudo activar (revisa permisos e Internet)
+    <View style={estilos.seccion}>
+      <SectionHeader title="Preferencias" />
+      <Card padding="zero" paddingV="xs">
+        <View style={estilos.fila}>
+          <View style={estilos.leading}>
+            <BellIcon size={20} color={colors.brand.primary} weight="duotone" />
+          </View>
+          <View style={estilos.textoFila}>
+            <ThemedText variant="body" weight="medium">
+              Notificaciones push
             </ThemedText>
-          ) : null}
+            <ThemedText
+              variant="caption"
+              tone="tertiary"
+              style={huboError ? estilos.errorFila : undefined}>
+              {huboError
+                ? 'No se pudo activar (revisa permisos e Internet)'
+                : 'Recibe avisos en este dispositivo'}
+            </ThemedText>
+          </View>
+          <Switch
+            accessibilityLabel="Notificaciones push"
+            value={activado}
+            onValueChange={(v) => {
+              void cambiarPush(v);
+            }}
+            trackColor={{
+              true: colors.brand.primary as string,
+              false: colors.border.subtle,
+            }}
+            disabled={usuario === null}
+          />
         </View>
-        <Switch
-          value={activado}
-          onValueChange={(v) => {
-            void cambiarPush(v);
-          }}
-          trackColor={{ true: colors.brand.primary as string, false: colors.border.subtle }}
-          disabled={usuario === null}
-        />
-      </View>
 
-      <SeparadorFino />
+        <SeparadorFino />
 
-      <View style={estilos.fila}>
-        <View style={estilos.leading}>
-          <FingerprintIcon size={20} color={colors.brand.primary} weight="duotone" />
+        <View style={estilos.fila}>
+          <View style={estilos.leading}>
+            <FingerprintIcon size={20} color={colors.brand.primary} weight="duotone" />
+          </View>
+          <View style={estilos.textoFila}>
+            <ThemedText variant="body" weight="medium">
+              Ingreso biométrico
+            </ThemedText>
+            <ThemedText
+              variant="caption"
+              tone="tertiary"
+              style={errorBiometria ? estilos.errorFila : undefined}>
+              {subtituloBiometria(errorBiometria)}
+            </ThemedText>
+          </View>
+          <Switch
+            accessibilityLabel="Ingreso biométrico"
+            value={biometriaActiva}
+            onValueChange={(v) => {
+              void cambiarBiometria(v);
+            }}
+            trackColor={{
+              true: colors.brand.primary as string,
+              false: colors.border.subtle,
+            }}
+            disabled={usuario === null || cambiandoBiometria}
+          />
         </View>
-        <View style={estilos.textoFila}>
-          <ThemedText variant="body" weight="medium">
-            Ingreso Biométrico
-          </ThemedText>
-          <ThemedText variant="caption" tone="tertiary">
-            {subtituloBiometria(errorBiometria)}
-          </ThemedText>
-        </View>
-        <Switch
-          accessibilityLabel="Ingreso Biométrico"
-          value={biometriaActiva}
-          onValueChange={(v) => {
-            void cambiarBiometria(v);
-          }}
-          trackColor={{ true: colors.brand.primary as string, false: colors.border.subtle }}
-          disabled={usuario === null || cambiandoBiometria}
-        />
-      </View>
-    </ThemedView>
+      </Card>
+    </View>
   );
 }
 
@@ -293,15 +337,15 @@ function TarjetaCerrarSesion() {
   const [confirmar, setConfirmar] = useState(false);
 
   return (
-    <ThemedView variant="card" style={estilos.tarjetaFilas}>
+    <>
       <PressableScale
         accessibilityRole="button"
         accessibilityLabel="Cerrar sesión"
         style={estilos.filaSalir}
         onPress={() => setConfirmar(true)}>
         <SignOutIcon size={20} color={colors.status.danger} weight="bold" />
-        <ThemedText variant="body" weight="semibold" style={estilos.salirTexto}>
-          Cerrar Sesión
+        <ThemedText variant="bodySm" weight="semibold" style={estilos.salirTexto}>
+          Cerrar sesión
         </ThemedText>
       </PressableScale>
       <ModalConfirmacion
@@ -316,33 +360,19 @@ function TarjetaCerrarSesion() {
         }}
         onCancelar={() => setConfirmar(false)}
       />
-    </ThemedView>
-  );
-}
-
-/** Panel de gestión (COMUNICADOR/ADMIN): la consola de staff en /gestion. */
-function TarjetaGestion() {
-  const permisos = usePermisos();
-  if (!permisos.puedeCrearComunicado) return null;
-
-  return (
-    <ThemedView variant="card" style={estilos.tarjetaFilas}>
-      <FilaIcono
-        titulo="Panel de gestión"
-        icono={<SquaresFourIcon size={20} color={colors.brand.primary} weight="duotone" />}
-        onPress={() => router.push('/gestion' as never)}
-      />
-    </ThemedView>
+    </>
   );
 }
 
 /** Fila de configuración reutilizable con icono tintado + chevron. */
 function FilaIcono({
   titulo,
+  descripcion,
   icono,
   onPress,
 }: {
   titulo: string;
+  descripcion: string;
   icono: React.ReactNode;
   onPress: () => void;
 }) {
@@ -353,9 +383,14 @@ function FilaIcono({
       style={estilos.fila}
       onPress={onPress}>
       <View style={estilos.leading}>{icono}</View>
-      <ThemedText variant="body" weight="medium" style={estilos.textoFila}>
-        {titulo}
-      </ThemedText>
+      <View style={estilos.textoFila}>
+        <ThemedText variant="body" weight="medium">
+          {titulo}
+        </ThemedText>
+        <ThemedText variant="caption" tone="tertiary">
+          {descripcion}
+        </ThemedText>
+      </View>
       <CaretRightIcon size={18} color={colors.text.secondary} />
     </PressableScale>
   );
@@ -366,22 +401,26 @@ const estilos = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg.canvas,
   },
-  fileRule: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 3,
-    backgroundColor: colors.brand.primary,
-    borderTopLeftRadius: radius.card,
-    borderTopRightRadius: radius.card,
-  },
   scroll: {
     paddingVertical: spacing.md,
     paddingHorizontal: layout.screenPadding,
-    gap: spacing.lg,
+    gap: spacing.xl,
   },
-  tarjetaIdentidad: { gap: spacing.md, overflow: 'hidden' },
+  seccion: { gap: spacing.md },
+  tarjetaIdentidad: {
+    backgroundColor: colors.brand.primary,
+    borderRadius: radius.card,
+    ...elevation.md,
+    padding: spacing.lg,
+    gap: spacing.xl,
+  },
+  resumenSuperior: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
   filaIdentidad: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -391,34 +430,43 @@ const estilos = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: radius.pill,
-    backgroundColor: colors.brand.primary,
+    backgroundColor: colors.bg.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarTexto: { color: colors.text.onPrimary },
+  avatarTexto: { color: colors.brand.primary },
   identidad: {
     flex: 1,
     gap: 2,
   },
-  cargandoPerfil: { marginTop: spacing.xs },
+  textoHeroSecundario: { opacity: 0.84 },
+  cargandoPerfil: {
+    alignSelf: 'flex-start',
+    marginTop: spacing.xs,
+  },
   pill: {
     alignSelf: 'flex-start',
-    backgroundColor: colors.brand.surfaceBlue,
+    backgroundColor: colors.bg.surface,
     borderRadius: radius.pill,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
   },
   pillTexto: { color: colors.brand.primary },
   botonCarnet: {
-    alignSelf: 'center',
+    minHeight: 48,
+    alignSelf: 'stretch',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.sm,
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.bg.surface,
+    borderRadius: radius.button,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
   },
   botonCarnetTexto: { color: colors.brand.primary },
-  tarjetaFilas: { paddingVertical: spacing.xs },
   fila: {
+    minHeight: 64,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
@@ -434,12 +482,15 @@ const estilos = StyleSheet.create({
     justifyContent: 'center',
   },
   textoFila: { flex: 1 },
+  errorFila: { color: colors.status.danger },
   filaSalir: {
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
     paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
   },
   salirTexto: { color: colors.status.danger },
 });
