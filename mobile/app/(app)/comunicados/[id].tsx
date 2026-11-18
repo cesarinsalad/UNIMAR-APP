@@ -17,7 +17,6 @@ import {
   desarchivarComunicado,
   publicarComunicado,
   rechazarComunicado,
-  solicitarRevisionComunicado,
 } from '@/features/comunicaciones/api/comunicados.api';
 import { fuenteImagen } from '@/features/comunicaciones/api/adjuntos.api';
 import { CuerpoMarkdown } from '@/features/comunicaciones/components/CuerpoMarkdown';
@@ -47,12 +46,12 @@ const FORMATO_FECHA_LARGA = new Intl.DateTimeFormat('es-VE', {
 });
 
 /**
- * Transiciones del ciclo editorial que el DETALLE ofrece: solicitar,
- * aprobar, rechazar, publicar y desarchivar. Editar y archivar NO están
- * aquí — son exclusivos de la consola de gestión (editor + colas): el
- * detalle es lectura del estado editorial para todos los roles.
+ * Transiciones del ciclo editorial que el DETALLE ofrece: aprobar,
+ * rechazar, publicar y desarchivar. Solicitar revisión NO está aquí (es
+ * canal de la consola de gestión) — editar y archivar tampoco: el detalle
+ * es lectura del estado editorial para todos los roles.
  */
-type AccionDetalle = 'solicitar' | 'aprobar' | 'rechazar' | 'publicar' | 'desarchivar';
+type AccionDetalle = 'aprobar' | 'rechazar' | 'publicar' | 'desarchivar';
 
 export default function ComunicadoDetalleScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -160,7 +159,6 @@ function DetalleLector({
    * ajeno, donde solo existían archivar/editar).
    */
   const hayAcciones =
-    acciones.puedeSolicitarRevision ||
     acciones.puedeAprobar ||
     acciones.puedeRechazar ||
     acciones.puedePublicar ||
@@ -174,8 +172,6 @@ function DetalleLector({
   const transicion = useTransicionComunicado<{ accion: AccionDetalle; id: string; motivo?: string }>(
     (id, motivo, args) => {
       switch (args.accion) {
-        case 'solicitar':
-          return solicitarRevisionComunicado(id);
         case 'aprobar':
           return aprobarComunicado(id);
         case 'rechazar':
@@ -231,15 +227,6 @@ function DetalleLector({
         showsVerticalScrollIndicator={false}>
         {hayAcciones ? (
           <View style={estilos.acciones}>
-            {acciones.puedeSolicitarRevision ? (
-              <ThemedButton
-                title="Solicitar revisión"
-                variant="ghost"
-                size="sm"
-                disabled={algunaPendiente}
-                onPress={() => void ejecutarAccion('solicitar')}
-              />
-            ) : null}
             {acciones.puedeAprobar ? (
               <ThemedButton
                 title="Aprobar"
