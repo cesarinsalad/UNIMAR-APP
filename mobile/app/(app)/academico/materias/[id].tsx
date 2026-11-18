@@ -53,7 +53,7 @@ export default function MateriaDetalleScreen() {
           </ThemedText>
           <ThemedButton
             title="Reintentar"
-            variant="secondary"
+            variant="tonal"
             onPress={() => void query.refetch()}
           />
         </EstadoCentrado>

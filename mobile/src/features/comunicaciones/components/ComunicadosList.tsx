@@ -8,7 +8,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, layout, spacing } from '@/shared/ui';
-import { ThemedText, ThemedView } from '@/shared/ui';
+import { ThemedButton, ThemedText, ThemedView } from '@/shared/ui';
 import type { Comunicado } from '../types';
 import { useComunicadosFeed } from '../hooks/useComunicadosFeed';
 import { aplanarPaginas } from '@/shared/lib/paginar';
@@ -35,13 +35,12 @@ export function ComunicadosList() {
         <ThemedText variant="caption" tone="tertiary" style={styles.errorDetalle}>
           {query.error.message}
         </ThemedText>
-        <ThemedText
-          variant="body"
-          weight="semibold"
-          style={styles.reintentar}
-          onPress={() => query.refetch()}>
-          Reintentar
-        </ThemedText>
+        <ThemedButton
+          title="Reintentar"
+          variant="tonal"
+          size="sm"
+          onPress={() => query.refetch()}
+        />
       </EstadoCentrado>
     );
   }
@@ -135,10 +134,6 @@ const styles = StyleSheet.create({
   },
   errorDetalle: {
     textAlign: 'center',
-  },
-  reintentar: {
-    color: colors.brand.primary,
-    textDecorationLine: 'underline',
   },
   footer: {
     textAlign: 'center',

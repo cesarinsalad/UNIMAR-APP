@@ -62,7 +62,7 @@ export function NotificacionesList({
           action={
             <ThemedButton
               title="Reintentar"
-              variant="secondary"
+              variant="tonal"
               size="sm"
               onPress={() => void query.refetch()}
             />

@@ -415,7 +415,7 @@ function AlcanceReciente({
           <TextoError>No se pudo cargar el alcance de los comunicados.</TextoError>
           <ThemedButton
             title="Reintentar"
-            variant="secondary"
+            variant="tonal"
             size="sm"
             onPress={onReintentar}
           />
@@ -523,7 +523,7 @@ function ErrorMonitor({
       <TextoError>{mensaje}</TextoError>
       <ThemedButton
         title="Reintentar"
-        variant="secondary"
+        variant="tonal"
         size="sm"
         onPress={onReintentar}
       />

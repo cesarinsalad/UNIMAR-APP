@@ -38,7 +38,7 @@ export default function FormularioComunicadoScreen() {
               </ThemedText>
               <ThemedButton
                 title="Reintentar"
-                variant="secondary"
+                variant="tonal"
                 size="sm"
                 onPress={() => void detalle.refetch()}
               />

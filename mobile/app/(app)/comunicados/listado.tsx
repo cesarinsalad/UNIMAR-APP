@@ -64,7 +64,7 @@ export default function ListadoNoticiasScreen() {
           <ThemedText tone="secondary">No se pudo cargar la lista de noticias.</ThemedText>
           <ThemedButton
             title="Reintentar"
-            variant="secondary"
+            variant="tonal"
             size="sm"
             onPress={() => void feed.refetch()}
           />

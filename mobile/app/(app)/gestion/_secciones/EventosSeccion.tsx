@@ -319,7 +319,7 @@ export function EventosSeccion({ modo, onModo }: EventosSeccionProps) {
           <TextoError>No se pudo cargar la lista de eventos.</TextoError>
           <ThemedButton
             title="Reintentar"
-            variant="secondary"
+            variant="tonal"
             size="sm"
             onPress={() => void porVentana.refetch()}
           />

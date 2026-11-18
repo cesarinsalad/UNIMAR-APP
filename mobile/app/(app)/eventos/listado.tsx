@@ -73,7 +73,7 @@ export default function ListadoEventosScreen() {
           <ThemedText tone="secondary">No se pudo cargar la lista de eventos.</ThemedText>
           <ThemedButton
             title="Reintentar"
-            variant="secondary"
+            variant="tonal"
             size="sm"
             onPress={() => void porVentana.refetch()}
           />

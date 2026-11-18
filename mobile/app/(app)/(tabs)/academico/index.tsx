@@ -13,6 +13,7 @@ import {
   EmptyState,
   HeaderTab,
   SectionHeader,
+  ThemedButton,
   ThemedText,
   ThemedView,
 } from '@/shared/ui';
@@ -60,13 +61,12 @@ export default function AcademicoScreen() {
         <ThemedText tone="secondary">
           No se pudieron cargar tus clases.
         </ThemedText>
-        <ThemedText
-          variant="body"
-          weight="semibold"
-          style={estilos.reintentar}
-          onPress={() => void materias.refetch()}>
-          Reintentar
-        </ThemedText>
+        <ThemedButton
+          title="Reintentar"
+          variant="tonal"
+          size="sm"
+          onPress={() => void materias.refetch()}
+        />
       </EstadoCentrado>
     );
   }
@@ -199,9 +199,5 @@ const estilos = StyleSheet.create({
   },
   estadoConGap: {
     gap: spacing.lg,
-  },
-  reintentar: {
-    color: colors.brand.primary,
-    textDecorationLine: 'underline',
   },
 });

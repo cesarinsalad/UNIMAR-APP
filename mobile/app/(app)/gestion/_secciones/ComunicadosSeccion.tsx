@@ -383,7 +383,7 @@ export function ComunicadosSeccion({ estado, onEstado }: ComunicadosSeccionProps
       ) : query.isError ? (
         <EstadoCentrado gap>
           <TextoError>No se pudo cargar la cola.</TextoError>
-          <ThemedButton title="Reintentar" variant="secondary" size="sm" onPress={() => void query.refetch()} />
+          <ThemedButton title="Reintentar" variant="tonal" size="sm" onPress={() => void query.refetch()} />
         </EstadoCentrado>
       ) : (
         <ContextoMenuAbierto.Provider value={menuAbiertoId}>

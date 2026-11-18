@@ -262,7 +262,7 @@ export default function CalendarioScreen() {
             <ThemedText tone="secondary">No se pudo cargar la agenda.</ThemedText>
             <ThemedButton
               title="Reintentar"
-              variant="secondary"
+              variant="tonal"
               size="sm"
               onPress={() => void agenda.refetch()}
             />

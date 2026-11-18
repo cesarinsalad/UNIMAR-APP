@@ -84,7 +84,7 @@ function Contenido({ eventoId, cerrar }: ContenidoProps) {
         }>
         <ThemedButton
           title="Reintentar"
-          variant="secondary"
+          variant="tonal"
           size="sm"
           onPress={() => void query.refetch()}
         />
