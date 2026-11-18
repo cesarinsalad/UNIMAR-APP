@@ -101,7 +101,7 @@ curl -s https://moonbeam-frosted-condition.ngrok-free.dev/health
 | `npm run dev:remoto` (y `predev:remoto`) | ✅ | Detecta Supabase/Docker arriba |
 | `eas update --branch demo` | ✅ | Cada publish es inmutable; `update:list` lista |
 | `npm run web:deploy` | ✅ | Pages deduplica assets por hash |
-| Reconstruir dev build (`eas build development`) | ✅ | applicationId `.dev` — coexiste con preview |
+| Reconstruir dev build (`eas build development` o local `npm run prebuild:dev` + `android:dev`) | ✅ | applicationId `.dev` — coexiste con preview |
 | Borrar `~/.gradle/caches/journal-1` | ✅ | Metadato puro; solo si `CorruptedCacheException` |
 
 ## Gotchas (historia de esta implementación)

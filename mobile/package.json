@@ -7,6 +7,8 @@
     "start:tunnel": "expo start --tunnel",
     "start:tunnel:dev": "expo start --tunnel --dev-client",
     "android": "expo run:android",
+    "prebuild:dev": "UNIMAR_APP_ID_SUFFIX=.dev expo prebuild -p android --clean",
+    "android:dev": "UNIMAR_APP_ID_SUFFIX=.dev expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
     "web:export": "expo export -p web",

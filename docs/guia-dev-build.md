@@ -62,13 +62,15 @@ sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" "ndk;27.
 ### Paso A3 — Generar nativo + compilar + instalar
 ```bash
 cd mobile
-npx expo prebuild -p android        # genera android/ desde app.json (CNG)
-npx expo run:android --device       # compila debug + instala en el teléfono + arranca Metro
+npm run prebuild:dev                # expo prebuild -p android --clean + UNIMAR_APP_ID_SUFFIX=.dev
+npm run android:dev -- --device     # compila debug + instala en el teléfono + arranca Metro
 ```
+- **Los scripts exportan `UNIMAR_APP_ID_SUFFIX=.dev`**: `expo prebuild`/`run:android` **no** leen `eas.json`, así que un prebuild "pelado" nace como `edu.unimar.unimarapp` y el APK **choca con el preview** al instalar (`android/` está gitignored, el id se revierte en silencio). El dev build local es `edu.unimar.unimarapp.dev` / "UNIMARapp Dev" y coexiste con el preview.
 - `--device` lista dispositivos conectados: USB (tras `usbipd`) o **debug inalámbrico** (`adb pair <IP>:<puerto>` + `adb connect <IP>:<puerto>` con el menú "Depuración por Wi-Fi" de Android 11+, no hace falta cable).
 - Alternativa manual sin conexión previa: `cd android && ./gradlew :app:assembleDebug` → copiar `android/app/build/outputs/apk/debug/app-debug.apk` al teléfono (Drive/USB) e instalar aceptando "apps desconocidas".
 - **Primer gradlew tarda ~5-15 min** (descarga artefactos); los siguientes <2 min.
-- Cambios en config nativa después: regenerar con `npx expo prebuild -p android --clean` (borra desde cero, no "layer" el previo).
+- Cambios en config nativa después: regenerar con `npm run prebuild:dev` (borra desde cero, no "layer" el previo).
+- Verificar el id: `~/android-sdk/build-tools/36.0.0/aapt2 dump badging android/app/build/outputs/apk/debug/app-debug.apk | head -1` → `package: name='edu.unimar.unimarapp.dev'`.
 - **Idempotente:** `prebuild` ⚠️ sobreescribe `android/` (usarlo es la intención); `run:android` ✅ recompila sin efectos.
 
 ---
@@ -99,7 +101,7 @@ npx eas-cli build -p android --profile development
 - **Idempotente:** ✅ Sí (reinstalar el mismo APK es una "actualización" normal).
 
 ### ❓¿Cuándo se re-builda?
-Aplica a ambas variantes: solo si cambian **dependencias nativas** (`package.json` con módulos nuevos), **plugins** de `app.json` (re-generar `android/` con `prebuild --clean`), o si el dev client pide **"compatibility mismatch"** con la versión de `expo-dev-client`/SDK. Cambios de JS/TS **no** requieren rebuild: los sirve Metro en caliente.
+Aplica a ambas variantes: solo si cambian **dependencias nativas** (`package.json` con módulos nuevos), **plugins** de `app.json` (re-generar `android/` con `npm run prebuild:dev`), o si el dev client pide **"compatibility mismatch"** con la versión de `expo-dev-client`/SDK. Cambios de JS/TS **no** requieren rebuild: los sirve Metro en caliente.
 
 ---
 
