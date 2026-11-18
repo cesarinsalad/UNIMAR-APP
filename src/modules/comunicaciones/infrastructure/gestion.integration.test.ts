@@ -108,4 +108,49 @@ describe.skipIf(!RUN_DB_TESTS)('Repo Comunicados: alcance de gestión', () => {
       expect(total).toBeGreaterThanOrEqual(2);
     });
   });
+
+  it('ADMIN excluye BORRADOR ajenos en listar, contar y contarPorEstado, pero ve PENDIENTE, PUBLICADO y su BORRADOR', async () => {
+    await withTx(async (c) => {
+      const tx = c as unknown as DbTx;
+      const ts = Date.now();
+      const admin = await crearUsuario(c, `ADM-${ts}-A`, 'ADMIN', null);
+      const com5 = await crearUsuario(c, `ADM-${ts}-C5`, 'COMUNICADOR', 5);
+      const marker = `ADM-BORR-${ts}`;
+
+      await setClaims(c, com5, 'COMUNICADOR', 5);
+      await c.query(
+        "INSERT INTO comunicados (titulo, cuerpo, autor_id, estado) VALUES ($1, 'cuerpo', $2, 'BORRADOR')",
+        [`${marker} borrador ajeno`, com5],
+      );
+      await c.query(
+        "INSERT INTO comunicados (titulo, cuerpo, autor_id, estado) VALUES ($1, 'cuerpo', $2, 'PENDIENTE')",
+        [`${marker} pendiente ajeno`, com5],
+      );
+      await crearPublicado(c, `${marker} publicado ajeno`, com5);
+
+      await setClaims(c, admin, 'ADMIN', null);
+      await c.query(
+        "INSERT INTO comunicados (titulo, cuerpo, autor_id, estado) VALUES ($1, 'cuerpo', $2, 'BORRADOR')",
+        [`${marker} borrador propio`, admin],
+      );
+
+      const items = await repo.listar(tx, { q: marker, limit: 50, offset: 0 });
+      const titulos = items.map((item) => item.titulo).sort();
+      expect(titulos).toEqual([
+        `${marker} borrador propio`,
+        `${marker} pendiente ajeno`,
+        `${marker} publicado ajeno`,
+      ]);
+
+      const totalTodos = await repo.contar(tx, { q: marker });
+      expect(totalTodos).toBe(3);
+
+      const totalBorradores = await repo.contar(tx, { q: marker, estado: 'BORRADOR' });
+      expect(totalBorradores).toBe(1);
+
+      const conteos = await repo.contarPorEstado(tx);
+      const borradoresVisibles = await repo.contar(tx, { estado: 'BORRADOR' });
+      expect(conteos.BORRADOR).toBe(borradoresVisibles);
+    });
+  });
 });

@@ -13,6 +13,8 @@ const EDITABLES: Estado[] = ['BORRADOR', 'PUBLICADO'];
  * - PENDIENTE está congelado en revisión; no se puede editar (hay que rechazar).
  * - ARCHIVADO es histórico; no se puede editar.
  * - COMUNICADOR solo edita lo suyo y re-valida la regla de audiencia.
+ * - Al guardar cambios se limpia cualquier motivoRechazo previo: un
+ *   comunicado «Devuelto» vuelve a ser un «Borrador» limpio.
  */
 export class EditarComunicado {
   constructor(
@@ -55,6 +57,7 @@ export class EditarComunicado {
         expiraAt: input.expiraAt,
         categoria: input.categoria,
         decanatoIds: input.decanatoIds,
+        motivoRechazo: null,
       });
 
       if (!actualizado) {

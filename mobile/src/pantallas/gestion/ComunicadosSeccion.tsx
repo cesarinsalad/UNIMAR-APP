@@ -34,7 +34,7 @@ import {
   solicitarRevisionComunicado,
 } from '@/features/comunicaciones/api/comunicados.api';
 import { ModalRechazo } from '@/features/comunicaciones/components/ModalRechazo';
-import { esDevuelto } from '@/features/comunicaciones/helpers';
+import { esDevuelto, visibleEnColaGestion } from '@/features/comunicaciones/helpers';
 import { useMisComunicados, totalDeCola } from '@/features/comunicaciones/hooks/useMisComunicados';
 import { useTransicionComunicado } from '@/features/comunicaciones/hooks/useMutacionComunicado';
 import { accionesPermitidas } from '@/features/comunicaciones/hooks/accionesPermitidas';
@@ -153,9 +153,12 @@ export function ComunicadosSeccion({ estado, onEstado }: ComunicadosSeccionProps
     categoria: categoria || undefined,
     decanatoId: permisos.esAdmin && decanatoFiltro !== null ? decanatoFiltro : undefined,
   });
-  const comunicados = aplanarPaginas(query.data?.pages).filter((c) =>
-    soloDevueltos ? esDevuelto(c) : true,
+  const comunicados = aplanarPaginas(query.data?.pages).filter(
+    (c) => visibleEnColaGestion(c, usuario?.id) && (soloDevueltos ? esDevuelto(c) : true),
   );
+  const chipsEstado = permisos.esAdmin
+    ? CHIPS.filter((chip) => chip.clave !== 'DEVUELTO')
+    : CHIPS;
   // Total exacto del BFF (count bajo RLS); para la cola derivada la cuenta
   // la da el filtro cliente (cotas de páginas cargadas, honesto).
   const totalCola = soloDevueltos ? comunicados.length : totalDeCola(query);
@@ -339,7 +342,7 @@ export function ComunicadosSeccion({ estado, onEstado }: ComunicadosSeccionProps
         <View style={[estilos.selectEstado, !esDesktop && estilos.selectMovil]}>
           <Select<EstadoCola>
             valor={estado}
-            opciones={CHIPS.map((chip) => ({ valor: chip.clave, etiqueta: chip.etiqueta }))}
+            opciones={chipsEstado.map((chip) => ({ valor: chip.clave, etiqueta: chip.etiqueta }))}
             onChange={onEstado}
             placeholder="Estado"
             valorPlaceholder=""

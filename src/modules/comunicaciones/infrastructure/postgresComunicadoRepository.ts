@@ -81,7 +81,10 @@ function construirWhere(filtro: FiltroComunicados): {
   params: (string | number)[];
 } {
   const params: (string | number)[] = [];
-  const where: string[] = ['c.deleted_at IS NULL'];
+  const where: string[] = [
+    'c.deleted_at IS NULL',
+    "(c.estado <> 'BORRADOR' OR c.autor_id = (auth.jwt() ->> 'sub')::uuid)",
+  ];
 
   if (filtro.estado) {
     params.push(filtro.estado);
@@ -223,7 +226,11 @@ export class PostgresComunicadoRepository implements IComunicadoRepository {
   async contarPorEstado(tx: DbTx): Promise<Record<Estado, number>> {
     const conteos = Object.fromEntries(ESTADOS.map((e) => [e, 0])) as Record<Estado, number>;
     const result = await tx.query<{ estado: Estado; n: number }>(
-      'SELECT estado, count(*)::int AS n FROM comunicados WHERE deleted_at IS NULL GROUP BY estado',
+      `SELECT estado, count(*)::int AS n
+         FROM comunicados c
+        WHERE c.deleted_at IS NULL
+          AND (c.estado <> 'BORRADOR' OR c.autor_id = (auth.jwt() ->> 'sub')::uuid)
+        GROUP BY estado`,
     );
     for (const row of result.rows) {
       conteos[row.estado] = row.n;
@@ -241,6 +248,7 @@ export class PostgresComunicadoRepository implements IComunicadoRepository {
       expiraAt?: string | null;
       categoria?: string | null;
       decanatoIds?: number[];
+      motivoRechazo?: string | null;
     },
   ): Promise<Comunicado | null> {
     const sets: string[] = [];
@@ -265,6 +273,10 @@ export class PostgresComunicadoRepository implements IComunicadoRepository {
     if (input.categoria !== undefined) {
       sets.push(`categoria = $${sets.length + 1}`);
       values.push(input.categoria);
+    }
+    if (input.motivoRechazo !== undefined) {
+      sets.push(`motivo_rechazo = $${sets.length + 1}`);
+      values.push(input.motivoRechazo);
     }
 
     if (sets.length > 0) {

@@ -23,6 +23,10 @@ export class ObtenerComunicado {
         throw new NotFoundError('Comunicado no encontrado');
       }
 
+      if (comunicado.estado === 'BORRADOR' && comunicado.autorId !== claims.sub) {
+        throw new NotFoundError('Comunicado no encontrado');
+      }
+
       if (comunicado.autorId !== claims.sub) {
         await this.repo.registrarLectura(tx, id, claims.sub);
       }

@@ -39,6 +39,17 @@ export function esDevuelto(comunicado: {
   return comunicado.estado === 'BORRADOR' && comunicado.motivoRechazo !== null;
 }
 
+/**
+ * Los borradores pertenecen solo a su autor; ningún otro rol (incluido
+ * ADMIN) debe ver borradores ajenos en la cola hasta que estén en revisión.
+ */
+export function visibleEnColaGestion(
+  comunicado: { estado: EstadoComunicado; autorId: string },
+  usuarioId: string | null | undefined,
+): boolean {
+  return comunicado.estado !== 'BORRADOR' || comunicado.autorId === usuarioId;
+}
+
 
 /** Etiquetas de categoría editorial (wire snake, muestra Title Case). */
 const ETIQUETAS_CATEGORIA: Record<string, string> = {

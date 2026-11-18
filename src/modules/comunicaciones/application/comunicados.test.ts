@@ -288,6 +288,26 @@ describe('EditarComunicado', () => {
     ).rejects.toThrow(BadRequestError);
   });
 
+  it('Limpia motivoRechazo al editar un borrador devuelto', async () => {
+    const { repo, calls } = makeRepo(
+      makeComunicado({
+        autorId: 'uuid-c',
+        estado: 'BORRADOR',
+        motivoRechazo: 'Falta adjunto',
+        decanatoIds: [5],
+      }),
+    );
+    const uc = new EditarComunicado(repo, makeUnitOfWork());
+    const result = await uc.ejecutar(makeComComunicador('uuid-c', 5), 'com-id', {
+      titulo: 'Corregido',
+    });
+    const call = calls.find((c) => c.method === 'actualizar');
+    expect(call).toBeDefined();
+    expect((call!.args[1] as { motivoRechazo?: string | null }).motivoRechazo).toBeNull();
+    expect(result.estado).toBe('BORRADOR');
+    expect(result.motivoRechazo).toBeNull();
+  });
+
   it('No existe -> NotFoundError', async () => {
     const { repo } = makeRepo(null);
     const uc = new EditarComunicado(repo, makeUnitOfWork());
@@ -580,6 +600,21 @@ describe('ObtenerComunicado', () => {
     const result = await uc.ejecutar(makeComComunicador('uuid-c', 5), 'com-id');
     expect(result.id).toBe('com-id');
     expect(calls.some((c) => c.method === 'registrarLectura')).toBe(true);
+  });
+
+  it('No autor (incluido ADMIN) no puede obtener un BORRADOR ajeno -> NotFoundError', async () => {
+    const { repo, calls } = makeRepo(makeComunicado({ autorId: 'uuid-c', estado: 'BORRADOR' }));
+    const uc = new ObtenerComunicado(repo, makeUnitOfWork());
+    await expect(uc.ejecutar(makeAdminClaims('uuid-a'), 'com-id')).rejects.toThrow(NotFoundError);
+    expect(calls.some((c) => c.method === 'registrarLectura')).toBe(false);
+  });
+
+  it('ADMIN obtiene un PENDIENTE ajeno', async () => {
+    const { repo } = makeRepo(makeComunicado({ autorId: 'uuid-c', estado: 'PENDIENTE' }));
+    const uc = new ObtenerComunicado(repo, makeUnitOfWork());
+    const result = await uc.ejecutar(makeAdminClaims('uuid-a'), 'com-id');
+    expect(result.id).toBe('com-id');
+    expect(result.estado).toBe('PENDIENTE');
   });
 
   it('No existe -> NotFoundError', async () => {

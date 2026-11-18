@@ -82,6 +82,7 @@ export interface IComunicadoRepository {
       expiraAt?: string | null;
       categoria?: string | null;
       decanatoIds?: number[];
+      motivoRechazo?: string | null;
     },
   ): Promise<Comunicado | null>;
 

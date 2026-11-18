@@ -3,6 +3,7 @@ import {
   esDevuelto,
   estadoCargaPortada,
   etiquetaAudiencia,
+  visibleEnColaGestion,
 } from './helpers';
 
 describe('etiquetaAudiencia', () => {
@@ -78,5 +79,22 @@ describe('estadoCargaPortada', () => {
     expect(
       estadoCargaPortada({ url: 'https://cdn/portada.jpg', cargando: true }),
     ).toBe('imagen');
+  });
+});
+
+describe('visibleEnColaGestion', () => {
+  it('oculta un BORRADOR ajeno', () => {
+    expect(visibleEnColaGestion({ estado: 'BORRADOR', autorId: 'otro' }, 'admin')).toBe(false);
+    expect(visibleEnColaGestion({ estado: 'BORRADOR', autorId: 'otro' }, null)).toBe(false);
+  });
+
+  it('permite un BORRADOR propio', () => {
+    expect(visibleEnColaGestion({ estado: 'BORRADOR', autorId: 'admin' }, 'admin')).toBe(true);
+  });
+
+  it('permite PENDIENTE, PUBLICADO y ARCHIVADO aunque sean de otro autor', () => {
+    expect(visibleEnColaGestion({ estado: 'PENDIENTE', autorId: 'otro' }, 'admin')).toBe(true);
+    expect(visibleEnColaGestion({ estado: 'PUBLICADO', autorId: 'otro' }, 'admin')).toBe(true);
+    expect(visibleEnColaGestion({ estado: 'ARCHIVADO', autorId: 'otro' }, 'admin')).toBe(true);
   });
 });
