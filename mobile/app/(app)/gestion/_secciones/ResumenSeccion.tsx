@@ -120,7 +120,6 @@ export function ResumenSeccion({
   const errorComunicados = feed.isError && !feed.data;
   const errorEventos = eventosVentana.isError && !eventosVentana.data;
   const sinConteos = Boolean(errorConteos) && !conteos;
-  const hayPendientes = (conteos?.PENDIENTE ?? 0) > 0;
   const tasaLectura = conteos?.tasaLecturaPromedio30d;
   const cifraTasa = sinConteos ? '—' : !conteos ? '…' : formatearPorcentaje(tasaLectura);
 
@@ -134,7 +133,6 @@ export function ResumenSeccion({
       etiqueta="Por revisar"
       cifra={cifra('PENDIENTE')}
       detalle={detalleKpi(conteos?.PENDIENTE, 'Nada pendiente', 'Pendientes de aprobación')}
-      indicadorAcento={hayPendientes}
       icono={
         conteos?.PENDIENTE === 0 ? (
           <CheckCircleIcon size={16} color={colors.status.success} weight="bold" />
@@ -303,15 +301,12 @@ function KpiCard({
   cifra,
   detalle,
   icono,
-  indicadorAcento = false,
   onPress,
 }: {
   etiqueta: string;
   cifra: string;
   detalle?: string;
   icono?: React.ReactNode;
-  /** Punto naranja de atención; nunca se aplica al texto (STYLE.md §1.3). */
-  indicadorAcento?: boolean;
   /** Sin destino exacto, el KPI es informativo (no se anuncia como botón). */
   onPress?: () => void;
 }) {
@@ -332,13 +327,6 @@ function KpiCard({
         <ThemedText variant="headline" weight="bold" style={estilos.kpiCifra}>
           {cifra}
         </ThemedText>
-        {indicadorAcento ? (
-          <View
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
-            style={estilos.kpiPuntoAcento}
-          />
-        ) : null}
       </View>
       {detalle ? (
         <View style={estilos.kpiDetalleFila}>
@@ -708,12 +696,6 @@ const estilos = StyleSheet.create({
   kpiCifra: {
     color: colors.brand.primary,
     fontVariant: ['tabular-nums'],
-  },
-  kpiPuntoAcento: {
-    width: 8,
-    height: 8,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accent.urgent,
   },
   kpiDetalleFila: {
     flexDirection: 'row',
