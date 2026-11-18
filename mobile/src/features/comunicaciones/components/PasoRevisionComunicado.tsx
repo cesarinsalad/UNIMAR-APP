@@ -3,7 +3,7 @@ import { PaperclipIcon } from 'phosphor-react-native';
 
 import { ThemedButton } from '@/shared/ui/ThemedButton';
 import { ThemedText } from '@/shared/ui/ThemedText';
-import { colors, radius, spacing } from '@/shared/ui/theme';
+import { colors, layout, radius, spacing } from '@/shared/ui/theme';
 
 import { fuenteImagen } from '../api/adjuntos.api';
 import { CuerpoMarkdown } from './CuerpoMarkdown';
@@ -121,6 +121,9 @@ const estilos = StyleSheet.create({
     paddingTop: spacing.md,
     paddingBottom: spacing.xxl,
     gap: spacing.xl,
+    width: '100%',
+    maxWidth: layout.maxContentWidth,
+    alignSelf: 'center',
   },
   documento: {
     gap: spacing.md,
