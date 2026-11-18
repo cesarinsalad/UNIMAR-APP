@@ -45,7 +45,7 @@ export function ModalRechazo({
             Motivo del rechazo
           </ThemedText>
           <ThemedText variant="caption" tone="secondary">
-            Se informará al autor vía notificación (COMUNICADO_RECHAZADO).
+            Se informará al autor vía notificación.
           </ThemedText>
           <TextInput
             value={motivo}
