@@ -13,14 +13,11 @@ import { ArrowLeft, ShareNetwork as ShareIcon } from 'phosphor-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import {
-  aprobarComunicado,
   desarchivarComunicado,
   publicarComunicado,
-  rechazarComunicado,
 } from '@/features/comunicaciones/api/comunicados.api';
 import { fuenteImagen } from '@/features/comunicaciones/api/adjuntos.api';
 import { CuerpoMarkdown } from '@/features/comunicaciones/components/CuerpoMarkdown';
-import { ModalRechazo } from '@/features/comunicaciones/components/ModalRechazo';
 import { SeccionAdjuntos } from '@/features/comunicaciones/components/SeccionAdjuntos';
 import { accionesPermitidas } from '@/features/comunicaciones/hooks/accionesPermitidas';
 import { estadoCargaPortada } from '@/features/comunicaciones/helpers';
@@ -46,12 +43,12 @@ const FORMATO_FECHA_LARGA = new Intl.DateTimeFormat('es-VE', {
 });
 
 /**
- * Transiciones del ciclo editorial que el DETALLE ofrece: aprobar,
- * rechazar, publicar y desarchivar. Solicitar revisión NO está aquí (es
- * canal de la consola de gestión) — editar y archivar tampoco: el detalle
- * es lectura del estado editorial para todos los roles.
+ * Transiciones del ciclo editorial que el DETALLE ofrece: publicar y
+ * desarchivar. Aprobar, rechazar y solicitar revisión NO están aquí (canal
+ * exclusivo de la consola de gestión) — editar y archivar tampoco: el
+ * detalle es lectura del estado editorial para todos los roles.
  */
-type AccionDetalle = 'aprobar' | 'rechazar' | 'publicar' | 'desarchivar';
+type AccionDetalle = 'publicar' | 'desarchivar';
 
 export default function ComunicadoDetalleScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -155,27 +152,20 @@ function DetalleLector({
    * La fila de botones solo considera las transiciones SURFACED en el
    * detalle — los flags puedeEditar/puedeArchivar del RBAC completo
    * quedan para `veGestion` (info de staff) y la sección de adjuntos,
-   * así la fila nunca se renderiza vacía (ej. ADMIN sobre PUBLICADO
-   * ajeno, donde solo existían archivar/editar).
+   * así la fila nunca se renderiza vacía. Aprobar y rechazar NO están
+   * aquí: son canal exclusivo de la consola de gestión (colas).
    */
-  const hayAcciones =
-    acciones.puedeAprobar ||
-    acciones.puedeRechazar ||
-    acciones.puedePublicar ||
-    acciones.puedeDesarchivar;
+  const hayAcciones = acciones.puedePublicar || acciones.puedeDesarchivar;
 
   /**
-   * UNA mutación de transición (optimista) para las 5 acciones del ciclo:
-   * la fila sale de las listas cacheadas al instante y el detalle se pisa
-   * con la entidad devuelta; rollback exacto si el BFF rechaza.
+   * UNA mutación de transición (optimista) para las 2 acciones del ciclo
+   * que el detalle ofrece: la fila sale de las listas cacheadas al
+   * instante y el detalle se pisa con la entidad devuelta; rollback
+   * exacto si el BFF rechaza.
    */
-  const transicion = useTransicionComunicado<{ accion: AccionDetalle; id: string; motivo?: string }>(
-    (id, motivo, args) => {
+  const transicion = useTransicionComunicado<{ accion: AccionDetalle; id: string }>(
+    (id, _motivo, args) => {
       switch (args.accion) {
-        case 'aprobar':
-          return aprobarComunicado(id);
-        case 'rechazar':
-          return rechazarComunicado(id, motivo);
         case 'publicar':
           return publicarComunicado(id);
         case 'desarchivar':
@@ -184,16 +174,14 @@ function DetalleLector({
     },
   );
 
-  const [modalAbierto, setModalAbierto] = useState(false);
-  const [errorRechazo, setErrorRechazo] = useState<string | null>(null);
   const [errorMutacion, setErrorMutacion] = useState<string | null>(null);
 
   const algunaPendiente = transicion.isPending;
 
-  async function ejecutarAccion(accion: AccionDetalle, motivo = '') {
+  async function ejecutarAccion(accion: AccionDetalle) {
     setErrorMutacion(null);
     try {
-      await transicion.mutateAsync({ accion, id: comunicadoId, motivo: motivo || undefined });
+      await transicion.mutateAsync({ accion, id: comunicadoId });
     } catch (e) {
       if (e instanceof ApiError) {
         setErrorMutacion(e.message);
@@ -227,24 +215,6 @@ function DetalleLector({
         showsVerticalScrollIndicator={false}>
         {hayAcciones ? (
           <View style={estilos.acciones}>
-            {acciones.puedeAprobar ? (
-              <ThemedButton
-                title="Aprobar"
-                variant="ghost"
-                size="sm"
-                disabled={algunaPendiente}
-                onPress={() => void ejecutarAccion('aprobar')}
-              />
-            ) : null}
-            {acciones.puedeRechazar ? (
-              <ThemedButton
-                title="Rechazar"
-                variant="ghost"
-                size="sm"
-                disabled={algunaPendiente}
-                onPress={() => setModalAbierto(true)}
-              />
-            ) : null}
             {acciones.puedePublicar ? (
               <ThemedButton
                 title="Publicar ahora"
@@ -319,34 +289,6 @@ function DetalleLector({
           </View>
         </View>
       </ScrollView>
-
-      {/* ── Modal del rechazo (gestión, compartido con la cola) ──
-          Sin perder el motivo: se cierra SOLO si la mutación tuvo éxito;
-          el error se muestra DENTRO del modal y el texto queda intacto. */}
-      <ModalRechazo
-        visible={modalAbierto}
-        cargando={transicion.isPending}
-        error={errorRechazo ?? undefined}
-        onCancelar={() => {
-          setModalAbierto(false);
-          setErrorRechazo(null);
-        }}
-        onConfirmar={async (motivoLimpio) => {
-          setErrorRechazo(null);
-          try {
-            await transicion.mutateAsync({
-              accion: 'rechazar',
-              id: comunicadoId,
-              motivo: motivoLimpio,
-            });
-            setModalAbierto(false);
-          } catch (e) {
-            setErrorRechazo(
-              e instanceof ApiError ? e.message : 'Error de red. Verifica tu conexión.',
-            );
-          }
-        }}
-      />
     </View>
   );
 }
