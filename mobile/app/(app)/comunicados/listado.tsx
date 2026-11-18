@@ -14,9 +14,9 @@ import { aplanarPaginas } from '@/shared/lib/paginar';
 import { colors, spacing } from '@/shared/ui';
 import {
   CargandoSeccion,
-  Chip,
   EmptyState,
   HeaderTab,
+  Select,
   ThemedButton,
   ThemedText,
   ThemedView,
@@ -27,8 +27,8 @@ import { NoticiaCompacta } from '@/features/comunicaciones/components/NoticiaCom
 import type { Comunicado } from '@/features/comunicaciones/types';
 
 /**
- * Historial completo de noticias PUBLICADO visibles por RLS: chips de
- * categoría (se van con el scroll, en el ListHeaderComponent) y scroll
+ * Historial completo de noticias PUBLICADO visibles por RLS: dropdown de
+ * categoría (se va con el scroll, en el ListHeaderComponent) y scroll
  * infinito (offset del contrato, recientes primero).
  */
 export default function ListadoNoticiasScreen() {
@@ -80,11 +80,22 @@ export default function ListadoNoticiasScreen() {
             estilos.contenido,
             { paddingBottom: insets.bottom + spacing.lg },
           ]}
-          // Los selectores viven en el header del scroll: al bajar quedan
-          // atrás y la lista ocupa toda la pantalla. El título (HeaderTab)
-          // se queda fijo.
+          // El filtro vive en el header del scroll: al bajar queda atrás y
+          // la lista ocupa toda la pantalla. El título (HeaderTab) se queda
+          // fijo.
           ListHeaderComponent={
-            <ChipsCategoria seleccion={categoria} onSeleccionar={cambiarCategoria} />
+            <View style={estilos.filtros}>
+              <View style={estilos.selectCategoria}>
+                <Select<string | null>
+                  valor={categoria}
+                  opciones={CATEGORIAS}
+                  onChange={cambiarCategoria}
+                  placeholder="Categoría"
+                  valorPlaceholder={null}
+                  titulo="Filtrar por categoría"
+                />
+              </View>
+            </View>
           }
           // El separador lo pone cada NoticiaCompacta (borderBottom editorial).
           ListEmptyComponent={
@@ -116,40 +127,14 @@ export default function ListadoNoticiasScreen() {
   );
 }
 
-const CHIPS: { valor: string | null; etiqueta: string }[] = [
+/** Opciones del wire (mismas claves que el filtro de la consola). `null` =
+ *  sin filtro: el trigger muestra el placeholder "Categoría". */
+const CATEGORIAS: { valor: string | null; etiqueta: string }[] = [
   { valor: null, etiqueta: 'Todas' },
   { valor: 'ACADEMICO', etiqueta: 'Académico' },
   { valor: 'EVENTO', etiqueta: 'Eventos' },
   { valor: 'INSTITUCIONAL', etiqueta: 'Institucional' },
 ];
-
-/** Selectores de categoría: el Chip compartido del sistema (activa = tinte
- *  azul sobre tinta azul; inactiva = pill blanca). */
-function ChipsCategoria({
-  seleccion,
-  onSeleccionar,
-}: {
-  seleccion: string | null;
-  onSeleccionar: (v: string | null) => void;
-}) {
-  return (
-    <FlatList
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      data={CHIPS}
-      keyExtractor={(chip) => chip.etiqueta}
-      contentContainerStyle={estilos.chips}
-      renderItem={({ item }) => (
-        <Chip
-          etiqueta={item.etiqueta}
-          activa={item.valor === seleccion}
-          size="sm"
-          onPress={() => onSeleccionar(item.valor)}
-        />
-      )}
-    />
-  );
-}
 
 const estilos = StyleSheet.create({
   pantalla: {
@@ -169,13 +154,16 @@ const estilos = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.lg,
   },
-  chips: {
-    // Sin padding horizontal: vive dentro del contentContainer de la lista
-    // (estilos.contenido), que ya alinea con el margen estándar — un
-    // paddingHorizontal propio duplicaba la sangría inicial de los chips.
+  /** El filtro se alinea con el margen estándar de la lista (el contentContainer
+   *  ya trae el padding horizontal) y ocupa solo lo que mide el campo. */
+  filtros: {
     paddingTop: spacing.md,
     paddingBottom: spacing.lg,
-    gap: spacing.sm,
+  },
+  selectCategoria: {
+    alignSelf: 'flex-start',
+    minWidth: 180,
+    maxWidth: 220,
   },
   contenido: {
     paddingHorizontal: spacing.lg,
