@@ -16,9 +16,9 @@ import { BotonCircular, ThemedText, ThemedView, useBreakpoint } from '@/shared/u
 import { useDecanatos } from '@/features/identidad/hooks/useDecanatos';
 import type { Rol } from '@/features/identidad/types';
 import type { EstadoComunicado } from '@/features/comunicaciones/types';
-import { ResumenSeccion } from './_secciones/ResumenSeccion';
-import { ComunicadosSeccion, type EstadoCola } from './_secciones/ComunicadosSeccion';
-import { EventosSeccion, type ModoEventos } from './_secciones/EventosSeccion';
+import { ResumenSeccion } from '@/pantallas/gestion/ResumenSeccion';
+import { ComunicadosSeccion, type EstadoCola } from '@/pantallas/gestion/ComunicadosSeccion';
+import { EventosSeccion, type ModoEventos } from '@/pantallas/gestion/EventosSeccion';
 
 type Seccion = 'resumen' | 'comunicados' | 'eventos';
 
