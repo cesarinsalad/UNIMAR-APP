@@ -6,6 +6,7 @@ import {
   BellIcon,
   BookBookmarkIcon,
   CaretRightIcon,
+  FingerprintIcon,
   QrCodeIcon,
   SignOutIcon,
   SquaresFourIcon,
@@ -15,11 +16,21 @@ import { api } from '@/shared/api/axios';
 import { aRomano, etiquetaEstatus, formatoCedula } from '@/features/identidad/carnet-helpers';
 import { usePermisos } from '@/features/identidad/hooks/usePermisos';
 import { useRegistrarDispositivo } from '@/features/notificaciones/hooks/useRegistrarDispositivo';
-import { useSesionStore } from '@/features/identidad/store/sesion.store';
+import {
+  useSesionStore,
+  type MotivoErrorBiometria,
+} from '@/features/identidad/store/sesion.store';
 import { usePerfil } from '@/features/academico/hooks/usePerfil';
 import { CarnetDigital, inicialesDe } from '@/features/identidad/components/CarnetDigital';
 import { colors, layout, radius, spacing } from '@/shared/ui';
-import { HeaderTab, ModalConfirmacion, PressableScale, ThemedText, ThemedView } from '@/shared/ui';
+import {
+  HeaderTab,
+  ModalConfirmacion,
+  PressableScale,
+  SeparadorFino,
+  ThemedText,
+  ThemedView,
+} from '@/shared/ui';
 
 type PerfilAcademicoQuery = ReturnType<typeof usePerfil>;
 
@@ -160,14 +171,30 @@ function TarjetaPensum() {
   );
 }
 
-/** Fila "Notificaciones Push": off = baja el dispositivo del BFF; on = re-registra. */
+function subtituloBiometria(motivo: MotivoErrorBiometria | null): string {
+  switch (motivo) {
+    case 'no_disponible':
+      return 'Configura huella o rostro en los ajustes de tu dispositivo';
+    case 'cancelado':
+      return 'Verificación cancelada. No se activó el bloqueo';
+    case 'error':
+      return 'No se pudo guardar la configuración biométrica';
+    default:
+      return 'Solicitar huella o rostro al abrir la app';
+  }
+}
+
+/** Ajustes nativos: notificaciones push e ingreso biométrico al abrir la app. */
 function TarjetaAjustes() {
   const usuario = useSesionStore((s) => s.usuario);
   const dispositivoId = useSesionStore((s) => s.dispositivoId);
   const pushDeshabilitado = useSesionStore((s) => s.pushDeshabilitado);
+  const biometriaActiva = useSesionStore((s) => s.biometriaActiva);
   const { registrar } = useRegistrarDispositivo();
 
   const [huboError, setHuboError] = useState(false);
+  const [cambiandoBiometria, setCambiandoBiometria] = useState(false);
+  const [errorBiometria, setErrorBiometria] = useState<MotivoErrorBiometria | null>(null);
 
   const activado = !pushDeshabilitado;
 
@@ -186,6 +213,21 @@ function TarjetaAjustes() {
     } else {
       const estado = await registrar();
       if (estado !== 'ok') setHuboError(true);
+    }
+  }
+
+  async function cambiarBiometria(nuevoValor: boolean) {
+    setErrorBiometria(null);
+    setCambiandoBiometria(true);
+    try {
+      if (nuevoValor) {
+        const res = await useSesionStore.getState().activarBiometria();
+        if (!res.ok) setErrorBiometria(res.motivo);
+      } else {
+        await useSesionStore.getState().desactivarBiometria();
+      }
+    } finally {
+      setCambiandoBiometria(false);
     }
   }
 
@@ -214,6 +256,31 @@ function TarjetaAjustes() {
           }}
           trackColor={{ true: colors.brand.primary as string, false: colors.border.subtle }}
           disabled={usuario === null}
+        />
+      </View>
+
+      <SeparadorFino />
+
+      <View style={estilos.fila}>
+        <View style={estilos.leading}>
+          <FingerprintIcon size={20} color={colors.brand.primary} weight="duotone" />
+        </View>
+        <View style={estilos.textoFila}>
+          <ThemedText variant="body" weight="medium">
+            Ingreso Biométrico
+          </ThemedText>
+          <ThemedText variant="caption" tone="tertiary">
+            {subtituloBiometria(errorBiometria)}
+          </ThemedText>
+        </View>
+        <Switch
+          accessibilityLabel="Ingreso Biométrico"
+          value={biometriaActiva}
+          onValueChange={(v) => {
+            void cambiarBiometria(v);
+          }}
+          trackColor={{ true: colors.brand.primary as string, false: colors.border.subtle }}
+          disabled={usuario === null || cambiandoBiometria}
         />
       </View>
     </ThemedView>

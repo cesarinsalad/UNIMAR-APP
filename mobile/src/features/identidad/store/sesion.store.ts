@@ -1,18 +1,45 @@
 import { Platform } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 import { create } from 'zustand';
 
 import { api } from '@/shared/api/axios';
-import { TOKEN_STORAGE_KEY } from '@/shared/lib/constants';
+import {
+  BIOMETRIA_STORAGE_KEY,
+  BIOMETRIA_TOKEN_KEY,
+  TOKEN_STORAGE_KEY,
+} from '@/shared/lib/constants';
 import { decodeJwt, expiresWithin, isExpired, type JwtClaims } from '@/shared/lib/jwt';
 import { limpiarRutaPendiente } from '@/shared/notifications/pendingLink';
 import { queryClient } from '@/shared/api/queryClient';
 import type { Rol, Usuario } from '../types';
+
+export type MotivoErrorBiometria = 'no_disponible' | 'cancelado' | 'error';
+
+export type ResultadoActivarBiometria =
+  | { ok: true }
+  | { ok: false; motivo: MotivoErrorBiometria };
+
+export type ResultadoDesbloqueoBiometrico = 'ok' | 'cancelado' | 'expirado';
+
+const PROMPT_ACTIVAR_BIOMETRIA =
+  'Confirma tu identidad para activar el ingreso biométrico';
+const PROMPT_DESBLOQUEAR_BIOMETRIA =
+  'Verifica tu identidad para ingresar a UNIMARapp';
+
+// Evita que el diálogo biométrico del propio SO dispare el bloqueo al volver a 'active'.
+let operacionBiometricaEnCurso = false;
+
+export function estaOperacionBiometricaEnCurso(): boolean {
+  return operacionBiometricaEnCurso;
+}
 
 interface SesionState {
   token: string | null;
   usuario: Usuario | null;
   dispositivoId: string | null;
   pushDeshabilitado: boolean;
+  biometriaActiva: boolean;
+  bloqueadoPorBiometria: boolean;
   hidratado: boolean;
   loggingOut: boolean;
 }
@@ -22,6 +49,10 @@ interface SesionActions {
   setSesion: (token: string, dispositivoId?: string | null) => Promise<void>;
   setDispositivo: (id: string | null) => void;
   setPushDeshabilitado: (v: boolean) => void;
+  activarBiometria: () => Promise<ResultadoActivarBiometria>;
+  desactivarBiometria: () => Promise<void>;
+  desbloquearConBiometria: () => Promise<ResultadoDesbloqueoBiometrico>;
+  bloquearPorBiometria: () => void;
   logout: () => Promise<void>;
 }
 
@@ -51,7 +82,6 @@ async function persistToken(token: string): Promise<void> {
     }
     return;
   }
-  const SecureStore = await import('expo-secure-store');
   await SecureStore.setItemAsync(TOKEN_STORAGE_KEY, token);
 }
 
@@ -64,7 +94,6 @@ async function clearPersistedToken(): Promise<void> {
     }
     return;
   }
-  const SecureStore = await import('expo-secure-store');
   await SecureStore.deleteItemAsync(TOKEN_STORAGE_KEY);
 }
 
@@ -76,8 +105,55 @@ async function readPersistedToken(): Promise<string | null> {
       return null;
     }
   }
-  const SecureStore = await import('expo-secure-store');
   return SecureStore.getItemAsync(TOKEN_STORAGE_KEY);
+}
+
+async function canUseBiometrics(): Promise<boolean> {
+  if (Platform.OS === 'web') return false;
+  try {
+    return Boolean(SecureStore.canUseBiometricAuthentication());
+  } catch {
+    return false;
+  }
+}
+
+async function readBiometriaFlag(): Promise<boolean> {
+  if (Platform.OS === 'web') return false;
+  try {
+    return (await SecureStore.getItemAsync(BIOMETRIA_STORAGE_KEY)) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+async function clearBiometriaStorage(): Promise<void> {
+  if (Platform.OS === 'web') return;
+  try {
+    await SecureStore.deleteItemAsync(BIOMETRIA_STORAGE_KEY);
+  } catch {
+    // Best-effort.
+  }
+  try {
+    await SecureStore.deleteItemAsync(BIOMETRIA_TOKEN_KEY, { requireAuthentication: true });
+  } catch {
+    // Best-effort.
+  }
+  try {
+    await SecureStore.deleteItemAsync(BIOMETRIA_TOKEN_KEY);
+  } catch {
+    // Best-effort.
+  }
+}
+
+function clasificarErrorBiometrico(err: unknown): MotivoErrorBiometria {
+  const msg = err instanceof Error ? err.message : String(err);
+  if (/cancel|user canceled|negative_button|errSecUserCanceled|-128/i.test(msg)) {
+    return 'cancelado';
+  }
+  if (/no biometric|no hardware|unavailable|not enrolled|biometryNotEnrolled|biometryNotAvailable/i.test(msg)) {
+    return 'no_disponible';
+  }
+  return 'error';
 }
 
 async function unregisterDeviceBestEffort(dispositivoId: string | null): Promise<void> {
@@ -94,26 +170,45 @@ export const useSesionStore = create<SesionStore>((set, get) => ({
   usuario: null,
   dispositivoId: null,
   pushDeshabilitado: false,
+  biometriaActiva: false,
+  bloqueadoPorBiometria: false,
   hidratado: false,
   loggingOut: false,
 
   hydrate: async () => {
     if (get().hidratado) return;
     try {
+      if (Platform.OS !== 'web' && (await readBiometriaFlag())) {
+        if (!(await canUseBiometrics())) {
+          await clearBiometriaStorage();
+          await clearPersistedToken();
+          set({ biometriaActiva: false, bloqueadoPorBiometria: false, hidratado: true });
+          return;
+        }
+        set({
+          token: null,
+          usuario: null,
+          biometriaActiva: true,
+          bloqueadoPorBiometria: true,
+          hidratado: true,
+        });
+        return;
+      }
+
       const token = await readPersistedToken();
       if (!token) {
-        set({ hidratado: true });
+        set({ biometriaActiva: false, bloqueadoPorBiometria: false, hidratado: true });
         return;
       }
       const claims = decodeJwt(token);
       if (!claims) {
         await clearPersistedToken();
-        set({ hidratado: true });
+        set({ biometriaActiva: false, bloqueadoPorBiometria: false, hidratado: true });
         return;
       }
       if (isExpired(claims)) {
         await clearPersistedToken();
-        set({ hidratado: true });
+        set({ biometriaActiva: false, bloqueadoPorBiometria: false, hidratado: true });
         return;
       }
       if (expiresWithin(claims, 5 * 60 * 1000)) {
@@ -123,6 +218,8 @@ export const useSesionStore = create<SesionStore>((set, get) => ({
       set({
         token,
         usuario: usuarioFromClaims(claims),
+        biometriaActiva: false,
+        bloqueadoPorBiometria: false,
         hidratado: true,
       });
     } catch {
@@ -144,8 +241,11 @@ export const useSesionStore = create<SesionStore>((set, get) => ({
       usuario: usuarioFromClaims(claims),
       dispositivoId,
       pushDeshabilitado: false,
+      biometriaActiva: false,
+      bloqueadoPorBiometria: false,
       hidratado: true,
     });
+    await clearBiometriaStorage();
     await persistToken(token);
   },
 
@@ -155,6 +255,101 @@ export const useSesionStore = create<SesionStore>((set, get) => ({
 
   setPushDeshabilitado: (v: boolean) => {
     set({ pushDeshabilitado: v });
+  },
+
+  activarBiometria: async () => {
+    const { token } = get();
+    if (Platform.OS === 'web' || !token) {
+      return { ok: false, motivo: 'no_disponible' };
+    }
+    if (!(await canUseBiometrics())) {
+      return { ok: false, motivo: 'no_disponible' };
+    }
+    operacionBiometricaEnCurso = true;
+    try {
+      await SecureStore.setItemAsync(BIOMETRIA_TOKEN_KEY, token, {
+        requireAuthentication: true,
+        authenticationPrompt: PROMPT_ACTIVAR_BIOMETRIA,
+      });
+      // En iOS, SecItemAdd no dispara Face ID / Touch ID al escribir sino al leer.
+      if (Platform.OS === 'ios') {
+        await SecureStore.getItemAsync(BIOMETRIA_TOKEN_KEY, {
+          requireAuthentication: true,
+          authenticationPrompt: PROMPT_ACTIVAR_BIOMETRIA,
+        });
+      }
+      await SecureStore.setItemAsync(BIOMETRIA_STORAGE_KEY, 'true');
+      await clearPersistedToken();
+      set({ biometriaActiva: true, bloqueadoPorBiometria: false });
+      return { ok: true };
+    } catch (err) {
+      await clearBiometriaStorage();
+      return { ok: false, motivo: clasificarErrorBiometrico(err) };
+    } finally {
+      operacionBiometricaEnCurso = false;
+    }
+  },
+
+  desactivarBiometria: async () => {
+    const { token } = get();
+    if (token) {
+      await persistToken(token);
+    }
+    await clearBiometriaStorage();
+    set({ biometriaActiva: false, bloqueadoPorBiometria: false });
+  },
+
+  desbloquearConBiometria: async () => {
+    if (Platform.OS === 'web') return 'expirado';
+    operacionBiometricaEnCurso = true;
+    try {
+      const token = await SecureStore.getItemAsync(BIOMETRIA_TOKEN_KEY, {
+        requireAuthentication: true,
+        authenticationPrompt: PROMPT_DESBLOQUEAR_BIOMETRIA,
+      });
+      if (!token) {
+        await clearBiometriaStorage();
+        await clearPersistedToken();
+        set({
+          token: null,
+          usuario: null,
+          biometriaActiva: false,
+          bloqueadoPorBiometria: false,
+        });
+        return 'expirado';
+      }
+      const claims = decodeJwt(token);
+      if (!claims || isExpired(claims)) {
+        await clearBiometriaStorage();
+        await clearPersistedToken();
+        set({
+          token: null,
+          usuario: null,
+          biometriaActiva: false,
+          bloqueadoPorBiometria: false,
+        });
+        return 'expirado';
+      }
+      set({
+        token,
+        usuario: usuarioFromClaims(claims),
+        biometriaActiva: true,
+        bloqueadoPorBiometria: false,
+      });
+      return 'ok';
+    } catch {
+      return 'cancelado';
+    } finally {
+      operacionBiometricaEnCurso = false;
+    }
+  },
+
+  bloquearPorBiometria: () => {
+    if (Platform.OS === 'web' || operacionBiometricaEnCurso) return;
+    const { biometriaActiva, token, bloqueadoPorBiometria } = get();
+    if (biometriaActiva && token && !bloqueadoPorBiometria) {
+      set({ token: null, usuario: null, bloqueadoPorBiometria: true });
+    }
   },
 
   logout: async () => {
@@ -167,12 +362,15 @@ export const useSesionStore = create<SesionStore>((set, get) => ({
       // Un deep-link del usuario saliente no abre contenido al que inicie
       // sesión después (privacidad entre usuarios del mismo dispositivo).
       limpiarRutaPendiente();
+      await clearBiometriaStorage();
       await clearPersistedToken();
       set({
         token: null,
         usuario: null,
         dispositivoId: null,
         pushDeshabilitado: false,
+        biometriaActiva: false,
+        bloqueadoPorBiometria: false,
         loggingOut: false,
       });
     } catch {

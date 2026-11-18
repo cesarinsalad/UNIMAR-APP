@@ -6,4 +6,8 @@ export const API_BASE_URL: string = fromExtra ?? 'http://localhost:3000/api/v1';
 
 export const TOKEN_STORAGE_KEY = 'unimar.auth_token';
 
+export const BIOMETRIA_STORAGE_KEY = 'unimar.biometria_activa';
+
+export const BIOMETRIA_TOKEN_KEY = 'unimar.biometria_token';
+
 export const SESSION_HYDRATION_WINDOW_MS = 5 * 60 * 1000;

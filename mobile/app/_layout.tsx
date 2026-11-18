@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Image, Platform, StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { AppState, Image, Platform, StyleSheet, View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { Redirect, Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -9,7 +9,11 @@ import { QueryClientProvider } from '@tanstack/react-query';
 
 import { useFonts } from 'expo-font';
 import { evaluarAccesoWeb } from '@/shared/lib/accesoWeb';
-import { useSesionStore } from '@/features/identidad/store/sesion.store';
+import {
+  estaOperacionBiometricaEnCurso,
+  useSesionStore,
+} from '@/features/identidad/store/sesion.store';
+import { VistaBloqueoBiometrico } from '@/features/identidad/components/VistaBloqueoBiometrico';
 import { VistaSoloMovil } from '@/shared/ui/VistaSoloMovil';
 import { ProveedorTeclado } from '@/shared/ui/ProveedorTeclado';
 import { colors } from '@/shared/ui';
@@ -98,9 +102,37 @@ export default function RootLayout() {
   // more hooks than during the previous render") en cuanto hidrataba.
   const puerta = usarPuertaWeb();
   const rutaActual = usePathname();
+  const bloqueadoPorBiometria = useSesionStore((s) => s.bloqueadoPorBiometria);
+  const rutaActualRef = useRef(rutaActual);
+  rutaActualRef.current = rutaActual;
+
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    let backgroundAt: number | null = null;
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'background') {
+        const ruta = rutaActualRef.current;
+        const enEditorConPicker =
+          ruta.startsWith('/comunicados/nuevo') || ruta.startsWith('/eventos/nuevo');
+        if (!estaOperacionBiometricaEnCurso() && !enEditorConPicker) {
+          backgroundAt = Date.now();
+        }
+        return;
+      }
+      if (nextState === 'active' && backgroundAt !== null) {
+        const transcurrido = Date.now() - backgroundAt;
+        backgroundAt = null;
+        if (transcurrido >= 1500 && !estaOperacionBiometricaEnCurso()) {
+          useSesionStore.getState().bloquearPorBiometria();
+        }
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
   // El editor de comunicados oculta la chapa azul y usa una cabecera clara.
   const editorEnfocado =
-    Platform.OS !== 'web' && rutaActual === '/comunicados/nuevo';
+    Platform.OS !== 'web' && !bloqueadoPorBiometria && rutaActual === '/comunicados/nuevo';
 
   if (!hidratado || !fuenteCargada) {
     // Réplica del splash nativo (Expo Go no permite boot splash custom):
@@ -118,7 +150,9 @@ export default function RootLayout() {
         <SafeAreaProvider>
           <QueryClientProvider client={queryClient}>
             <StatusBar style={editorEnfocado ? 'dark' : 'light'} />
-            {puerta === 'soloMovil' ? (
+            {bloqueadoPorBiometria ? (
+              <VistaBloqueoBiometrico />
+            ) : puerta === 'soloMovil' ? (
               <VistaSoloMovil />
             ) : puerta === 'irGestion' ? (
               <Redirect href="/gestion" />
