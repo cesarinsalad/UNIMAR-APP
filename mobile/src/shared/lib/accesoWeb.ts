@@ -40,3 +40,11 @@ export function evaluarAccesoWeb(pathname: string, rol: Rol | null): ResultadoAc
   if (rol === 'ESTUDIANTE') return 'bloquear';
   return rutaPermitidaStaffWeb(pathname) ? 'pasar' : 'irGestion';
 }
+
+/** Ruta inicial tras autenticarse según plataforma y rol. */
+export function rutaInicioAutenticado(rol: Rol | null, esWeb: boolean): '/' | '/gestion' {
+  if (esWeb && evaluarAccesoWeb('/', rol) === 'irGestion') {
+    return '/gestion';
+  }
+  return '/';
+}

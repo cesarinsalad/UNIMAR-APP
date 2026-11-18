@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AppState, Image, Platform, StyleSheet, View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
-import { Redirect, Stack, usePathname } from 'expo-router';
+import { Stack, router, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -94,8 +94,10 @@ export default function RootLayout() {
     return cleanup;
   }, [listenersActivos]);
 
-  // Web gate: al bloquear/redirigir, la pantalla/reenvío REEMPLAZA al Stack
-  // (las pantallas de la app ni se montan). Nativo: siempre 'normal'.
+  // Web gate: al bloquear, la pantalla REEMPLAZA al Stack (las pantallas de
+  // la app ni se montan). Cuando requiere ir a Gestión, se mantiene el Stack
+  // montado y se redirige de forma imperativa para no reiniciar el router raíz.
+  // Nativo: siempre 'normal'.
   // La llamada va ARRIBA del early return del splash: es un hook compuesto
   // (useSesionStore + usePathname) y su orden de hooks debe ser estable en
   // todos los renders — abajo del return crasheaba con React #310 ("Rendered
@@ -105,6 +107,13 @@ export default function RootLayout() {
   const bloqueadoPorBiometria = useSesionStore((s) => s.bloqueadoPorBiometria);
   const rutaActualRef = useRef(rutaActual);
   rutaActualRef.current = rutaActual;
+
+  useEffect(() => {
+    if (!hidratado || !fuenteCargada || bloqueadoPorBiometria) return;
+    if (puerta === 'irGestion') {
+      router.replace('/gestion' as never);
+    }
+  }, [hidratado, fuenteCargada, bloqueadoPorBiometria, puerta, rutaActual]);
 
   useEffect(() => {
     if (Platform.OS === 'web') return;
@@ -154,8 +163,6 @@ export default function RootLayout() {
               <VistaBloqueoBiometrico />
             ) : puerta === 'soloMovil' ? (
               <VistaSoloMovil />
-            ) : puerta === 'irGestion' ? (
-              <Redirect href="/gestion" />
             ) : (
               <Stack
                 screenOptions={{

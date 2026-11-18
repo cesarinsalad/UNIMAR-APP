@@ -1,4 +1,4 @@
-import { evaluarAccesoWeb, rutaPermitidaStaffWeb } from './accesoWeb';
+import { evaluarAccesoWeb, rutaInicioAutenticado, rutaPermitidaStaffWeb } from './accesoWeb';
 
 describe('rutaPermitidaStaffWeb', () => {
   it('la consola y sus deep-links pasan', () => {
@@ -73,5 +73,24 @@ describe('evaluarAccesoWeb', () => {
         'ADMIN',
       ),
     ).toBe('pasar');
+  });
+});
+
+describe('rutaInicioAutenticado', () => {
+  it('en web dirige al staff (ADMIN y COMUNICADOR) a /gestion', () => {
+    expect(rutaInicioAutenticado('ADMIN', true)).toBe('/gestion');
+    expect(rutaInicioAutenticado('COMUNICADOR', true)).toBe('/gestion');
+  });
+
+  it('en web dirige a ESTUDIANTE o sin rol a /', () => {
+    expect(rutaInicioAutenticado('ESTUDIANTE', true)).toBe('/');
+    expect(rutaInicioAutenticado(null, true)).toBe('/');
+  });
+
+  it('en nativo dirige a / para cualquier rol', () => {
+    expect(rutaInicioAutenticado('ADMIN', false)).toBe('/');
+    expect(rutaInicioAutenticado('COMUNICADOR', false)).toBe('/');
+    expect(rutaInicioAutenticado('ESTUDIANTE', false)).toBe('/');
+    expect(rutaInicioAutenticado(null, false)).toBe('/');
   });
 });

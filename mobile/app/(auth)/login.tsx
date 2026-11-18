@@ -8,7 +8,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { Eye, EyeSlash } from 'phosphor-react-native';
 
 import { Card, TextField, ThemedButton, ThemedText } from '@/shared/ui';
@@ -16,14 +15,12 @@ import { colors, radius, spacing } from '@/shared/ui';
 import { login as loginApi } from '@/features/identidad/api/auth.api';
 import { useSesionStore } from '@/features/identidad/store/sesion.store';
 import { ApiError } from '@/shared/api/axios';
-import { tomarRutaPendiente } from '@/shared/notifications/pendingLink';
 import LoginLogo from '../../assets/images/unimar/logo-vertical-color.png';
 
 // El reseteo de contraseña se hace en la página web institucional, no en la app.
 const URL_RESET_PASSWORD = 'https://www.unimar.edu.ve/login';
 
 export default function LoginScreen() {
-  const router = useRouter();
   const setSesion = useSesionStore((s) => s.setSesion);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -41,9 +38,6 @@ export default function LoginScreen() {
     try {
       const sesion = await loginApi(email.trim(), password);
       await setSesion(sesion.token);
-      // Si el usuario tocó una notificación sin sesión, la cola vive hasta
-      // este punto (get-and-clear: doble consumo imposible).
-      router.replace((tomarRutaPendiente() ?? '/') as Parameters<typeof router.replace>[0]);
     } catch (e) {
       if (e instanceof ApiError) {
         if (e.status === 401) {
